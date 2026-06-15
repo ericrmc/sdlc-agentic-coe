@@ -5,8 +5,10 @@ covering early SDLC from a raw intake to a delivery plan. Every skill is self-co
 it in any LLM workflow that reads markdown, with zero repo dependency.
 
 Read this as the agent who authors and runs this material: you populate the patterns, capabilities, and skill
-edits and open the PR; the human reviews and ratifies by merging. Front doors: **GETTING-STARTED.md**,
-**skills/MAP.md** (category table + end-to-end flow), **capabilities/INDEX.md** (need-first lookup).
+edits and open the PR; the human reviews and ratifies by merging. Front doors: **ENTRYPOINT.md** (the thin
+pointer naming the two `meta/` skills — `meta/navigator` to USE the library, `meta/author-a-skill` to extend it),
+**GETTING-STARTED.md** (persona table + fast end-to-end pass), **skills/MAP.md** (category table + end-to-end
+flow), **capabilities/INDEX.md** (need-first lookup).
 
 ---
 
@@ -55,22 +57,28 @@ closed set, or a pattern carrying an agent-set `approval_status`, fails the chec
 
 ---
 
-## 3. The seven categories
+## 3. The eight categories
 
 | Category | Purpose | Skills |
 |---|---|---|
 | **ingest** | Read an external source into staged requirements: fingerprint each row, propose on first read, diff on re-read. | ingest-source-to-requirements · stage-and-fingerprint · reingest-delta |
-| **understand** | Structure a raw intake into outcomes, derived requirements, NFR coverage. | decompose-intake-to-outcomes · classify-requirements · nfr-coverage-check |
+| **understand** | Structure a raw intake into outcomes, derived requirements, NFR coverage, and the capability each requirement fulfils. | decompose-intake-to-outcomes · classify-requirements · nfr-coverage-check · derive-capabilities |
 | **challenge** | Adversarially pressure-test a requirement set. | red-team-requirements · surface-risks-and-assumptions · enumerate-roadblocks · necessity-check |
 | **architect** | Choose a solution shape and author the design. | recommend-component-patterns · surface-solution-options · propagate-pattern-nfrs · validate-solution-vs-requirements · surface-open-decisions · synthesise-solution-architecture · reconcile-design-vs-requirements · import-external-design · reconcile-as-built |
 | **panel** | Multi-voice deliberation and review. | convene-a-panel · synthesise-panel · red-team-and-dissent · design-review-findings · frontend-a11y-review |
-| **deliver** | Plan the delivery lifecycle and hand off the build. | describe-phases-releases-waves · help-implement-a-wave · triage-backlog-and-defer · scope-reconcile-check · scaffold-then-handoff · testing-brief-scaffold · design-studio-brief-scaffold · comparator-grounded-estimate |
+| **deliver** | Plan the delivery lifecycle and hand off the build. | intake-feature-change · describe-phases-releases-waves · help-implement-a-wave · triage-backlog-and-defer · scope-reconcile-check · scaffold-then-handoff · testing-brief-scaffold · build-agent-brief-scaffold · design-studio-brief-scaffold · comparator-grounded-estimate |
 | **library** | Author and curate the reusable assets; see the portfolio. | author-component-pattern · author-capability · pattern-library-curate · portfolio-phase-health · advisory-governance-checklist |
+| **meta** | Skills about using and extending the library — the front door, not a stage. | navigator · author-a-skill |
 
 `skills/MAP.md` shows these as a category table and an end-to-end flow (ingest → understand → challenge →
 architect → panel → deliver, with library as a side-store and capabilities as the requirements→components
-bridge): a map, not a track. Conventions live in `skills/_contract/` (target-rule-output-kinds · propose-ratify-rhythm ·
-explore-one-area-at-a-time · parallel-agents).
+bridge): a map, not a track. **meta** sits outside that line: `meta/navigator` is how an agent *enters* the flow
+(it asks what you want and walks the engagement one stage at a time, routing only to skills that exist on disk
+and halting between stages for the human to ratify — its deterministic fallback is the GETTING-STARTED persona
+table plus the MAP category table); `meta/author-a-skill` is the off-ramp for contributing a new skill, pattern,
+or capability. `ENTRYPOINT.md` (repo root) is the thin pointer naming both. Conventions live in
+`skills/_contract/` (target-rule-output-kinds · propose-ratify-rhythm · explore-one-area-at-a-time ·
+parallel-agents · grounding-no-absent-input).
 
 ---
 
@@ -115,11 +123,20 @@ A pattern is one markdown file at `patterns/<category>/<pattern_key>.md`; its YA
 |---|---|
 | Required | `pattern_key` (stable, cite-able), `name`, `category` (`deployment\|integration\|data`), `intent` ("use WHEN … so that …"), `deployment_topology`, `data_placement`, `summary`, `approval_status` (`candidate\|provisional\|approved\|deprecated`, **human-only**), `valid_from`, `attached_nfrs[]` each `{kind, statement, acceptance_criterion}` |
 | Conditional | `approved_by` + `approved_at` + ≥1 `evidence[]` `{title,url}` when status ∈ {provisional, approved}; `superseded_by` when deprecated |
-| Optional | `validity_check_months` (default 12), `sunset_at`, `supersedes`, `constraints[]` `{statement, enforced: hard\|soft}`, `fulfils: [CAP-…]` back-ref |
+| Optional | `validity_check_months` (default 12), `sunset_at`, `supersedes`, `constraints[]` `{statement, enforced: hard\|soft}`, `fulfils: [CAP-…]` back-ref, `reference_implementations[]` `{kind: iac\|app\|notebook\|scaffold\|module\|pipeline, url, provisions, repo_path?, scaffold_cmd?, last_verified?, notes?}` — a forward pointer to a working artefact an agent clones/scaffolds from |
 | Computed (Action-owned, in `generated/`, never hand-write) | `maturity` (battle-tested\|emerging\|experimental from adoption count), `adoption_count` |
 
 Closed NFR kinds (11): `security, availability, performance, data-residency, observability, resilience,
 cost, compliance, scalability, data-governance, operations`. Shared by patterns and capabilities.
+
+**`reference_implementations[]` vs `evidence[]`** — they answer different questions. `evidence[]` is
+retrospective ("was this BUILT?") and is REQUIRED from `provisional` up; it is the only thing the promotion
+gate reads. `reference_implementations[]` is a forward pointer ("what working artefact do I clone or scaffold
+from?") and is **advisory only** — additive, optional, validates without it, and **never relaxes the gate**. A
+reference implementation that *is* a real build is also listed under `evidence` (and *that* entry promotes the
+pattern, through the existing door — zero new gate logic). An agent may propose a candidate entry but never
+blesses one: a CODEOWNER confirms the URL and sets `last_verified`. `lint_pattern_frontmatter.py` validates the
+`kind` enum and an advisory `last_verified` staleness note, and adds nothing to the promotion rules.
 
 **Loop:** propose (`new-pattern` issue → PR at `candidate`) → validate (advisory schema lint) → ratify (a human
 architect merges via CODEOWNERS branch protection; `approval_status: approved` is written in the human commit,
@@ -188,5 +205,6 @@ purpose) · `aliases` (synonyms for findability) · `output_kinds` (⊆ the clos
   that needs an index Action at hundreds.
 - **Duplication is the price of zero-dependency portability.** Shared conventions are quoted into each skill;
   `check-shared-stub-drift` guards in-repo copies, but a skill copied out loses that guard.
-- **Large surface area.** The category map and the `GETTING-STARTED.md` persona table mitigate discovery cost; a
-  "core 10" subset could be marked for a lighter first adoption.
+- **Large surface area.** The category map, the `GETTING-STARTED.md` persona table, and `meta/navigator` (which
+  reads both and walks an engagement stage by stage) mitigate discovery cost; a "core 10" subset could be marked
+  for a lighter first adoption.

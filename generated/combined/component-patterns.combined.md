@@ -260,6 +260,8 @@ approved_at: "2026-06-15"
 valid_from: "2026-06-15"
 validity_check_months: 12
 fulfils: [CAP-OLAP]
+reference_implementations:
+  - {kind: iac, url: "https://github.com/ORG/REPLACE-ME-databricks-azure-iac", provisions: "azure databricks workspace + unity catalog", notes: "PLACEHOLDER — a CODEOWNER replaces this with the real Azure IaC repo before approval. Advisory 'start here' pointer only: it is NOT evidence and never gates promotion."}
 constraints:
   - {statement: "No external model call may read PII columns", enforced: hard}
   - {statement: "Cluster auto-termination required", enforced: soft}
@@ -328,6 +330,16 @@ The `security` NFR ("no external model call may read PII columns") is the one th
 - [Governed-lakehouse EDW migration — solution design with UC governance NFRs](https://github.com/sdlc-agentic-coe/seed-corpus/blob/main/edw-migration/solution-design.md)
   — the recorded adoption-decision artefact (the `evidence` entry in the frontmatter). A
   CODEOWNER attaches a production reference build to promote this from `provisional` to `approved`.
+
+#### Start from (reference implementation)
+
+A downstream project adopting this pattern can scaffold from the Azure IaC repo recorded in
+`reference_implementations` (`kind: iac`, provisions an Azure Databricks workspace + Unity
+Catalog). This is a **forward "start here" pointer, distinct from `evidence`**: it does not
+prove the pattern was built and it never gates promotion — the promotion gate runs through
+`evidence[]` alone. The URL is currently a **placeholder**
+(`https://github.com/ORG/REPLACE-ME-databricks-azure-iac`); a CODEOWNER replaces it with the
+real repo before approval.
 - A representative real-world shape this pattern fits: migration of a ~10TB on-prem EDW to a Databricks Lakehouse on Unity Catalog with BI (e.g. Power BI) on top — a governed analytics estate rather than a lift-and-shift of ungoverned extracts.
 
 ### References

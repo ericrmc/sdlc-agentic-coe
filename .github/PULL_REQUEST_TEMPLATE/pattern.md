@@ -66,6 +66,22 @@
 |---|---|
 | | `hard` \| `soft` |
 
+## Reference implementations (optional — "start here", NOT evidence)
+
+> Paste one row per `reference_implementations` entry: a working artefact an adopting
+> project clones or scaffolds from. `kind` ∈ `iac` \| `app` \| `notebook` \| `scaffold`;
+> `url` a real URI; `provisions` free-text (e.g. `azure`, `aws`); `notes` optional.
+> This field is **ADVISORY and DISTINCT from evidence**: it answers "what do I start
+> from?", not "was this built?", and it **never gates promotion** (the gate runs through
+> `evidence[]` alone). If an entry IS a real build, list it under Evidence too. Do NOT
+> fabricate a URL — if you have no confirmed repo, use a clearly-marked placeholder
+> (`https://github.com/ORG/REPLACE-ME-...`) and note that a CODEOWNER replaces it before
+> approval. Leave the table empty if the pattern has none.
+
+| `kind` | url | provisions | notes |
+|---|---|---|---|
+| `iac` \| `app` \| `notebook` \| `scaffold` | | | |
+
 ## Fulfils a capability
 
 > Name the `capability_key` from `capabilities/INDEX.md` that this pattern fulfils, and

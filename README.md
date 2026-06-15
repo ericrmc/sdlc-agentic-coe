@@ -8,6 +8,7 @@ Read this as the agent who will use it. You author the patterns, capabilities, a
 
 | To do this | Read |
 | --- | --- |
+| Enter the library — be walked through an engagement, or add to it | [`ENTRYPOINT.md`](ENTRYPOINT.md) (→ `meta/navigator` to use, `meta/author-a-skill` to contribute) |
 | Pick your starting point and wire up your tool | [`GETTING-STARTED.md`](GETTING-STARTED.md) |
 | See every skill and the end-to-end flow | [`skills/MAP.md`](skills/MAP.md) |
 | Resolve a need ("a data warehouse", "run our agents in prod") to a component | [`capabilities/INDEX.md`](capabilities/INDEX.md) |
@@ -17,12 +18,14 @@ Read this as the agent who will use it. You author the patterns, capabilities, a
 
 | Category | What it does |
 | --- | --- |
-| [`understand`](skills/understand/) | Turn a raw vision or intake into structured outcomes, requirements, and NFR coverage. |
+| [`ingest`](skills/ingest/) | Lift a structured-but-messy source (spreadsheet, ticket board, docs folder, export) into traceable requirement markdown with provenance — or HALT for it, never invent. |
+| [`understand`](skills/understand/) | Turn a raw vision or intake into structured outcomes, requirements, NFR coverage, and the capability each requirement fulfils. |
 | [`challenge`](skills/challenge/) | Pressure-test a requirement set: conflicts, gaps, gold-plating, risks, assumptions, roadblocks, necessity. |
 | [`architect`](skills/architect/) | Choose a solution shape and author the design: recommend patterns, explore options, propagate NFRs, validate, synthesise. |
 | [`panel`](skills/panel/) | Multi-voice deliberation and review: convene a panel, synthesise it, record dissent, run design and a11y review. |
-| [`deliver`](skills/deliver/) | Plan the lifecycle and hand off the build: phases, releases, waves, cutover, triage, testing and estimate scaffolds. |
+| [`deliver`](skills/deliver/) | Plan the lifecycle and hand off the build: feature intake, phases, releases, waves, cutover, triage, testing/build/design scaffolds, estimate. |
 | [`library`](skills/library/) | Author and curate the reusable assets: component patterns, capabilities, portfolio health, governance checklist. |
+| [`meta`](skills/meta/) | Skills about using and extending the library: `navigator` (the front door — walks an engagement stage by stage) and `author-a-skill` (the contribution wizard). |
 
 ## How a skill behaves
 
@@ -45,6 +48,10 @@ When you author a pattern, capability, or skill change and open a PR, the pipeli
 | `check-shared-stub-drift` | PR touching `skills/**` | Flags when a quoted shared convention has drifted from its canonical copy. |
 
 Each Action is a thin runner of a script under `skills/_scripts/` that you can also run locally before opening the PR.
+
+## Patterns and capabilities
+
+A **pattern** is one markdown file (`patterns/<category>/<key>.md`) capturing a proven solution shape — its frontmatter carries the intent, topology, attached NFRs, and the `evidence[]` proving it was built. It may also carry `reference_implementations[]`: a forward pointer to a working artefact (an IaC repo, app, notebook, scaffold, module, or pipeline) an agent can clone or scaffold from. That field is **advisory only** — it never relaxes the promotion gate, which still runs through `evidence[]`; an agent may propose a candidate entry but a CODEOWNER confirms the URL and sets `last_verified`. A **capability** (`capabilities/<domain>/<slug>.md`) names a plain-language need and the proven-or-candidate patterns that fulfil it — the bridge a requirement crosses via `fulfils_capability: CAP-…`. See [`DESIGN.md`](DESIGN.md) for the full field shapes.
 
 ## Governance in one line
 

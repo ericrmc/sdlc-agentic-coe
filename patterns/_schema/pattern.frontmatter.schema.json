@@ -257,6 +257,39 @@
       },
       "uniqueItems": true
     },
+    "reference_implementations": {
+      "type": "array",
+      "description": "Optional forward pointer: working artefacts a downstream project can CLONE or SCAFFOLD FROM as a starting point (an IaC repo, an app skeleton, a notebook, a scaffold). DISTINCT from evidence[]: evidence answers 'was this BUILT?' (retrospective proof, REQUIRED from provisional up, gates promotion); a reference_implementation answers 'what do I start from?' (a forward 'start here' link). ADVISORY ONLY — it is NOT evidence and NEVER gates approval. Promotion runs through evidence[] exclusively. A reference_implementation that IS itself a real build should ALSO be listed under evidence[] (kind:repo) — and that evidence entry, not this one, promotes the pattern, through the existing door. An agent may PROPOSE a candidate entry but never blesses one: a CODEOWNER confirms the URL is real and sets last_verified. Additive — a pattern without this field still validates.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "url", "provisions"],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "What the artefact is, as a start-from shape.",
+            "enum": ["iac", "app", "notebook", "scaffold"]
+          },
+          "url": {
+            "type": "string",
+            "description": "Link to the cloneable/scaffoldable artefact (a repo, a template, a notebook). Must be a real URI; an agent never fabricates one — a CODEOWNER confirms it before approval.",
+            "format": "uri",
+            "minLength": 4
+          },
+          "provisions": {
+            "type": "string",
+            "description": "Free-text: what this implementation provisions / targets, e.g. 'azure', 'aws', 'azure databricks workspace + unity catalog'.",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional free-text caveats, e.g. 'CODEOWNER replaces the placeholder URL with the real repo before approval', or a staleness note.",
+            "maxLength": 400
+          }
+        }
+      }
+    },
     "maturity": {
       "not": {},
       "description": "FORBIDDEN as an input. maturity (battle-tested / emerging / experimental) is COMPUTED from the adoption ledger, never authored in frontmatter. Remove it from this file."

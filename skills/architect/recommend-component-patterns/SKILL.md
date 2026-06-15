@@ -171,6 +171,13 @@ fulfilment state:
 If the need does not resolve to any capability in the index, proceed to STEP 1 on
 the raw pattern library — the index is a fast path, not a gate.
 
+> **Capability → component fast path.** If a requirement already carries a
+> `fulfils_capability: CAP-…` tag (emitted upstream by `understand/derive-capabilities`),
+> start from those matched capabilities directly: resolve each tagged `CAP-` to its
+> proven `PAT-` and carry it into STEP 1 as a strong candidate, skipping the alias
+> lookup. The tag is the deterministic capability already named — never re-derive or
+> invent a different one.
+
 > **Multi-agent option (advisory).** This step deepens with independent parallel
 > agents: launch one sub-agent per candidate, at most 4 at a time, each a separate
 > sub-agent. A failed sub-agent returns nothing and is never fatal — the
@@ -243,6 +250,14 @@ Concretely, for each pattern kept, ask:
 Ground each rationale in **topology / data_placement / attached_nfrs** — these
 exact dimensions — not in vague vibes. Then name the trade-off honestly.
 
+For each pattern kept, if its frontmatter carries a `reference_implementations`
+entry, surface ONE as a **"Start from:"** sub-line in the menu (`kind` · `url` ·
+`provisions`) — a forward "start here" artefact the adopting project can clone or
+scaffold from. It is **advisory and distinct from `evidence`**: it does not prove the
+pattern was built and it never gates anything. Copy the `url` verbatim from the file —
+never invent or "fix up" a reference link; a placeholder URL stays a placeholder until a
+CODEOWNER replaces it.
+
 ### STEP 3 (LLM) — Write the recommendation as the output menu
 
 Produce the markdown menu (see Output format). A small set (1–3) is the norm.
@@ -301,6 +316,10 @@ Return a markdown menu. Concrete template:
   confirmed comparators' deployment topology. The managed-Postgres tier keeps
   operational overhead low for an internal service. Its attached NFRs already
   cover TLS-in-transit (`security`) and 99.9% availability (`availability`).
+- **Start from:** _(only if the pattern carries a `reference_implementations` entry)_
+  `scaffold` https://… (provisions: aws) — a forward "start here" artefact to clone,
+  **distinct from evidence** (it does not prove a build and never gates anything). Omit
+  this line when the pattern has no `reference_implementations`.
 - **Trade-off / caveat:** Provisional, not yet `approved` — evidence is an adoption
   decision, not a production reference build. It also does not by itself satisfy an
   RPO target; the pattern leaves backup/recovery to the adopting project. Surface

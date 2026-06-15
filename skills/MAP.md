@@ -22,7 +22,9 @@ New here? Start with [`GETTING-STARTED.md`](../GETTING-STARTED.md). Know the *ne
 
 ## View 1 — category table
 
-Seven categories. Each row is `category/skill — purpose — tier`. If you know your category, jump straight to its `SKILL.md`.
+Eight categories. Each row is `category/skill — purpose — tier`. If you know your category, jump straight to its `SKILL.md`.
+
+> **New here, or want to be walked through an engagement?** [`ENTRYPOINT.md`](../ENTRYPOINT.md) is the front door — it names the two `meta/` skills below: `meta/navigator` (USE the library, be walked stage by stage) and `meta/author-a-skill` (CONTRIBUTE to it). This table is the navigator's deterministic fallback — read it directly any time.
 
 ### Ingest — lift a structured-but-messy source into traceable requirement markdown (feeds understand)
 
@@ -39,6 +41,7 @@ Seven categories. Each row is `category/skill — purpose — tier`. If you know
 | `understand/decompose-intake-to-outcomes` | Turn raw intake text into traceable outcomes and requirements. | frontier |
 | `understand/classify-requirements` | Tag each requirement's shape to surface solutioneering and unmeasurability. | mid |
 | `understand/nfr-coverage-check` | Check a requirement set for gaps across six canonical NFR categories. | mid |
+| `understand/derive-capabilities` | Tag each requirement with the capability it fulfils (`fulfils_capability: CAP-…`); route genuinely new needs to author-capability. | mid |
 
 ### Challenge — adversarially pressure-test a requirement set
 
@@ -77,12 +80,14 @@ Seven categories. Each row is `category/skill — purpose — tier`. If you know
 
 | Skill | Purpose | Tier |
 |---|---|---|
+| `deliver/intake-feature-change` | Front door for a feature on a project that already exists — ground the ask in the real requirements AND the real code, or HALT. | frontier |
 | `deliver/describe-phases-releases-waves` | Plan a project's maturity phases and traced release stream. | frontier |
 | `deliver/help-implement-a-wave` | Plan a migration cutover as six governed waves with back-out and go/no-go. | frontier |
 | `deliver/triage-backlog-and-defer` | Park a raw backlog as traced, sized, prioritised items. | mid |
 | `deliver/scope-reconcile-check` | Surface scope-drift questions over a proposed release delta. | mid |
 | `deliver/scaffold-then-handoff` | Scaffold a fact-grounded handoff brief, then optionally enrich it. | mid |
 | `deliver/testing-brief-scaffold` | Generate a traceable, paste-ready testing handoff brief. | mid |
+| `deliver/build-agent-brief-scaffold` | Assemble a paste-ready build prompt for a downstream developer agent from a grounded feature analysis. | mid |
 | `deliver/design-studio-brief-scaffold` | Assemble a paste-ready design and branding brief for an external studio. | mid |
 | `deliver/comparator-grounded-estimate` | Size effort against confirmed past projects, never from guesswork. | mid |
 
@@ -95,6 +100,15 @@ Seven categories. Each row is `category/skill — purpose — tier`. If you know
 | `library/pattern-library-curate` | Keep the pattern shelf healthy by reading computed facts. | mid |
 | `library/portfolio-phase-health` | Derived-on-read advisory RAG health per project phase. | mid |
 | `library/advisory-governance-checklist` | Cited evidence against four advisory review lenses; a human reads only the delta. | mid |
+
+### Meta — skills about using and extending the library (the front door)
+
+| Skill | Purpose | Tier |
+|---|---|---|
+| `meta/navigator` | The library's front door for USING it — ask what you want, then walk the engagement one stage at a time, routing only to skills that exist. | light |
+| `meta/author-a-skill` | The front door for CONTRIBUTING — classify a contribution (skill \| pattern \| capability), scaffold a SKILL.md or route to the right authoring skill. | mid |
+
+> **`ENTRYPOINT.md`** (repo root) is the thin pointer that names these two `meta/` skills. `meta/navigator`'s deterministic fallback is this category table plus the `GETTING-STARTED.md` persona table — it reads them, never replaces them.
 
 > **Conventions (cross-cutting, under `skills/_contract/`).** Every skill obeys two rules: every output is one of exactly four kinds — **proposal, question, menu, or halt** (`_contract/target-rule-output-kinds`), and the rhythm is **propose → ratify**: an agent proposes, a human ratifies by merging the PR (`_contract/propose-ratify-rhythm`). The no-fabrication keystone — an absent/unreadable/empty **required** input becomes a **HALT** that asks where it is, never an invented hypothetical — is `_contract/grounding-no-absent-input` (it carries the library's canonical HALT exemplar). Multi-call skills reuse one provider-agnostic convention for fan-out (`_contract/parallel-agents`) and one for scoping it (`_contract/explore-one-area-at-a-time`).
 
@@ -123,7 +137,8 @@ Seven categories. Each row is `category/skill — purpose — tier`. If you know
 - **ingest → understand** is the optional front door when requirements already live somewhere structured-but-messy (a spreadsheet, a ticket board, a docs folder, an export). `ingest` lifts that source into traceable requirement markdown — or HALTs for it, never invents — and hands the result to `understand`. Skip it when the ask arrives as free text (go straight to `understand/decompose-intake-to-outcomes`).
 - **understand → challenge → architect → panel → deliver** is the main path. Loop back at will: a panel can re-open outcomes; a release can re-enter the whole front half under a new direction.
 - **library is a side-store**, not a stage in the line. `architect` *reads* it (proven patterns and capabilities), `deliver` *writes* to it (promoting a shape worth reusing). It also holds the portfolio health view that sits *across* projects.
-- **capabilities are the bridge** from a requirement to a component. A requirement in `understand` cites the capability it fulfils (`fulfils_capability: CAP-…`); the capability names which proven pattern (a component in `library`) fulfils it, or the candidates and spikes still owed. This is why a need-first reader starts at [`capabilities/INDEX.md`](../capabilities/INDEX.md).
+- **capabilities are the bridge** from a requirement to a component. A requirement in `understand` cites the capability it fulfils (`fulfils_capability: CAP-…`, emitted by `understand/derive-capabilities`); the capability names which proven pattern (a component in `library`) fulfils it, or the candidates and spikes still owed. This is why a need-first reader starts at [`capabilities/INDEX.md`](../capabilities/INDEX.md).
+- **meta is the entry, not a stage.** [`ENTRYPOINT.md`](../ENTRYPOINT.md) → `meta/navigator` is how an agent *enters* this flow: it asks what you want and walks you stage to stage, halting between each for the human to ratify, only routing to skills that exist on disk. `meta/author-a-skill` is the off-ramp for adding a new skill, pattern, or capability rather than running one. Neither is a node in the line; they are how you get on and off it.
 
 ---
 

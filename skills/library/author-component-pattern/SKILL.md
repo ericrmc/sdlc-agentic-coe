@@ -169,6 +169,7 @@ ever sets, and which the system computes.
 | `sunset_at` | date (ISO) | — | the date the pattern stops being recommendable; a planned end-of-life. |
 | `supersedes` | string (pattern_key) | — | the older pattern this replaces (the forward half of `superseded_by`). |
 | `constraints` | list of `{ statement, enforced }` | — | what the pattern makes you give up; `enforced` ∈ `hard` (cannot be waived) \| `soft` (waiving it is a recorded compromise). Fuel for `architect/validate-solution-vs-requirements`. |
+| `reference_implementations` | list of `{ kind, url, provisions, notes? }` | — | **forward "start here" pointers** — working artefacts an adopting project clones or scaffolds from. `kind` ∈ `iac` \| `app` \| `notebook` \| `scaffold`; `url` a real URI; `provisions` free-text (e.g. `azure`, `aws`); `notes` optional. **DISTINCT from `evidence`, and ADVISORY ONLY:** `evidence` answers "was this built?" and gates promotion; a `reference_implementation` answers "what do I start from?" and **never gates approval**. A real build is *also* listed under `evidence` (kind:repo) — that entry, not this one, promotes the pattern. You may PROPOSE an entry but never bless its URL — if you do not have a real, confirmed repo, write a clearly-marked placeholder (e.g. `https://github.com/ORG/REPLACE-ME-…`) with a `notes` that a CODEOWNER replaces it before approval; never fabricate a real-looking link. |
 
 ### COMPUTED — NEVER WRITE THESE
 
@@ -277,6 +278,8 @@ attached_nfrs:
 constraints:                         # optional; what you give up
   - statement: <what the pattern forces>
     enforced: <hard|soft>
+# reference_implementations:         # optional; forward "start here" pointers — ADVISORY, NOT evidence, never gates approval
+#   - {kind: <iac|app|notebook|scaffold>, url: "https://...", provisions: "<azure|aws|...>", notes: "<optional; e.g. CODEOWNER replaces a placeholder URL before approval>"}
 # --- filled by a human at promotion (approval_status >= provisional) — agent leaves blank ---
 # approved_by: "@architects"
 # approved_at: "<YYYY-MM-DD>"

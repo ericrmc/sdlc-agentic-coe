@@ -100,6 +100,16 @@ from pathlib import Path
 CATEGORY_ENUM = {"deployment", "integration", "data"}
 APPROVAL_STATUS_ENUM = {"candidate", "provisional", "approved", "deprecated"}
 ENFORCED_ENUM = {"hard", "soft"}
+# Optional reference_implementations[].kind enum — mirrors the schema's enum.
+# ADVISORY ONLY. A reference_implementation is a "start here" forward pointer
+# (an IaC repo / app skeleton / notebook / scaffold to clone from); it is NOT
+# evidence and it NEVER gates approval. The promotion gate runs through
+# evidence[] exclusively (see check_conditional_rules) — this field is
+# deliberately validated for SHAPE here and is touched by NOTHING in the
+# conditional/promotion rules. A working IaC repo strengthens confidence; if it
+# is also a real build it is listed AGAIN under evidence[] (kind:repo), and that
+# entry — not this one — promotes the pattern, through the existing door.
+REFIMPL_KIND_ENUM = {"iac", "app", "notebook", "scaffold"}
 # Optional evidence[].kind classifier — mirrors the schema's evidence.kind enum.
 EVIDENCE_KIND_HINT = {
     "repo",
@@ -714,6 +724,66 @@ def check_required_and_enums(data: dict, rep: FileReport, nfr_kinds: set[str]) -
                         "(an NFR with no way to verify it is a wish, not a bar)"
                     )
 
+    # reference_implementations[] — OPTIONAL forward pointers (a "start here"
+    # IaC repo / app skeleton / notebook / scaffold to clone from). Validate
+    # SHAPE + the kind enum here, and emit an ADVISORY staleness note. This block
+    # is intentionally OUT of check_conditional_rules: a reference_implementation
+    # is NOT evidence and NEVER gates approval — the promotion gate runs through
+    # evidence[] alone. A real build is listed AGAIN under evidence[] (kind:repo)
+    # and THAT entry promotes the pattern. So a malformed reference_implementation
+    # is a structural error (it must be cite-able), but a placeholder/unverified
+    # one is only an advisory note, never a promotion blocker.
+    refimpls = data.get("reference_implementations")
+    if refimpls is not None:
+        if not isinstance(refimpls, list):
+            rep.error(
+                "reference_implementations must be a list of "
+                "{kind, url, provisions} entries"
+            )
+        else:
+            for i, ri in enumerate(refimpls, start=1):
+                if not isinstance(ri, dict):
+                    rep.error(
+                        f"reference_implementations[{i}] must be a mapping, got "
+                        f"{type(ri).__name__}"
+                    )
+                    continue
+                kind = ri.get("kind")
+                if kind is None:
+                    rep.error(
+                        f"reference_implementations[{i}] is missing 'kind' "
+                        f"({'|'.join(sorted(REFIMPL_KIND_ENUM))})"
+                    )
+                elif kind not in REFIMPL_KIND_ENUM:
+                    rep.error(
+                        f"reference_implementations[{i}].kind '{kind}' is not one "
+                        f"of {sorted(REFIMPL_KIND_ENUM)}"
+                    )
+                if not ri.get("url"):
+                    rep.error(
+                        f"reference_implementations[{i}] is missing a 'url' "
+                        "(the link to the artefact to start from)"
+                    )
+                if not ri.get("provisions"):
+                    rep.error(
+                        f"reference_implementations[{i}] is missing 'provisions' "
+                        "(what it targets — free-text, e.g. 'azure', 'aws')"
+                    )
+                # ADVISORY ONLY: flag an obvious placeholder / replace-me URL so a
+                # CODEOWNER knows to swap it for the real repo before approval.
+                # NEVER an error and NEVER a gate — a candidate pattern may carry a
+                # placeholder reference_implementation; promotion runs through
+                # evidence[], not this field.
+                url = ri.get("url")
+                if isinstance(url, str) and url:
+                    low = url.lower()
+                    if "replace-me" in low or "replace_me" in low or "/org/" in low:
+                        rep.note(
+                            f"reference_implementations[{i}].url '{url}' looks like a "
+                            "placeholder — a CODEOWNER should replace it with the real "
+                            "repo before approval (advisory; not evidence, not a gate)."
+                        )
+
 
 def check_conditional_rules(data: dict, rep: FileReport) -> None:
     """Step 4: the promotion/evidence and deprecation conditional requirements."""
@@ -1032,6 +1102,8 @@ def render_report(
         for r in passed:
             if not quiet:
                 lines.append(f"- **PASS** `{r.path}`")
+                for note in r.notes:
+                    lines.append(f"  - _(note)_ {note}")
         if delete_failures:
             lines.append("")
             lines.append("**Delete-invariant violations:**")
@@ -1054,6 +1126,8 @@ def render_report(
     for r in passed:
         if not quiet:
             lines.append(f"PASS  {r.path}")
+            for note in r.notes:
+                lines.append(f"        (note) {note}")
     if delete_failures:
         lines.append("")
         lines.append("DELETE INVARIANT VIOLATIONS:")
