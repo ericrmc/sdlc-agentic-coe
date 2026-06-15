@@ -224,7 +224,7 @@ Return a markdown menu. Concrete template:
 #### 1. Containerised web + managed Postgres  `PAT-WEBAPP-PG`
 - **Status:** provisional · valid from 2026-06-15 · next review 2027-06-15 (in date)
 - **Fit:** topology = single-region container service; data_placement = in-region managed DB.
-- **Rationale:** Matches the in-region data-residency requirement (R-NF-03) and the
+- **Rationale:** Matches the in-region data-residency requirement (REQ-12) and the
   confirmed comparators' deployment topology. The managed-Postgres tier keeps
   operational overhead low for an internal service. Its attached NFRs already
   cover TLS-in-transit (`security`) and 99.9% availability (`availability`).

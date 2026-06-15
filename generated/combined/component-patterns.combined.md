@@ -5,7 +5,7 @@
 
 # Component patterns — combined catalogue
 
-> Generated bundle. Built 2026-06-15 by `skills/_scripts/concat_skills.py`.
+> Generated bundle. Built 2026-06-16 by `skills/_scripts/concat_skills.py`.
 
 The whole component-pattern library in one paste-able file, one entry per category (deployment / integration / data). Each entry keeps its own pattern_key, approval_status, validity / review-by metadata, attached NFRs and evidence in its frontmatter — read those before adopting. Superseded or deprecated patterns are still included so you can see what replaced what; check the status field. This is a generated view; PR-review and edit the individual pattern files, not this bundle.
 

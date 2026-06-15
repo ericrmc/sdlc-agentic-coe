@@ -1,6 +1,6 @@
 ---
 name: nfr-coverage-check
-description: Assess a requirement set against six canonical NFR categories in fixed order; per uncovered category propose one concrete gap-fill NF requirement carrying a number/target. Read-only. Use when checking a requirement set for non-functional coverage gaps.
+description: Assess a requirement set against six canonical NFR categories in fixed order; per uncovered category propose one concrete gap-fill non-functional requirement carrying a number/target. Read-only. Use when checking a requirement set for non-functional coverage gaps.
 one_liner: Check a requirement set for gaps across six canonical NFR categories.
 aliases: [nfr coverage, non-functional requirements check, quality attribute gaps, missing nfrs, nfr gap analysis, performance security availability check, non-functional coverage]
 when_to_use: checking a requirement set for non-functional coverage gaps
@@ -23,9 +23,11 @@ categories is meaningfully covered, and **propose text for the gaps**.
 This skill is **advisory and read-only**:
 
 - Return one assessment item per category and, for uncovered categories, a concrete
-  draft NF requirement.
+  draft non-functional requirement.
 - Persist nothing and change no requirement. Accepting a gap is a separate human action:
-  the human creates a new `NF` requirement from the suggested text if they choose to.
+  the human creates a new `REQ-<n>` (classified non-functional) from the suggested text
+  if they choose to. Functional vs non-functional is classify metadata, never part of the
+  key — there is no `NF-` key.
 - Never pick a winner, never delete scope, never re-rank. Surface and suggest.
 
 An uncovered category does not block anything; it is a prompt for a human decision.
@@ -51,17 +53,20 @@ The user supplies, as markdown or plain context:
 - **Project title** and a short **project context** (what the system is, who uses it,
   any known regional/regulatory constraints).
 - The **requirement set** — the live proposed/accepted requirements. Each row should
-  carry a **real numeric id** and its text. Example:
+  carry its `REQ-<n>` key (or a bare integer index that maps to one) and its text.
+  Example:
 
   ```
-  #4  The API shall authenticate all callers via OAuth2 bearer tokens.
-  #9  Secrets shall be stored in a managed vault and rotated every 90 days.
-  #12 The portfolio view shall return within 500 ms at the 95th percentile.
-  #18 The system shall support 50 concurrent interactive users.
+  REQ-4   The API shall authenticate all callers via OAuth2 bearer tokens.
+  REQ-9   Secrets shall be stored in a managed vault and rotated every 90 days.
+  REQ-12  The portfolio view shall return within 500 ms at the 95th percentile.
+  REQ-18  The system shall support 50 concurrent interactive users.
   ```
 
-Cite only ids that actually appear in the supplied set. If no ids are given, say so
-and emit the deterministic checklist (below) with empty `requirement_ids`.
+Cite only keys that actually appear in the supplied set. If none are given, say so
+and emit the deterministic checklist (below) with empty `requirement_ids`. The
+machine-readable block may keep bare integer ids as a stable internal index; the
+citation key a human reads is always `REQ-<n>`.
 
 ## The method (STEPS)
 
@@ -86,16 +91,16 @@ Produce **one item per category** (six items total) with these fields:
 - `addressed` — boolean; `true` when **at least one** requirement in the set
   *meaningfully* addresses this category (not a passing mention — an actual target,
   control, or boundary).
-- `requirement_ids` — the list of **real numeric ids** that cover this category; empty
-  list `[]` when none do.
-- `suggested_text` — when `addressed` is `false`, a **single concrete NF requirement**
-  (req_type `NF`, **with a number/target**) the team could add to close the gap; when
-  `addressed` is `true` this **MUST be null**.
+- `requirement_ids` — the list of **real integer indices** (each citing a `REQ-<n>` key)
+  that cover this category; empty list `[]` when none do.
+- `suggested_text` — when `addressed` is `false`, a **single concrete non-functional
+  requirement** (classified non-functional, **with a number/target**) the team could add
+  as a new `REQ-<n>` to close the gap; when `addressed` is `true` this **MUST be null**.
 - `note` — the one-line definition of the category from Step 1, verbatim.
 
 ### Step 3 — Cite only what exists; persist nothing
 
-- Only cite ids that appear in the supplied requirements. Never invent an id.
+- Only cite `REQ-<n>` keys (or their indices) that appear in the supplied requirements. Never invent one.
 - Do not invent categories. Do not persist or "save" anything — this is a read.
 - A category is only `addressed: true` if a real, cited requirement backs it. Don't mark
   it covered on the strength of your own suggested text.
@@ -131,19 +136,20 @@ saying "uptime") and writes gap-fill text tuned to the project's context and reg
 >
 > PROJECT TITLE: `<title>`
 > PROJECT CONTEXT: `<context>`
-> REQUIREMENTS (reference rows by their real numeric id): `<requirements>`
+> REQUIREMENTS (reference rows by their `REQ-<n>` key / integer index): `<requirements>`
 >
 > Assess coverage for EXACTLY these six categories, in this order, using no other names,
 > adding none, dropping none: security, availability, performance, data_residency,
 > maintainability, scalability (definitions as in Step 1).
 >
 > Return ONE item per category with: `category`, `addressed` (boolean — true when at least
-> one requirement meaningfully addresses it), `requirement_ids` (real ids that cover it,
-> empty when none), `suggested_text` (when `addressed` is false, a single concrete NF
-> requirement **with a number/target**; when true, **null**), and `note` (the one-line
-> definition).
+> one requirement meaningfully addresses it), `requirement_ids` (the integer indices —
+> each a `REQ-<n>` citation — that cover it, empty when none), `suggested_text` (when
+> `addressed` is false, a single concrete non-functional requirement **with a
+> number/target**, draftable as a new `REQ-<n>`; when true, **null**), and `note` (the
+> one-line definition).
 >
-> Only cite ids that appear in the list. Do not invent categories or persist anything.
+> Only cite keys that appear in the list. Do not invent categories or persist anything.
 > Return ONLY the JSON object below — no prose.
 
 ```json
@@ -174,16 +180,16 @@ Return a short coverage table the human can read at a glance, then the gap-fill 
 ```markdown
 ## NFR coverage — <project title>
 
-| # | Category        | Covered | By ids   | Note                                                          |
-|---|-----------------|---------|----------|--------------------------------------------------------------|
-| 1 | security        | yes     | #4, #9   | Transport security, authentication, and secrets handling.    |
-| 2 | availability    | NO      | —        | Uptime SLA plus recovery objectives (RPO/RTO).               |
-| 3 | performance     | yes     | #12      | Response-time / latency / throughput targets.                |
-| 4 | data_residency  | NO      | —        | Where data lives and the regional boundary it stays within.  |
-| 5 | maintainability | NO      | —        | Test coverage, observability, logging, documentation.        |
-| 6 | scalability     | yes     | #18      | Concurrency, load, horizontal scale, tenancy.                |
+| # | Category        | Covered | By key          | Note                                                          |
+|---|-----------------|---------|-----------------|--------------------------------------------------------------|
+| 1 | security        | yes     | REQ-4, REQ-9    | Transport security, authentication, and secrets handling.    |
+| 2 | availability    | NO      | —               | Uptime SLA plus recovery objectives (RPO/RTO).               |
+| 3 | performance     | yes     | REQ-12          | Response-time / latency / throughput targets.                |
+| 4 | data_residency  | NO      | —               | Where data lives and the regional boundary it stays within.  |
+| 5 | maintainability | NO      | —               | Test coverage, observability, logging, documentation.        |
+| 6 | scalability     | yes     | REQ-18          | Concurrency, load, horizontal scale, tenancy.                |
 
-### Suggested gap-fill requirements (advisory — accept to create as `NF`)
+### Suggested gap-fill requirements (advisory — accept to create as a new non-functional `REQ-<n>`)
 
 - **availability** — The system shall meet a Recovery Point Objective (RPO) of ≤ 15
   minutes and a Recovery Time Objective (RTO) of ≤ 1 hour for the primary data store.
@@ -194,7 +200,7 @@ Return a short coverage table the human can read at a glance, then the gap-fill 
   action.
 
 _Read-only assessment. Nothing here is saved. Accepting a gap is a separate human action
-that creates a new `NF` requirement from the suggested text._
+that creates a new non-functional `REQ-<n>` from the suggested text._
 ```
 
 Every suggested gap-fill MUST carry a concrete number or target (a percentage, a duration,
@@ -207,12 +213,13 @@ a count, an RPO/RTO). A gap-fill with no number is not done — it just relocate
   `missing_nfr` kind in `challenge/red-team-requirements`, which draws the same list.
 - **Read-only means read-only.** Do not mark a requirement accepted, do not edit text, do
   not create the requirement yourself. You hand the human draft text; they decide.
-- **`suggested_text` is null iff `addressed` is true.** Never both populate ids *and* a
-  suggestion for the same category, and never leave a gap with `null` text.
+- **`suggested_text` is null iff `addressed` is true.** Never both populate
+  `requirement_ids` *and* a suggestion for the same category, and never leave a gap with
+  `null` text.
 - **Don't credit your own suggestion as coverage.** `addressed` reflects the *supplied*
   set only.
 - **No number, no NFR.** Reject vague gap-fill like "the system shall be highly available"
   — require a target ("RTO ≤ 1 hour").
-- **Cite only real ids.** No placeholder ids, no "(unsaved)" rows treated as coverage.
+- **Cite only real `REQ-<n>` keys.** No placeholder keys, no "(unsaved)" rows treated as coverage.
 - **Advisory, not a gate.** Uncovered categories are prompts, not blockers. This skill
   never stops a project from proceeding.

@@ -148,7 +148,7 @@ The user gets back a `synthesis_md` document and the four-category proposal menu
 
 ### Value-to-carry
 - **Carry the audit-trail value into the design** (explorer, `orphaned`). The panel converged on an
-  orphaned requirement no current outcome holds; proposed as a new requirement threaded to OUT-3.
+  orphaned requirement no current outcome holds; proposed as a new requirement threaded to BO-3.
 
 ### Alternatives-to-weigh
 - **Retention: 90-day purge vs indefinite-with-tiering** — a genuine split. The solution_designer

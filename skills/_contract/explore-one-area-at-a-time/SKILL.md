@@ -224,21 +224,21 @@ each area is worked, its **rolled-up contribution** routed to a section. Templat
 ## Domains to surface next — pick the ones to work now (≤4 at a time)
 
 ### 1. Security  ·  crosscutting  →  rolls into: Quality NFRs
-**Surfaced because:** OUT-2 ("handle PII for EU customers") + REQ-14 (stores user records) imply
+**Surfaced because:** BO-2 ("handle PII for EU customers") + REQ-14 (stores user records) imply
 access-control and data-protection obligations not yet covered by any worked area.
 **Charter:** Explore authn/authz, data protection at rest/in transit, audit, and secrets handling for the
 PII-handling paths. Produce NFRs and at most one contested-control decision.
 *Ignore:* functional behaviour, UI, cost sizing, and deployment topology — other domains own those.
 
 ### 2. Real-time pricing  ·  project-specific  →  rolls into: Application architecture
-**Surfaced because:** OUT-1 + REQ-3..REQ-6 all describe sub-second price updates — a coherent area the
+**Surfaced because:** BO-1 + REQ-3..REQ-6 all describe sub-second price updates — a coherent area the
 standard roster doesn't name.
 **Charter:** Explore the pricing data flow, latency budget, and staleness handling. Produce requirements,
 pattern signals, and one latency NFR (routed to Quality NFRs).
 *Ignore:* billing, security (Security domain owns it), and historical reporting.
 
 ### 3. Cost  ·  crosscutting  →  rolls into: Quality NFRs (+ estimate)
-**Surfaced because:** real-time + multi-region (OUT-3) implies a non-trivial run-cost the space hasn't sized.
+**Surfaced because:** real-time + multi-region (BO-3) implies a non-trivial run-cost the space hasn't sized.
 **Charter:** Explore run-cost drivers and a cost-ceiling NFR; run a scoped necessity check on the most
 expensive proposed requirements. *Ignore:* implementation detail and security controls.
 
@@ -250,18 +250,18 @@ expensive proposed requirements. *Ignore:* implementation detail and security co
 ```markdown
 ## Security  →  Quality NFRs   [proposal/question/cited-fact — advisory, not a verdict]
 
-**Proposed NFRs** (each traced to an outcome, tagged `domain: security`):
-- NFR-S1 ← OUT-2 · All PII encrypted at rest (AES-256) and in transit (TLS 1.2+).  *(proposal)*
-- NFR-S2 ← OUT-2 · Authn via SSO; least-privilege authz on PII read paths.         *(proposal)*
+**Proposed NFRs** (each traced to an outcome via `derives_from`, classified `nfr-kind: security`, tagged `domain: security`):
+- REQ-41 ← BO-2 · All PII encrypted at rest (AES-256) and in transit (TLS 1.2+).  *(proposal)*
+- REQ-42 ← BO-2 · Authn via SSO; least-privilege authz on PII read paths.         *(proposal)*
 
 **Questions** (a human answers):
 - Is full audit logging (REQ-14) required for *read* access, or only writes? Affects cost.  *(necessity)*
 
 **Cited facts / roadblocks** (a human dispositions):
-- Roadblock: EU data residency forbids storing PII in the us-east region.  Evidence: OUT-2, REG-1.
+- Roadblock: EU data residency forbids storing PII in the us-east region.  Evidence: BO-2, REG-1.
 
 **Narrative contribution** (merged under its own sub-heading when Quality NFRs is regenerated):
-> Security obligations stem from EU PII handling (OUT-2). The controlling NFRs are NFR-S1/S2; the open
+> Security obligations stem from EU PII handling (BO-2). The controlling NFRs are REQ-41/REQ-42; the open
 > question is read-audit scope, and the binding constraint is EU residency …
 ```
 
@@ -273,7 +273,7 @@ regenerate the section from all of them together — never one domain overwritin
 ## Notes / anti-patterns
 
 - **Don't let a domain become a container.** The first sign of going wrong: a requirement "lives in the security
-  domain" instead of "is tagged security and traces to OUT-2." Tags are provenance, not ownership.
+  domain" instead of "is tagged security and traces to BO-2." Tags are provenance, not ownership.
 - **Don't dispatch a charter without an ignore-list.** "Explore security" with no "ignore X, Y, Z" produces a
   generalist. The ignore-list is what makes the agent narrow.
 - **Don't bind domains 1:1 to sections.** Four crosscutting domains share the quality-NFR section. Many-to-one is

@@ -12,8 +12,8 @@ scope/condition marker: *containing, when, unless, except, older than, raw, only
 ## DO flag — true blanket opposite
 
 ```
-#8  The system must purge audit logs after 30 days.
-#14 The system must not purge audit logs.
+REQ-8   The system must purge audit logs after 30 days.
+REQ-14  The system must not purge audit logs.
 ```
 
 Same subject (audit logs). One mandates purging; the other forbids purging — with **no
@@ -22,27 +22,27 @@ scope marker** on the prohibition. These cannot both hold. Emit:
 ```json
 {
   "kind": "conflicting",
-  "message": "Requirements #8 and #14 are direct opposites — #8 requires purging audit logs after 30 days; #14 forbids purging audit logs. Which holds, or do they apply to different scopes?",
+  "message": "Requirements REQ-8 and REQ-14 are direct opposites — REQ-8 requires purging audit logs after 30 days; REQ-14 forbids purging audit logs. Which holds, or do they apply to different scopes?",
   "suggested_action": "Reconcile the two (pick the binding rule or scope each). The agent does not choose a winner.",
-  "requirement_id": 8,
-  "contests_id": 14
+  "requirement_id": "REQ-8",
+  "contests": "REQ-14"
 }
 ```
 
-Note: `requirement_id` is the LOWER id (8); `contests_id` is the higher (14). The message
-poses the question and names both ids; it does not say which one wins.
+Note: `requirement_id` is the LOWER key (REQ-8); `contests` is the higher (REQ-14). The
+message poses the question and names both REQ-<n> keys; it does not say which one wins.
 
 ---
 
 ## Do NOT flag — scoped prohibition
 
 ```
-#8  Retain logs for 90 days.
-#14 The system must not retain logs CONTAINING card numbers.
+REQ-8   Retain logs for 90 days.
+REQ-14  The system must not retain logs CONTAINING card numbers.
 ```
 
-The prohibition in #14 is scoped by **"containing card numbers"** — it forbids retaining
-a *subset* of logs (those with PAN data), not logs in general. Both can hold
+The prohibition in REQ-14 is scoped by **"containing card numbers"** — it forbids
+retaining a *subset* of logs (those with PAN data), not logs in general. Both can hold
 simultaneously: retain logs for 90 days, but scrub/exclude card numbers from them. This
 is a real-world data-protection pattern, not a contradiction. **Emit nothing** for this
 pair.

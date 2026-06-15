@@ -91,22 +91,26 @@ mechanical, repeatable, and is exactly what you fall back to if no model is
 available. Render the markdown skeleton:
 
 - One `## Outcome BO-N — <Short Label>` heading per outcome slot.
-- Under each, one `### TR-N.M` block per derived requirement slot.
+- Under each, one `### REQ-N` block per derived requirement slot.
 - Each derived block carries an explicit **`derives_from: BO-N`** citation —
-  this is the trace edge, written as data, not prose.
+  this is the trace edge, written as data, not prose. The outcome tie lives in
+  this field, never in the key.
 - Functional requirements carry an empty Given/When/Then acceptance block to be
   filled.
 
 Key conventions — keep them stable, downstream skills read these keys:
 
 - Outcome keys: **`BO-1`, `BO-2`, ...** (business outcome).
-- Derived requirement keys: **`TR-<outcome#>.<n>`**, e.g. `TR-1.1`, `TR-1.2`,
-  `TR-2.1`. The first number ties the requirement to its outcome; this *is* the
-  trace, made legible.
+- Derived requirement keys: **`REQ-<n>`**, a flat counter, e.g. `REQ-1`,
+  `REQ-2`, `REQ-3`. The key carries no parent segment; **the tie to its outcome
+  lives entirely in the `derives_from` field.**
 - `derives_from` on every requirement names exactly one `BO-N`. **No
   requirement is rendered without a parent.** This is the no-orphan invariant,
   enforced structurally: the skeleton has nowhere to put a parentless
   requirement.
+- **F/NF is classify metadata, not part of the key.** Annotate each requirement
+  as functional or non-functional with a `(F)` / `(NF)` tag for legibility, but
+  the key stays a bare `REQ-<n>`.
 
 The empty skeleton (no model, deterministic fallback) is shown in
 [Output format](#output-format) and is what you emit when you cannot reason —
@@ -126,14 +130,16 @@ requires a model. Use this prompt verbatim:
 > - Produce **3 to 6** business outcomes. Each outcome is a benefit/capability
 >   statement, **NOT a solution** — *"technicians can complete jobs with no
 >   connectivity"*, never *"use a Postgres cache"*.
-> - Under each outcome, derive **1 to 3** technical requirements. Mark each
->   `req_type` **F** (functional) or **NF** (non-functional). Give strong
+> - Under each outcome, derive **1 to 3** technical requirements. Classify each
+>   `req_type` **F** (functional) or **NF** (non-functional) — this is metadata,
+>   annotated as a `(F)` / `(NF)` tag, never embedded in the key. Give strong
 >   functional requirements a **Given / When / Then** acceptance criterion.
 > - Stay **grounded in the intake**. Do not invent scope the text does not
 >   imply.
-> - `value_outcome` is a short (<= 4 word) display label for the outcome.
+> - Each outcome carries a short (<= 4 word) display label.
 > - Every derived requirement names its parent outcome via `derives_from:
->   BO-N`. There are no orphans.
+>   BO-N`. There are no orphans. The requirement key is a flat `REQ-<n>`; the
+>   outcome tie lives only in `derives_from`.
 > - Functional requirements are phrased in imperative **shall** form ("The
 >   system shall ..."). Non-functional requirements name a quality (security,
 >   performance, availability, auditability, usability, compliance) with a
@@ -141,9 +147,9 @@ requires a model. Use this prompt verbatim:
 > - For each requirement give a short rationale tied to the intake, so a
 >   delivery lead can accept, edit, or reject the *exact* scope implied.
 >
-> Return the filled markdown skeleton — outcomes, derived requirements with F/NF
-> marks, `derives_from` trace edges, Given/When/Then acceptance, and rationales.
-> No prose outside the structure.
+> Return the filled markdown skeleton — outcomes, derived requirements with
+> `(F)` / `(NF)` classify tags, `derives_from` trace edges, Given/When/Then
+> acceptance, and rationales. No prose outside the structure.
 
 ### Step 4 — Self-check against the quality bar
 
@@ -189,7 +195,7 @@ connectivity and have their work reconcile automatically once back online.
 **Why:** The intake states technicians "routinely work in basements and rural
 sites with no signal" and "lose an hour re-keying jobs on return."
 
-### TR-1.1  (F)
+### REQ-1  (F)
 - **derives_from:** BO-1
 - **The system shall** allow a technician to view, update, and mark complete any
   job assigned to them while the device has no network connectivity.
@@ -199,7 +205,7 @@ sites with no signal" and "lose an hour re-keying jobs on return."
 - **Rationale:** Directly serves the offline-completion outcome; the intake's
   core complaint.
 
-### TR-1.2  (F)
+### REQ-2  (F)
 - **derives_from:** BO-1
 - **The system shall** reconcile locally-recorded job changes to the system of
   record automatically when connectivity is restored, without technician action.
@@ -209,7 +215,7 @@ sites with no signal" and "lose an hour re-keying jobs on return."
 - **Rationale:** "Reconcile automatically" is the second half of the outcome;
   removes the re-keying hour the intake calls out.
 
-### TR-1.3  (NF)
+### REQ-3  (NF)
 - **derives_from:** BO-1
 - **Constraint:** Locally-held job data must remain available for the full
   duration of a technician's shift (target: >= 12 hours) without connectivity.
@@ -236,7 +242,7 @@ the structure to fill by hand:
 **Outcome:** <benefit/capability statement — NOT a solution>
 **Why:** <grounding quote/paraphrase from intake>
 
-### TR-1.1  (F | NF)
+### REQ-1  (F | NF)
 - **derives_from:** BO-1
 - <The system shall ... | Constraint: ...>
 - **Acceptance:** GIVEN ... WHEN ... THEN ...   (functional only)
@@ -279,6 +285,6 @@ See `references/quality-bar.md` for the full checklist and
 - **Rejecting an outcome orphans its subtree.** That is correct and intended —
   if the business doesn't want the benefit, it doesn't want the work that
   delivers it. The trace makes this one-click in a PR review: strike the outcome
-  heading and its `TR-N.*` block falls with it.
+  heading and every `REQ-<n>` whose `derives_from` names it falls with it.
 - **This output is never a database write.** It is markdown, ratified by a
   merge. Keep it advisory.

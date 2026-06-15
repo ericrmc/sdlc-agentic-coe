@@ -9,7 +9,7 @@ optional model pass *on top of* this floor.
 
 - The **release**: its key (`REL-3`), title, and one-line intent.
 - Its **accepted changes**: each with a `change_kind`, a display key (`req_key`), a trace
-  (`derives_from_outcome_key`, possibly null), and an optional one-line rationale.
+  (`derives_from`, possibly null), and an optional one-line rationale.
 - The **outcomes** (to resolve each trace key to its outcome for the citation).
 
 ## Heading order (fixed)
@@ -45,8 +45,8 @@ empty** — do not emit an empty heading.
 ## Worked example
 
 Release `REL-3` "Q3 audit & export improvements", intent "give auditors self-serve evidence without raising a
-ticket", with four accepted changes (one add → OUT-2, one change → OUT-4, one patch → null, one remove →
-OUT-2) projects to:
+ticket", with four accepted changes (one add → BO-2, one change → BO-4, one patch → null, one remove →
+BO-2) projects to:
 
 ```markdown
 # REL-3 — Q3 audit & export improvements
@@ -54,16 +54,16 @@ OUT-2) projects to:
 give auditors self-serve evidence without raising a ticket.
 
 ## Added
-- **REQ-21** — traces to OUT-2: the self-serve CSV export mechanism for OUT-2.
+- **REQ-21** — traces to BO-2: the self-serve CSV export mechanism for BO-2.
 
 ## Changed
-- **REQ-11** — traces to OUT-4: extends audit-log retention to keep approvals traceable.
+- **REQ-11** — traces to BO-4: extends audit-log retention to keep approvals traceable.
 
 ## Fixed
 - **REQ-30** — no outcome (scope creep): timezone-drift fix; trace before shipping.
 
 ## Removed
-- **REQ-4** — traces to OUT-2: legacy XML export, superseded by the new CSV export.
+- **REQ-4** — traces to BO-2: legacy XML export, superseded by the new CSV export.
 ```
 
 ## Why this is deterministic, and why that matters

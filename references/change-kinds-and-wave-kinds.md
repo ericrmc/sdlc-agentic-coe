@@ -55,13 +55,13 @@ export" is a `change`, even though it contains no literal "change".
 
 - **`patch` — fix a defect, no scope change.** A patch changes no requirement and moves no
   section. It exists for the record and the release notes. Its trace, when set, points at
-  the outcome whose *quality* it preserves (the export still serves OUT-2; the patch keeps
+  the outcome whose *quality* it preserves (the export still serves BO-2; the patch keeps
   it working). A patch is the one verb where a null trace is unremarkable — it fixes
   something, it doesn't reshape scope.
 
 ### Anti-patterns (classification smells)
 
-- **Forcing a trace to dodge the null.** The null is the signal. Inventing `OUT-2` to avoid
+- **Forcing a trace to dodge the null.** The null is the signal. Inventing `BO-2` to avoid
   an awkward conversation is the worst outcome — it launders scope creep into "governed".
 - **Calling everything `change`.** If it didn't exist before, it's `add`. If it's a bug,
   it's `patch`. Reserve `change` for "this behaviour existed and now behaves differently".

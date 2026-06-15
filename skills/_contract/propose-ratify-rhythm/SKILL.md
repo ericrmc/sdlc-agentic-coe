@@ -83,10 +83,10 @@ The human's attention is the scarce resource. Spend it only on **genuine commitm
 ```markdown
 <!-- a derived requirement, threaded to its accepted outcome -->
 - **REQ-031** Encrypt all PII at rest with AES-256.
-  _derives_from:_ [OUT-004 — Protect customer data to meet residency obligations](../outcomes/OUT-004.md)
+  _derives_from:_ [BO-004 — Protect customer data to meet residency obligations](../outcomes/BO-004.md)
 ```
 
-Because the link exists, a **rejected outcome visibly orphans its entire subtree** — close the PR that would have accepted `OUT-004`, and every `derives_from: OUT-004` requirement is now a *dangling citation* a reconcile step surfaces as an open question. That visible orphaning is the safety net that lets agents auto-derive without a per-item check. **Derive-low is not a bypass — it is derive-from-accepted-upstream.** No upstream acceptance, no derivation stands.
+Because the link exists, a **rejected outcome visibly orphans its entire subtree** — close the PR that would have accepted `BO-004`, and every `derives_from: BO-004` requirement is now a *dangling citation* a reconcile step surfaces as an open question. That visible orphaning is the safety net that lets agents auto-derive without a per-item check. **Derive-low is not a bypass — it is derive-from-accepted-upstream.** No upstream acceptance, no derivation stands.
 
 > Authoring rule: classify the artefact as HIGH or LOW *first*. HIGH → the skill ends in "open a PR a human merges." LOW → the skill ends in "auto-apply, threaded by a `derives_from` link, no PR needed" — and the skill must emit the link.
 

@@ -87,8 +87,8 @@ Rules of thumb:
       "observation": "match",
       "section_key": null,
       "section_title": null,
-      "req_key": "F-1",
-      "message": "Requirement F-1 appears reflected in the as-built document.",
+      "req_key": "REQ-1",
+      "message": "Requirement REQ-1 appears reflected in the as-built document.",
       "detail": { "matched_by": "key" }
     },
     {
@@ -119,8 +119,8 @@ Rules of thumb:
       "observation": "gap",
       "section_key": null,
       "section_title": null,
-      "req_key": "NFR-2",
-      "message": "Requirement NFR-2 is not evident in the as-built document. Was it built?",
+      "req_key": "REQ-2",
+      "message": "Requirement REQ-2 is not evident in the as-built document. Was it built?",
       "detail": { "requirement_text": "The system must respond within 200ms at p95." }
     }
   ]

@@ -137,8 +137,8 @@ The user gets back a single markdown brief. Concrete template:
 A white-label patient-intake portal for Northwind's outpatient clinics.
 
 **What we're building (accepted outcomes):**
-- `OUT-1` Patients complete intake before arrival, reducing front-desk time.
-- `OUT-2` Clinicians see a structured summary on open.
+- `BO-1` Patients complete intake before arrival, reducing front-desk time.
+- `BO-2` Clinicians see a structured summary on open.
 
 ## Surfaces & deliverables expected
 

@@ -55,7 +55,7 @@ The user supplies, as markdown / context:
 2. **As-designed sections** — the solution-design sections, each with a stable
    `section_key` (e.g. `solution_overview`), a human `title`, and the designed body
    markdown.
-3. **Requirements** — each with a `req_key` (e.g. `F-1`, `NFR-3.2`) and its text.
+3. **Requirements** — each with a `req_key` (e.g. `REQ-1`, `REQ-3`) and its text.
 4. **Acceptance criteria** — the AC text per requirement (optional but improves the
    model step's judgement of whether a requirement is truly reflected).
 
@@ -156,7 +156,7 @@ body.
 
 **Requirement coverage (deterministic):** for **each requirement**, scan the **full**
 as-built text:
-- If the `req_key` (e.g. `F-1`) appears literally (case-insensitive substring) ->
+- If the `req_key` (e.g. `REQ-1`) appears literally (case-insensitive substring) ->
   **`match`** (requirement), `detail.matched_by = "key"`.
 - Else, if the **Jaccard overlap** of the requirement text's word-set vs. the full
   as-built word-set is **>= 0.5** -> **`match`** (requirement),
@@ -226,8 +226,8 @@ Return ONLY a JSON object of exactly this shape, no prose, no markdown fence:
       "observation": "gap",
       "section_key": null,
       "section_title": null,
-      "req_key": "F-1",
-      "message": "Requirement F-1 is not evident in the as-built document.",
+      "req_key": "REQ-1",
+      "message": "Requirement REQ-1 is not evident in the as-built document.",
       "detail": {}
     }
   ]
@@ -244,7 +244,7 @@ sections, requirements, or scope.
 Collect the observations from Step 5 (or the deterministic base, or both). Present
 them grouped by kind. **Stop there.** Every observation is `open` until a human reads
 it; the skill assigns no status and reaches no verdict. The two things you may propose
-are a **question** ("Requirement NFR-2 isn't evident — was it dropped or just
+are a **question** ("Requirement REQ-2 isn't evident — was it dropped or just
 undocumented?") or a **proposal** ("the addition 'Audit Log Export' looks like real
 new scope — capture it as a requirement?"). Both go to the human to disposition.
 
@@ -262,7 +262,7 @@ whether it was dropped**, not that anything failed.
 
 ### Matches (k)
 - **Solution Overview** (`solution_overview`) — as-built section aligns with the design (overlap 0.62).
-- **Requirement F-1** — appears reflected in the as-built document (matched by key).
+- **Requirement REQ-1** — appears reflected in the as-built document (matched by key).
 
 ### Differences (k) — present, but diverged; review the divergence
 - **Data Model** (`data_model`) — as-built differs substantially from the as-designed content (overlap 0.18).
@@ -272,10 +272,10 @@ whether it was dropped**, not that anything failed.
 
 ### Gaps (k) — designed, no evident coverage; **confirm whether dropped**
 - **Offline Mode** (`offline_mode`) — no matching as-built section. Built differently, or omitted?
-- **Requirement NFR-2** — not evident in the as-built document. Was it built?
+- **Requirement REQ-2** — not evident in the as-built document. Was it built?
 
 ### For the human to disposition
-- Question: NFR-2 has no evident coverage — dropped, or just undocumented in the as-built?
+- Question: REQ-2 has no evident coverage — dropped, or just undocumented in the as-built?
 - Proposal: "Audit Log Export" looks like genuine new scope — capture it as a requirement?
 ```
 

@@ -38,7 +38,7 @@ mobile signal, and have that work captured without re-keying later.
 mobile signal"; technicians "re-key everything ... losing the best part of an
 hour."
 
-### TR-1.1  (F)
+### REQ-1  (F)
 - **derives_from:** BO-1
 - The system shall allow a technician to view, update, and mark complete any
   job assigned to them while the device has no network connectivity.
@@ -48,7 +48,7 @@ hour."
 - **Rationale:** The core complaint — work must be capturable at the no-signal
   site, not re-keyed on return.
 
-### TR-1.2  (F)
+### REQ-2  (F)
 - **derives_from:** BO-1
 - The system shall transfer job updates recorded offline to the back-office
   system automatically once connectivity is restored, without technician action.
@@ -58,7 +58,7 @@ hour."
 - **Rationale:** Removes the "keyed days late or not at all" failure; the
   reconcile half of the offline outcome.
 
-### TR-1.3  (NF)
+### REQ-3  (NF)
 - **derives_from:** BO-1
 - Offline-held job data must remain available without connectivity for at least
   a full working shift (target: >= 12 hours).
@@ -71,7 +71,7 @@ and exactly when.
 **Why:** Intake — "customers have started asking for proof a job was actually
 completed and when."
 
-### TR-2.1  (F)
+### REQ-4  (F)
 - **derives_from:** BO-2
 - The system shall record, for each completed job, the time of completion and
   the identity of the technician who completed it.
@@ -80,7 +80,7 @@ completed and when."
 - **Rationale:** The minimum factual basis for "proof a job was completed and
   when."
 
-### TR-2.2  (NF)
+### REQ-5  (NF)
 - **derives_from:** BO-2
 - A recorded job completion must not be silently altered or deleted; any change
   must be attributable and recoverable.
@@ -93,7 +93,7 @@ remain open.
 **Why:** Intake — "the operations manager needs to see, by the end of each day,
 which jobs are still open."
 
-### TR-3.1  (F)
+### REQ-6  (F)
 - **derives_from:** BO-3
 - The system shall present, on demand, the set of jobs that are not yet marked
   complete, distinguishable from completed jobs.
@@ -102,7 +102,7 @@ which jobs are still open."
   from completed ones.
 - **Rationale:** Directly the manager's stated need.
 
-### TR-3.2  (NF)
+### REQ-7  (NF)
 - **derives_from:** BO-3
 - A job completed offline must appear as open to the operations manager only
   until it reconciles, and as completed within a bounded window after
@@ -116,7 +116,7 @@ without being especially tech-confident.
 **Why:** Intake — "usable one-handed on a phone while the other hand is holding
 a tool, by technicians who are not especially tech-confident."
 
-### TR-4.1  (NF)
+### REQ-8  (NF)
 - **derives_from:** BO-4
 - Every action required to view and complete a job must be operable one-handed
   on a phone-sized screen, with touch targets and flows that pass an
@@ -124,7 +124,7 @@ a tool, by technicians who are not especially tech-confident."
 - **Rationale:** The stated usability constraint; left measurable against an
   accessibility standard rather than a framework.
 
-### TR-4.2  (NF)
+### REQ-9  (NF)
 - **derives_from:** BO-4
 - A technician must be able to complete a job in a number of steps a
   first-time, non-technical user can perform without training (target:
@@ -139,14 +139,18 @@ a tool, by technicians who are not especially tech-confident."
 
 - **Four outcomes, in range (3-6), all benefits.** Not one names a technology.
   "Offline job completion," not "a sync engine."
-- **Every requirement traces up.** `TR-2.1` -> `BO-2` -> the customer's
-  proof demand in the intake. Strike `BO-2` and `TR-2.*` falls with it.
+- **Every requirement traces up — in the field, not the key.** `REQ-4`'s
+  `derives_from: BO-2` ties it to the customer's proof demand in the intake.
+  Strike `BO-2` and every `REQ-<n>` whose `derives_from` names it (`REQ-4`,
+  `REQ-5`) falls with it.
+- **The key carries no parent.** `REQ-4` and `REQ-5` are a flat counter; nothing
+  in the key says "outcome 2" — the tie is read entirely from `derives_from`.
 - **NFRs carry targets.** ">= 12 hours", "<= 5 minutes", ">= 90% task success" —
   not "fast" or "easy".
-- **No-HOW held throughout.** TR-4.1 says "pass an established
+- **No-HOW held throughout.** REQ-8 says "pass an established
   mobile-accessibility bar" — a WHAT — and leaves the standard and the
   implementation to the downstream a11y / design-review skill and the
   component-pattern library.
-- **The cross-outcome tension is captured, not hidden.** TR-3.2 names the
+- **The cross-outcome tension is captured, not hidden.** REQ-7 names the
   reconcile window so BO-1's offline capture doesn't quietly break BO-3's
   visibility — surfaced as a requirement for the red-team skill to pick up.

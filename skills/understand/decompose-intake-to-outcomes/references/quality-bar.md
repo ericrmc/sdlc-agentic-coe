@@ -54,12 +54,13 @@ is invention — note it as an open question, not a requirement.
 
 ### 5. No orphan, by construction
 Every requirement carries a `derives_from: BO-N` that names one of the emitted
-outcomes. The skeleton makes a parentless requirement structurally impossible;
-don't hand-edit one in.
+outcomes. The key is a flat `REQ-<n>`; the parent tie lives only in
+`derives_from`. The skeleton makes a parentless requirement structurally
+impossible; don't hand-edit one in.
 
-- Fail: a `TR-*` block with no `derives_from`, or one pointing at a `BO-N` that
-  isn't in the outcomes list.
-- Pass: every `TR-N.M` sits under `BO-N` and cites it.
+- Fail: a `REQ-<n>` block with no `derives_from`, or one pointing at a `BO-N`
+  that isn't in the outcomes list.
+- Pass: every `REQ-<n>` cites a `BO-N` in `derives_from`.
 
 Test: does removing the parent outcome cleanly remove this requirement? If the
 requirement would survive orphaned, the trace is wrong.
@@ -77,9 +78,8 @@ solution. If it could be a line in an architecture, it is not an outcome.
 - Pass: *"Technicians complete jobs with no connectivity."* / *"Completions are
   auditable."*
 
-Plus: a short (<= 4 word) `value_outcome` display label, and a count in the
-**3-6** range — a range, not a quota. Fewer strong outcomes beat more invented
-ones.
+Plus: a short (<= 4 word) display label, and a count in the **3-6** range — a
+range, not a quota. Fewer strong outcomes beat more invented ones.
 
 ## Quick checklist (paste into a PR review)
 

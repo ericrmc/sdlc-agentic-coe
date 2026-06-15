@@ -44,7 +44,7 @@ Use it *after* business outcomes are agreed (you need outcomes to trace against)
 The user supplies, as markdown or pasted context:
 
 1. **Candidate backlog items** — the raw list. One per line or bullet is fine; a title plus an optional sentence of description each is ideal.
-2. **Accepted outcomes** — the agreed business outcomes, each with a stable key (e.g. `OUT-3`, `BV-1`). These are the **only** things an item may trace to. May be sparse; that is normal and expected — a sparse outcome set means more honest nulls.
+2. **Accepted outcomes** — the agreed business outcomes, each with a stable key (e.g. `BO-3`, `BO-1`). These are the **only** things an item may trace to. May be sparse; that is normal and expected — a sparse outcome set means more honest nulls.
 3. **Effort reference** *(optional but strongly preferred)* — comparable past projects whose *actual* effort is known, so you can size honestly. May be sparse. With no reference at all, sizes are `null` (unsizable), not guessed.
 4. **Decline memory** *(optional)* — items already declined, with the evidence they were declined against. Used so you do not re-propose them.
 
@@ -61,7 +61,7 @@ For each candidate, fill one row using these mechanical rules. No judgement yet 
 | Field | Mechanical rule |
 |---|---|
 | **title** | A concise restatement of the candidate item. |
-| **derives_from_outcome_key** | Tokenise the item title and each outcome's text (drop stop-words and filler verbs like *add/change/remove/new/feature/support*). Pick the outcome with the **most shared meaningful tokens**. Require **at least two** shared tokens to claim a trace — otherwise `null`. A `null` here is a **scope-creep flag**, not an error. |
+| **derives_from** | Tokenise the item title and each outcome's text (drop stop-words and filler verbs like *add/change/remove/new/feature/support*). Pick the outcome with the **most shared meaningful tokens**. Require **at least two** shared tokens to claim a trace — otherwise `null`. A `null` here is a **scope-creep flag**, not an error. |
 | **est_effort_days** | Take the mean *actual* effort of the confirmed comparators and scale it down — a single deferred feature is roughly **~20%** (`× 0.2`) of a whole comparable build. Round to one decimal. If there are **no** comparators, this is `null` (unsizable). |
 | **suggested_priority** | Falls straight out of the trace: **traced → `medium`** (a real ask deserves a default of medium, to be lifted by the LLM step only with a reason); **untraced → `low`** (a flag, parked but not chased). Never `high` from the table alone — high is a judgement the LLM step must justify. |
 | **rationale** | Templated: traced → *"Traces to outcome {key}; sized from comparators (~20% of comparable build)."* untraced → *"No accepted outcome behind it — parked as a low-priority flag."* |
@@ -109,7 +109,7 @@ Decline ≠ delete. A declined item is remembered, not erased — keep the rejec
 Triage maps cleanly onto a **GitHub Project backlog**, so teams run it with native mechanics:
 
 - **Parked item** → a card in the **Backlog** column of the project's GitHub Project (or a `Backlog`-status issue).
-- **derives_from_outcome_key** → a label like `outcome:OUT-3`, or a linked issue to the outcome. An untraced item carries a `scope-creep` label instead.
+- **derives_from** → a label like `outcome:BO-3`, or a linked issue to the outcome. An untraced item carries a `scope-creep` label instead.
 - **est_effort_days** → a numeric Project field (e.g. `Est (days)`).
 - **suggested_priority** → labels `priority:high` / `priority:medium` / `priority:low`.
 - **Promote** → move the card to a **Ready / In a release** column and open the corresponding `add` change against the target release (a PR or a release-tracking issue), carrying the `outcome:` label forward.
@@ -130,13 +130,13 @@ Return a markdown **menu of suggested deferrals** the user can act on. Each item
 
 | # | Title | Traces to | Est (days) | Priority | Rationale |
 |---|-------|-----------|-----------:|----------|-----------|
-| 1 | Bulk re-assign approvals across reviewers | OUT-3 | 4.5 | medium | Serves OUT-3 (reviewers manage load); sized at ~20% of the comparable approval-workflow build. |
+| 1 | Bulk re-assign approvals across reviewers | BO-3 | 4.5 | medium | Serves BO-3 (reviewers manage load); sized at ~20% of the comparable approval-workflow build. |
 | 2 | Dark-mode theme for the portal | — (null) | 2.0 | low | No accepted outcome behind it — parked as a low-priority scope-creep flag. |
-| 3 | One-click compliance export bundle | OUT-1 | 6.0 | high | Serves OUT-1 (auditable evidence); raised to high — named blocker for the Q3 audit. Sized above the flat fraction: cross-cutting, touches every record type. |
+| 3 | One-click compliance export bundle | BO-1 | 6.0 | high | Serves BO-1 (auditable evidence); raised to high — named blocker for the Q3 audit. Sized above the flat fraction: cross-cutting, touches every record type. |
 | 4 | Misc UI polish pass | — (null) | — (unsizable) | low | No outcome behind it and no comparator to size against — parked as a flag. |
 
 ### Promote a parked item
-`Promote #N → release R` creates an **'add'** change on release R carrying the **same trace** (#1 → OUT-3, #3 → OUT-1). Promoting an untraced item (#2, #4) lands an `add` with no outcome — the release reconcile will flag it as scope creep.
+`Promote #N → release R` creates an **'add'** change on release R carrying the **same trace** (#1 → BO-3, #3 → BO-1). Promoting an untraced item (#2, #4) lands an `add` with no outcome — the release reconcile will flag it as scope creep.
 
 ### Decline a parked item
 `Decline #N` is **remembered**. It will not be re-proposed while the outcomes and effort reference are unchanged. Record the why; it only resurfaces if the evidence moves.
@@ -171,7 +171,7 @@ CANDIDATE BACKLOG ITEMS:
 
 For EACH candidate item, emit one deferral suggestion:
 - "title": a concise restatement of the candidate item.
-- "derives_from_outcome_key": the key of the ONE accepted outcome this item
+- "derives_from": the key of the ONE accepted outcome this item
   genuinely serves, taken VERBATIM from the outcomes above. If it serves no
   accepted outcome, set this to null — an honest null is better than a forced
   trace, and signals scope creep.
@@ -194,14 +194,14 @@ Return ONLY a JSON object of this shape, no prose, no markdown fence:
   "deferrals": [
     {
       "title": "Bulk re-assign approvals across reviewers",
-      "derives_from_outcome_key": "OUT-3",
+      "derives_from": "BO-3",
       "est_effort_days": 4.5,
       "suggested_priority": "medium",
-      "rationale": "Serves outcome OUT-3 (reviewers manage load); sized at ~20% of the comparable approval-workflow build."
+      "rationale": "Serves outcome BO-3 (reviewers manage load); sized at ~20% of the comparable approval-workflow build."
     },
     {
       "title": "Dark-mode theme for the portal",
-      "derives_from_outcome_key": null,
+      "derives_from": null,
       "est_effort_days": 2.0,
       "suggested_priority": "low",
       "rationale": "No accepted outcome behind it — parked as a low-priority flag."

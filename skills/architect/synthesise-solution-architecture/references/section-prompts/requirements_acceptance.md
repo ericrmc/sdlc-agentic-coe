@@ -32,7 +32,7 @@ INVARIANTS (non-negotiable, repeated in every section prompt):
 - This is the ONLY source material. Do NOT invent requirements or acceptance criteria.
 - A requirement with zero acceptance criteria is stated honestly as such — do not
   fabricate a criterion to fill the gap (a later reconcile check exists to flag it).
-- Preserve every backtick-quoted key (`F-1`, `NF-2`, `O-1`, …) verbatim; the whole
+- Preserve every backtick-quoted key (`REQ-1`, `REQ-2`, `BO-1`, …) verbatim; the whole
   value is the preserved thread outcome → requirement → acceptance criterion.
 - Plain professional house style — no product names, codenames, or jargon.
 - Author **only** this section. NFR *standards* belong to `quality_nfrs`.

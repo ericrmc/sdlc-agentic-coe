@@ -18,6 +18,8 @@ Describe the *shape* of each requirement so a human can see it at a glance. For 
 
 This skill is **advisory and non-destructive**. It describes; it never decides. It does **not** change a requirement's status, source, version, ID, or wording. It only attaches annotations alongside the existing text. A human reads the annotations and chooses what to act on.
 
+Each requirement is cited as `REQ-<n>` — the canonical requirement key. Functional vs non-functional is **`layer`/`stated_as` classify metadata, never part of the key**: there is no `F-`/`NF-` key. This skill is the canonical home of that functional/non-functional distinction, and it lives in the `layer` field, not in the identifier. The machine-readable block may keep a bare integer `requirement_id` as a stable internal index, but the citation key a human sees is always `REQ-<n>`.
+
 The point is to make three failure modes jump off the page:
 
 - **Solutioneering** — a requirement that names a mechanism/product instead of the underlying need (`stated_as = solution`).
@@ -34,7 +36,7 @@ The user supplies, as markdown or plain context:
 
 - **Project title** — one line.
 - **Project context** — a short paragraph of what the project is and what it's for. This grounds the `value_outcome` inference and the business-vs-technical `layer` call.
-- **Requirements to classify** — a list, each row carrying a stable identifier and the requirement text. Reference each row by its real identifier; do not renumber, merge, skip, or duplicate.
+- **Requirements to classify** — a list, each row carrying its `REQ-<n>` key (or a bare integer index that maps to one) and the requirement text. Reference each row by its real key; do not renumber, merge, skip, or duplicate.
 
 Example input block:
 
@@ -44,10 +46,10 @@ PROJECT CONTEXT: Dispatchers hand-build daily routes in a spreadsheet; the
 business wants faster, more consistent scheduling and an audit trail of changes.
 
 REQUIREMENTS:
-  7  | The system shall use Power Automate to route approval requests.
-  8  | A dispatcher must be able to publish a day's routes in under 30 seconds.
-  9  | The current process is too slow and dispatchers complain.
- 10  | Customer data must remain within the AU region.
+  REQ-7   | The system shall use Power Automate to route approval requests.
+  REQ-8   | A dispatcher must be able to publish a day's routes in under 30 seconds.
+  REQ-9   | The current process is too slow and dispatchers complain.
+  REQ-10  | Customer data must remain within the AU region.
 ```
 
 ## The method
@@ -105,7 +107,7 @@ The same requirement text classifies the same way every time. Classification is 
 
 ## Output format
 
-Return one classification per requirement id, in the input order, plus a short human-readable digest. Use only the controlled values above; never invent new ones.
+Return one classification per requirement, in the input order, plus a short human-readable digest. Use only the controlled values above; never invent new ones. The machine-readable block keys each row by its `requirement_id` integer as a stable internal index; everything a human reads cites the canonical `REQ-<n>` key (where `<n>` is that same index).
 
 ### Machine-readable block
 
@@ -153,24 +155,24 @@ Return one classification per requirement id, in the input order, plus a short h
 A compact table the user actually reads, followed by the flags that matter.
 
 ```
-| id | layer     | stated_as  | quantified | value_outcome      |
-|----|-----------|------------|------------|--------------------|
-| 7  | technical | solution   | no         | Auditable approvals|
-| 8  | business  | need       | yes        | Faster scheduling  |
-| 9  | business  | symptom    | no         | Faster scheduling  |
-| 10 | business  | constraint | no         | Data sovereignty   |
+| key    | layer     | stated_as  | quantified | value_outcome      |
+|--------|-----------|------------|------------|--------------------|
+| REQ-7  | technical | solution   | no         | Auditable approvals|
+| REQ-8  | business  | need       | yes        | Faster scheduling  |
+| REQ-9  | business  | symptom    | no         | Faster scheduling  |
+| REQ-10 | business  | constraint | no         | Data sovereignty   |
 
 Flags for adversarial review:
-- Solutioneering (1): #7 names a named product. Suggested need-shaped rewrite above.
+- Solutioneering (1): REQ-7 names a named product. Suggested need-shaped rewrite above.
 - Unmeasurable needs (0): none — all need-shaped items carry a target.
-- Symptoms (1): #9 is a pain, not a requirement; derive the real need.
+- Symptoms (1): REQ-9 is a pain, not a requirement; derive the real need.
 - Value-orphans (0): every requirement maps to a stated outcome.
 ```
 
 ## Notes / anti-patterns
 
 - **Advisory only.** Never mutate status, source, version, id, or the requirement text. Emit annotations beside the text; the human decides.
-- **One row per id.** Exactly one classification per input id. Do not skip, merge, duplicate, or renumber.
+- **One row per requirement.** Exactly one classification per input `REQ-<n>` (or its integer index). Do not skip, merge, duplicate, or renumber.
 - **Controlled values only.** `layer ∈ {business, technical}`; `stated_as ∈ {need, solution, constraint, symptom}`. No new categories, no compound values.
 - **`suggested_rewrite` is gated.** It is non-null **iff** `stated_as = solution`. A non-null rewrite on a non-solution row is a bug.
 - **Respect the precedence.** `solution > constraint > symptom > need`. Don't pick the "nicest" label — pick the highest one that applies.

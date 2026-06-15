@@ -22,9 +22,9 @@ An outcome's `req_key` appears as a **literal token** in **no** current section 
 - Set `req_key` = the outcome's key; `section_key` = `null`.
 - A freshly generated doc covers every outcome by construction, so in practice this is
   an **edit-drift guard**: it fires when a later edit dropped the reference.
-- Question form: "Outcome `OUT-3` is not referenced in any current design section.
-  Should the sections be regenerated or updated to cover it?"
-- Evidence note: token "OUT-3" absent from all section bodies.
+- Question form: "Business outcome `BO-3` is not referenced in any current design
+  section. Should the sections be regenerated or updated to cover it?"
+- Evidence note: token "BO-3" absent from all section bodies.
 
 ## 2. `requirement_no_acceptance_criterion`
 
@@ -41,11 +41,12 @@ A pattern NFR or an NF requirement is **not reflected** in the `quality_nfrs` se
 body: either its literal `req_key` is absent, or (for free-text NFRs) it has **fewer
 than two keyword tokens** overlapping the section body.
 
-- Set `req_key` = the NFR's key (`null` for a free-text pattern NFR);
+- Set `req_key` = the NFR requirement's `REQ-` key (`null` for a free-text pattern NFR);
   `section_key` = `quality_nfrs`.
-- Question form: "NFR-1 (availability) does not appear to be reflected in the Quality
-  attributes section. Is it addressed?"
-- Evidence note: no keyword overlap between NFR text and the `quality_nfrs` body.
+- Question form: "Requirement `REQ-9` (classify: nfr, kind=availability) does not appear
+  to be reflected in the Quality attributes section. Is it addressed?"
+- Evidence note: no keyword overlap between the requirement text and the `quality_nfrs`
+  body.
 - (The two-keyword-overlap threshold is what the semantic pass exists to second-guess —
   an NFR addressed under different wording, e.g. "uptime and failover" for
   "availability", false-fires here and the LLM step reconciles it.)

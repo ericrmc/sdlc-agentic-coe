@@ -81,21 +81,21 @@ Provide, as markdown or plain context:
    ```
 
 2. **The requirement set** — the live derived requirements, each with:
-   - a stable, cite-able `req_key` (e.g. `TR-022`),
+   - a stable, cite-able `req_key` (e.g. `REQ-022`),
    - its `text`,
    - its `capability_tags` — what the requirement *needs* (`instant-write`, `cross-region`,
      `real-time`, …). If tags are absent, infer them in the model step and **say you inferred them.**
-   - its `derives_from` chain: the `outcome_key` (and `text`) it serves, and the
-     `capability` (e.g. `CAP-CUSTOMER-SELF-SERVICE`) above that. **This is what each
+   - its `derives_from` chain: the `BO-<n>` business outcome (and `text`) it serves, and the
+     `fulfils_capability` (e.g. `CAP-CUSTOMER-SELF-SERVICE`) above that. **This is what each
      compromise walks up to.**
 
    ```
-   TR-022 | needs: instant-write | "Confirmation shown the instant a change is saved"
-          | serves OUT-3 "Customers complete account changes without calling support"
-          | under CAP-CUSTOMER-SELF-SERVICE
-   TR-031 | needs: cross-region  | "Records replicated to the DR region within 5 min"
-          | serves OUT-7 "Service survives a regional outage"
-          | under CAP-RESILIENCE
+   REQ-022 | needs: instant-write | "Confirmation shown the instant a change is saved"
+           | derives_from BO-3 "Customers complete account changes without calling support"
+           | fulfils_capability CAP-CUSTOMER-SELF-SERVICE
+   REQ-031 | needs: cross-region  | "Records replicated to the DR region within 5 min"
+           | derives_from BO-7 "Service survives a regional outage"
+           | fulfils_capability CAP-RESILIENCE
    ```
 
 If there are no `req_key`s, say so and emit the deterministic replay table with empty keys —
@@ -150,14 +150,14 @@ For every `compromised`/`unmet` requirement, resolve its `derives_from` chain so
 carries the **business consequence** with it:
 
 ```
-requirement (TR-022)  →  outcome (OUT-3)  →  capability (CAP-CUSTOMER-SELF-SERVICE)
+requirement (REQ-022)  →  derives_from BO-3  →  fulfils_capability CAP-CUSTOMER-SELF-SERVICE
 ```
 
-The compromise is *not* "TR-022 degrades." It is **"OUT-3 — *Customers complete account changes
-without calling support* — takes the dent."** Every flag names the outcome and the capability it
-costs. **Nothing is dropped without flagging; contested items stay visible.** A compromise with
-no upstream outcome is itself a flag — surface it as an orphaned requirement, do not silently
-drop it.
+The compromise is *not* "REQ-022 degrades." It is **"BO-3 — *Customers complete account changes
+without calling support* — takes the dent."** Every flag names the business outcome and the
+capability it costs. **Nothing is dropped without flagging; contested items stay visible.** A
+compromise with no upstream outcome is itself a flag — surface it as an orphaned requirement, do
+not silently drop it.
 
 ### Step 4 — MODEL STEP: phrase each compromise as a grounded question
 
@@ -177,17 +177,18 @@ the outcome**, states the constraint that caused it, and (for `soft`/`compromise
 > For EACH compromised/unmet requirement, write ONE `question` object with:
 > - `req_key`, `flag` (verbatim — `compromised` or `unmet`; do not change it),
 > - `constraint_key` — the enforced constraint it clashed on,
-> - `outcome_key` + `outcome_text` — the outcome it dents (walked up the trace),
+> - `outcome_key` (a `BO-<n>` key) + `outcome_text` — the business outcome it dents (walked up
+>   the trace),
 > - `capability` — the competency above that outcome,
 > - `degraded_to` — for a `soft`/`compromised` clash, the relaxed form being proposed
 >   (e.g. "instant → ≤2s"); for a `hard`/`unmet` clash, set this null,
 > - `question` — one sentence naming the requirement AND the outcome AND the constraint,
 >   ending in the human's call. Examples of the SHAPE (not the answer):
->   - compromised: "The pattern enforces async writes, so *TR-022 — instant confirmation* —
->     can only reach **≤2s**, denting *OUT-3 (customers self-serve without calling)*. Accept
+>   - compromised: "The pattern enforces async writes, so *REQ-022 — instant confirmation* —
+>     can only reach **≤2s**, denting *BO-3 (customers self-serve without calling)*. Accept
 >     the degraded ≤2s form, or reject this solution for this outcome?"
->   - unmet: "*CON-SINGLE-REGION* (hard) cannot satisfy *TR-031 — cross-region replication*,
->     which serves *OUT-7 (survive a regional outage)*. This outcome is **unmet** by this
+>   - unmet: "*CON-SINGLE-REGION* (hard) cannot satisfy *REQ-031 — cross-region replication*,
+>     which serves *BO-7 (survive a regional outage)*. This outcome is **unmet** by this
 >     solution as written — accept it as a known risk, or does the solution need to change?"
 >
 > Do NOT recommend which way to rule. Do NOT mark one compromise more important than another.
@@ -198,24 +199,24 @@ the outcome**, states the constraint that caused it, and (for `soft`/`compromise
   "summary": { "evaluated": 14, "met": 11, "compromised": 2, "unmet": 1, "unevaluated": 0 },
   "compromises": [
     {
-      "req_key": "TR-022",
+      "req_key": "REQ-022",
       "flag": "compromised",
       "constraint_key": "CON-ASYNC-WRITES-ONLY",
-      "outcome_key": "OUT-3",
+      "outcome_key": "BO-3",
       "outcome_text": "Customers complete account changes without calling support",
       "capability": "CAP-CUSTOMER-SELF-SERVICE",
       "degraded_to": "instant → ≤2s",
-      "question": "The pattern enforces async writes, so TR-022 (instant confirmation) can only reach ≤2s, denting OUT-3 (customers self-serve without calling). Accept the degraded ≤2s form, or reject this solution for this outcome?"
+      "question": "The pattern enforces async writes, so REQ-022 (instant confirmation) can only reach ≤2s, denting BO-3 (customers self-serve without calling). Accept the degraded ≤2s form, or reject this solution for this outcome?"
     },
     {
-      "req_key": "TR-031",
+      "req_key": "REQ-031",
       "flag": "unmet",
       "constraint_key": "CON-SINGLE-REGION",
-      "outcome_key": "OUT-7",
+      "outcome_key": "BO-7",
       "outcome_text": "Service survives a regional outage",
       "capability": "CAP-RESILIENCE",
       "degraded_to": null,
-      "question": "CON-SINGLE-REGION (hard) cannot satisfy TR-031 (cross-region replication), which serves OUT-7 (survive a regional outage). This outcome is unmet by this solution as written — accept it as a known risk, or does the solution need to change?"
+      "question": "CON-SINGLE-REGION (hard) cannot satisfy REQ-031 (cross-region replication), which serves BO-7 (survive a regional outage). This outcome is unmet by this solution as written — accept it as a known risk, or does the solution need to change?"
     }
   ]
 }
@@ -246,26 +247,26 @@ _Flags computed from the constraint replay below — not assessed. Each compromi
 
 | req_key | requirement                          | needs         | clashes with         | enforced | flag         |
 |---------|--------------------------------------|---------------|----------------------|----------|--------------|
-| TR-022  | Instant confirmation on save         | instant-write | CON-ASYNC-WRITES-ONLY | hard*    | compromised  |
-| TR-031  | Cross-region DR replication          | cross-region  | CON-SINGLE-REGION     | hard     | unmet        |
-| TR-040  | Read freshness for dashboard         | real-time     | CON-CACHE-TTL-60S     | soft     | compromised  |
-| TR-005  | OAuth2 on all API callers            | —             | —                    | —        | met          |
+| REQ-022 | Instant confirmation on save         | instant-write | CON-ASYNC-WRITES-ONLY | hard*    | compromised  |
+| REQ-031 | Cross-region DR replication          | cross-region  | CON-SINGLE-REGION     | hard     | unmet        |
+| REQ-040 | Read freshness for dashboard         | real-time     | CON-CACHE-TTL-60S     | soft     | compromised  |
+| REQ-005 | OAuth2 on all API callers            | —             | —                    | —        | met          |
 | …       | (11 met requirements settle — counted, not carded) |   |                      |          | met          |
 
-> *TR-022: the async constraint is `hard`, but the requirement's "instant" can relax to a
+> *REQ-022: the async constraint is `hard`, but the requirement's "instant" can relax to a
 > bounded "≤2s" — so a human may accept it as `compromised` rather than `unmet`. See the question.
 
 ### Friction to rule on (each walks up to the outcome it dents)
 
-**TR-022 — compromised** · clashes `CON-ASYNC-WRITES-ONLY`
-↑ dents **OUT-3** *Customers complete account changes without calling support* (CAP-CUSTOMER-SELF-SERVICE)
-> The pattern enforces async writes, so **TR-022 (instant confirmation)** can only reach **≤2s**,
-> denting **OUT-3**. **Accept the degraded ≤2s form, or reject this solution for this outcome?**
+**REQ-022 — compromised** · clashes `CON-ASYNC-WRITES-ONLY`
+↑ dents **BO-3** *Customers complete account changes without calling support* (CAP-CUSTOMER-SELF-SERVICE)
+> The pattern enforces async writes, so **REQ-022 (instant confirmation)** can only reach **≤2s**,
+> denting **BO-3**. **Accept the degraded ≤2s form, or reject this solution for this outcome?**
 
-**TR-031 — unmet** · clashes `CON-SINGLE-REGION` (hard)
-↑ dents **OUT-7** *Service survives a regional outage* (CAP-RESILIENCE)
-> **CON-SINGLE-REGION (hard)** cannot satisfy **TR-031 (cross-region replication)**, which serves
-> **OUT-7**. This outcome is **unmet** by this solution as written. **Accept it as a known risk,
+**REQ-031 — unmet** · clashes `CON-SINGLE-REGION` (hard)
+↑ dents **BO-7** *Service survives a regional outage* (CAP-RESILIENCE)
+> **CON-SINGLE-REGION (hard)** cannot satisfy **REQ-031 (cross-region replication)**, which serves
+> **BO-7**. This outcome is **unmet** by this solution as written. **Accept it as a known risk,
 > or does the solution need to change?**
 
 _Computed flags, not verdicts. The 11 met requirements settle. Accepting or rejecting each
@@ -280,7 +281,7 @@ not a thin result to pad.
 ## Notes / anti-patterns
 
 - **Compute the flag; never emit it as a verdict.** The flag is the output of the replay table in
-  Step 1. The model phrases it; it never *decides* it. ❌ "I judge TR-022 to be acceptable." The
+  Step 1. The model phrases it; it never *decides* it. ❌ "I judge REQ-022 to be acceptable." The
   legal move is the question that names the trade-off and hands the call to the human.
 - **`hard` → `unmet`, `soft` → `compromised`. Don't soften a hard clash.** A `hard` constraint
   cannot be waived; a requirement colliding with it is `unmet`, full stop. The human may *accept
@@ -288,7 +289,7 @@ not a thin result to pad.
   acceptance happened. Record the acceptance; keep the flag honest.
 - **Walk up, always.** A compromise that doesn't name the outcome it dents is half a flag. The
   whole point of the trace edge is that the human rules on a *business consequence*, not a stray
-  technical detail. ❌ "TR-022 degrades." ✅ "OUT-3 takes the dent because TR-022 degrades."
+  technical detail. ❌ "REQ-022 degrades." ✅ "BO-3 takes the dent because REQ-022 degrades."
 - **Nothing dropped without flagging.** Never quietly filter out a compromise to make the solution
   look cleaner. A requirement with no upstream outcome is itself flagged (orphaned), not deleted.
 - **Met requirements settle; they don't vanish.** Report the met count and keep them in the replay

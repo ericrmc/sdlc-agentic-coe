@@ -53,7 +53,7 @@ nothing to trace to is all creep.
 
 Paste or point the skill at:
 
-1. **The accepted outcomes** — each with a stable key (e.g. `OUT-2`, `REQ-7`) and one line of text. These
+1. **The accepted outcomes** — each with a stable key (e.g. `BO-2`, `REQ-7`) and one line of text. These
    are the *only* things a change may trace to. May be sparse — that is fine and honest.
 2. **The backlog** — a pasted list of desired changes / tickets / one-liners. One item per line. (A direct
    Jira/GitHub ingest is a future seam; today the list is pasted.)
@@ -84,7 +84,7 @@ human **sign-off** — and nothing more. The checklist is read, ticked, and sign
 > its own GitHub Project; this skill names the columns and what "done enough to move right" means in each. The
 > board tracks *phases*, never individual requirements.
 
-The UAT checklist is advisory: for each outcome the phase covers, one line — *"Outcome `OUT-2` (auditors can
+The UAT checklist is advisory: for each outcome the phase covers, one line — *"Outcome `BO-2` (auditors can
 self-serve evidence): covered by REQ-7, REQ-9 — observed working?"* — with a checkbox and a place for a human
 name + date. A human ticks and signs. Capture `pass`, `pass with conditions` (note the conditions), or `send
 back` (note the findings). None of these are enforced; they are a record.
@@ -119,7 +119,7 @@ underlying requirement graph and why nothing is ever deleted.
 
 ### STEP 5 — Trace each item to the ONE outcome it serves (THE MODEL REASONING STEP)
 
-This is the judgement call and the heart of the method. For each item, set `derives_from_outcome_key` to the
+This is the judgement call and the heart of the method. For each item, set `derives_from` to the
 key of the **one** accepted outcome the change genuinely serves — copied **exactly** from the supplied
 outcomes. The rules:
 
@@ -177,8 +177,8 @@ release proposal + its notes projection. Concrete templates:
 | 4 | Production | —             | not yet entered |
 
 ### MVP — UAT acceptance checklist (advisory)
-- [ ] Outcome **OUT-2** (auditors can self-serve evidence): covered by REQ-7, REQ-9 — observed working?
-- [ ] Outcome **OUT-4** (approvals are traceable): covered by REQ-11 — observed working?
+- [ ] Outcome **BO-2** (auditors can self-serve evidence): covered by REQ-7, REQ-9 — observed working?
+- [ ] Outcome **BO-4** (approvals are traceable): covered by REQ-11 — observed working?
 - Sign-off: ______________  Date: __________  Outcome (advisory): accepted / accepted-with-follow-ups / not-yet
 - Conditions / findings: ______________________________________________
 ```
@@ -191,10 +191,10 @@ Intent: give auditors self-serve evidence without raising a ticket.
 
 | change_kind | item | traces to | status |
 |-------------|------|-----------|--------|
-| add    | CSV export on the approvals dashboard | OUT-2 | proposed |
-| change | tighten the audit-log retention to 7y | OUT-4 | proposed |
+| add    | CSV export on the approvals dashboard | BO-2 | proposed |
+| change | tighten the audit-log retention to 7y | BO-4 | proposed |
 | patch  | fix timezone drift in audit timestamps | _null — scope creep_ | proposed |
-| remove | retire the legacy XML export | OUT-2 | proposed |
+| remove | retire the legacy XML export | BO-2 | proposed |
 
 > The `patch` line has **no outcome behind it**. That null is the deliberate scope-creep flag:
 > trace it to an outcome or drop it before this release ships.
@@ -208,16 +208,16 @@ Intent: give auditors self-serve evidence without raising a ticket.
 give auditors self-serve evidence without raising a ticket.
 
 ## Added
-- **CSV export on the approvals dashboard** — traces to OUT-2: the self-serve mechanism for OUT-2.
+- **CSV export on the approvals dashboard** — traces to BO-2: the self-serve mechanism for BO-2.
 
 ## Changed
-- **Audit-log retention → 7y** — traces to OUT-4: keeps approvals traceable for the full audit window.
+- **Audit-log retention → 7y** — traces to BO-4: keeps approvals traceable for the full audit window.
 
 ## Fixed
 - **Timezone drift in audit timestamps** — no outcome (scope creep): trace before shipping.
 
 ## Removed
-- **Legacy XML export** — traces to OUT-2: superseded by the new CSV export.
+- **Legacy XML export** — traces to BO-2: superseded by the new CSV export.
 ```
 
 ## Notes / anti-patterns

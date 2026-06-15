@@ -44,7 +44,7 @@ The user supplies the proposed release delta plus enough project context to trac
 
 3. **The current requirement set** — live requirements with their `req_key`, the outcome each `derives_from`, and whether each is already retired (so a `remove` can be tested against its surviving siblings).
 
-4. **The current design sections** — the section bodies of the live solution design (titles + body text is enough). Used only as a literal-token corpus: "does outcome `OUT-3` appear anywhere in the current design text?"
+4. **The current design sections** — the section bodies of the live solution design (titles + body text is enough). Used only as a literal-token corpus: "does outcome `BO-3` appear anywhere in the current design text?"
 
 5. **Dismissal memory** (optional) — a list of previously-dismissed questions, each keyed by `(check_kind, req_key, section_key, message)`. Any question matching a remembered key is suppressed so it does not nag again.
 
@@ -115,11 +115,11 @@ Three advisory drift questions over the proposed delta. None of these block the 
 - **REQ-021** — Release change REQ-021 traces to no outcome. Is there a business outcome behind it, or is this scope creep?
 
 ### Dropped requirements (a removal stranding an outcome)
-- **REQ-008** — Removing REQ-008 drops the only current requirement serving outcome OUT-2. Is that outcome being retired too?
+- **REQ-008** — Removing REQ-008 drops the only current requirement serving outcome BO-2. Is that outcome being retired too?
 
 ### Outcomes the design has gone quiet on
-- **OUT-5** — This release changes work under outcome OUT-5, but OUT-5 is not reflected in any current design section. Should the affected sections be regenerated?
-  - _(semantic note: OUT-5 appears to be addressed in prose under "Data retention" without citing its key — consider adding the trace reference rather than regenerating.)_
+- **BO-5** — This release changes work under outcome BO-5, but BO-5 is not reflected in any current design section. Should the affected sections be regenerated?
+  - _(semantic note: BO-5 appears to be addressed in prose under "Data retention" without citing its key — consider adding the trace reference rather than regenerating.)_
 
 _3 questions surfaced, 0 suppressed by dismissal memory. Advisory only — disposition each and proceed._
 ```

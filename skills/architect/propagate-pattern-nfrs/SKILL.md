@@ -155,12 +155,15 @@ break:
 ## Output format
 
 Emit **proposed markdown requirement lines** — one per NFR, in index order. Each is a
-derived **non-functional** requirement (`req_type: NF`), traced to its parent via a
-`derives_from: <req_key>` citation (or marked pattern-level when `parent_key` is null).
-The human folds these into the project's `REQUIREMENTS.md`; nothing is written for them.
+derived requirement classified **non-functional** (`classify: NF` is metadata, never part
+of the key), traced to its parent via a `derives_from: <req_key>` citation (or marked
+pattern-level when `parent_key` is null). The human folds these into the project's
+`REQUIREMENTS.md`; nothing is written for them.
 
-Give each line a stable key of the form `NFR-<pattern-slug>-<index>` so re-running is
-idempotent and the provenance (which pattern, which NFR index) is legible at a glance.
+Give each line a flat **`REQ-<n>`** key and carry the provenance (which pattern, which NFR
+index) in a `source` note — `<pattern-slug>#<index>` — so re-running is idempotent and the
+trace back to the exact pattern NFR stays legible at a glance. The slug and index live in
+the note, never in the key.
 
 ### Template
 
@@ -168,11 +171,13 @@ idempotent and the provenance (which pattern, which NFR index) is legible at a g
 ### Propagated NFRs — from pattern: <pattern-name>
 <!-- Source: attached_nfrs on the adopted pattern. Tracer placement only — texts verbatim. -->
 
-- **NFR-<pattern-slug>-1** [NF] (<kind>) <verbatim NFR text>
+- **REQ-<n>** [NF] (<kind>) <verbatim NFR text>
   - derives_from: BO-2
+  - source: <pattern-slug>#1
   - rationale: <why this outcome>
-- **NFR-<pattern-slug>-2** [NF] (<kind>) <verbatim NFR text>
+- **REQ-<n>** [NF] (<kind>) <verbatim NFR text>
   - derives_from: (pattern-level — no single outcome is a genuine fit)
+  - source: <pattern-slug>#2
   - rationale: <why pattern-level>
 ```
 
@@ -200,14 +205,17 @@ Proposed output:
 ### Propagated NFRs — from pattern: encrypted-offline-store
 <!-- Source: attached_nfrs on the adopted pattern. Tracer placement only — texts verbatim. -->
 
-- **NFR-encrypted-offline-store-1** [NF] (security) Data at rest is encrypted with AES-256; keys are never written to disk in plaintext.
+- **REQ-41** [NF] (security) Data at rest is encrypted with AES-256; keys are never written to disk in plaintext.
   - derives_from: BO-2
+  - source: encrypted-offline-store#1
   - rationale: Directly serves the outcome of protecting customer records to the data-handling standard.
-- **NFR-encrypted-offline-store-2** [NF] (reliability) Queued offline writes sync exactly once with no duplicates when connectivity returns.
+- **REQ-42** [NF] (reliability) Queued offline writes sync exactly once with no duplicates when connectivity returns.
   - derives_from: BO-1
+  - source: encrypted-offline-store#2
   - rationale: The zero-connectivity inspection outcome depends on reliable sync-on-reconnect.
-- **NFR-encrypted-offline-store-3** [NF] (performance) The local store answers reads in under 50ms at p95 with 10k records.
+- **REQ-43** [NF] (performance) The local store answers reads in under 50ms at p95 with 10k records.
   - derives_from: (pattern-level — no single outcome is a genuine fit)
+  - source: encrypted-offline-store#3
   - rationale: A store-internal latency bar that underpins both outcomes rather than serving one; placing it under either would overstate the link.
 ```
 
@@ -229,13 +237,15 @@ pattern-level mark.
   human-owned change to the pattern itself, not a propagation.
 - **Count is a contract.** N NFRs in, N requirement lines out. If your output has a
   different count, you dropped, merged, or invented one — all forbidden.
-- **Index is provenance.** Preserve each NFR's 1-based index into its `req_key`
-  (`NFR-<slug>-<index>`). It lets a reviewer walk straight back from the project
-  requirement to the exact pattern NFR it came from, and makes re-runs idempotent.
+- **Index is provenance.** Preserve each NFR's 1-based index in the `source` note
+  (`<pattern-slug>#<index>`) — the key itself stays a flat `REQ-<n>`. It lets a reviewer
+  walk straight back from the project requirement to the exact pattern NFR it came from,
+  and makes re-runs idempotent.
 - **Pattern-level NFRs are first-class, not leftovers.** An NFR with `parent_key: null`
   still enters the requirements — it just hangs off the pattern's adoption rather than one
   outcome. Surface it plainly so the human can decide if it later wants a parent; do not
   bury or discard it.
-- **Re-running is safe.** Stable keys mean a second pass over the same pattern produces the
-  same lines; the human replaces rather than accumulates. Adopting a *second* pattern adds
-  its own slug-namespaced block alongside the first.
+- **Re-running is safe.** The stable `source` note (`<pattern-slug>#<index>`) means a second
+  pass over the same pattern produces the same lines keyed to the same provenance; the human
+  replaces rather than accumulates. Adopting a *second* pattern adds its own slug-namespaced
+  block alongside the first.

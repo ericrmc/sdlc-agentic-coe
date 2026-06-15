@@ -55,7 +55,7 @@ invention.
 - **Project title + one-line intake/summary** — the header and the "in one
   breath" framing.
 - **Accepted outcomes** — the business-level results that were accepted. Each
-  has a key (e.g. `OUT-1`) and text. These seed the charter sections.
+  has a key (e.g. `BO-1`) and text. These seed the charter sections.
 - **Derived requirements**, traced to their parent outcome — each has a key
   (e.g. `REQ-12`), a type (F / NFR / etc.), and text.
 - **Acceptance criteria per requirement** — the testable statements. Each
@@ -181,7 +181,7 @@ Concrete excerpt of the charter:
 ```markdown
 ## What to prove (test charter)
 
-### OUT-1 — A practice lead can see at a glance which projects need attention
+### BO-1 — A practice lead can see at a glance which projects need attention
 - `REQ-4` (F) Portfolio view shows one RAG health verdict per project
     - PROVE: a project with an open roadblock renders a red verdict
     - PROVE: a healthy project renders a green verdict
@@ -189,7 +189,7 @@ Concrete excerpt of the charter:
 - `REQ-7` (NFR) The portfolio view loads in under 2s for 200 projects
     - PROVE: with 200 seeded projects the dashboard first paint is < 2s
 
-### OUT-2 — Nothing decided is silently lost
+### BO-2 — Nothing decided is silently lost
 - `REQ-9` (F) Dismissed roadblocks are remembered and not re-raised
     - PROVE: a dismissed roadblock does not reappear after regeneration
 ```

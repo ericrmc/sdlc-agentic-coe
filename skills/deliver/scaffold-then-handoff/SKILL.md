@@ -204,7 +204,7 @@ criteria, and no panel yet — the base alone produces:
 - None flagged. Confirm the acceptance criteria below are complete + testable.
 
 ## What to prove (test charter)
-### OUT-1 — Customers can self-serve a return without contacting support
+### BO-1 — Customers can self-serve a return without contacting support
 - `REQ-3` (F) The portal accepts an order number and emails a prepaid label.
     - PROVE: A valid order number returns a downloadable label within 5s.
     - PROVE: An invalid order number shows a recoverable, specific error.

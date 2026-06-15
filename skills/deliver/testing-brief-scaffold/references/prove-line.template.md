@@ -79,7 +79,7 @@ product defects as findings — do not fix them.
 
 ## What to prove (test charter)
 
-### OUT-1 — A practice lead can see at a glance which projects need attention
+### BO-1 — A practice lead can see at a glance which projects need attention
 - `REQ-4` (F) Portfolio view shows one RAG health verdict per project
     - PROVE: a project with an open roadblock renders a red verdict
     - PROVE: a healthy project renders a green verdict
@@ -87,11 +87,11 @@ product defects as findings — do not fix them.
 - `REQ-7` (NFR) The portfolio view loads in under 2s for 200 projects
     - PROVE: with 200 seeded projects the dashboard first paint is < 2s
 
-### OUT-2 — Nothing decided is silently lost
+### BO-2 — Nothing decided is silently lost
 - `REQ-9` (F) Dismissed roadblocks are remembered and not re-raised
     - PROVE: a dismissed roadblock does not reappear after regeneration
 
-### OUT-3 — Cost reporting (not yet derived)
+### BO-3 — Cost reporting (not yet derived)
 - _No derived requirements traced yet._
 
 ## Approach

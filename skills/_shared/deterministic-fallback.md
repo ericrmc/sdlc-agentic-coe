@@ -38,8 +38,9 @@ statement of what the reader gets when no model is in play — the contract a re
 name: decompose-intake-to-outcomes
 description: Derive business outcomes + child requirements from a raw intake brief.
 deterministic_fallback: >
-  Splits the intake into sentences, promotes each to a BO-n outcome, and stubs one
-  TR-n.1 child requirement per outcome from a fixed template. No model needed.
+  Splits the intake into sentences, promotes each to a BO-<n> outcome, and stubs one
+  REQ-<n> child requirement per outcome (derives_from: BO-<n>) from a fixed template.
+  No model needed.
 ---
 ```
 
@@ -106,7 +107,7 @@ and synthesis skills default to a large one. Swapping is editing one word.
 Base (no model):
   - regex-split intake into sentences
   - promote each sentence → outcome `BO-1..n`
-  - emit one child `TR-n.1` per outcome from the fixed template
+  - emit one child `REQ-<n>` per outcome (derives_from: BO-<n>) from the fixed template
   → usable draft, zero model calls
 
 Model swap (optional, one line):

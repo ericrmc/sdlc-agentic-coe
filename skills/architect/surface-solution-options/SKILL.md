@@ -78,7 +78,7 @@ The user supplies, as markdown or plain text:
 
 | Input | Required | What it is |
 |---|---|---|
-| **Ratified outcomes + derived requirements** | yes | The project's `BO-N` outcomes and `TR-N.M` requirements. This is what each candidate must serve and what you trace back to. |
+| **Ratified outcomes + derived requirements** | yes | The project's `BO-N` outcomes and `REQ-N` requirements (each carrying `derives_from: BO-N` for the outcome it serves). This is what each candidate must serve and what you trace back to. |
 | **The honest-empty signal** | yes | Confirmation that pattern retrieval found no adoptable approved pattern — ideally the near-misses it *did* surface and why each fell short, so candidates can deliberately diverge from them. |
 | **NFRs / constraints** | optional | Any attached NFRs already in play, plus hard constraints (data residency, runtime, latency targets). These bound the space and seed roadblocks. |
 | **Known roadblocks register** | optional | Any existing roadblock output for the project. Exploration commonly *adds* to it; start from what's already known. |
@@ -187,8 +187,9 @@ that requires a model. Use this prompt:
 > recommend a solution.
 >
 > You are given the project's ratified business outcomes (`BO-N`) and derived
-> requirements (`TR-N.M`), the near-misses retrieval surfaced (and why each fell
-> short), any NFRs/constraints, and any known roadblocks.
+> requirements (`REQ-N`, each tracing to its outcome via `derives_from: BO-N`),
+> the near-misses retrieval surfaced (and why each fell short), any
+> NFRs/constraints, and any known roadblocks.
 >
 > **Produce 2-3 genuinely distinct, credible candidate solution shapes**, plus a
 > **`Do nothing`** column, filling every comparison row for each:

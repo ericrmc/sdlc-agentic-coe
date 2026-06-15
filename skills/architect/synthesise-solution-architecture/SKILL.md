@@ -26,7 +26,7 @@ The discipline that makes it trustworthy is mechanical, not stylistic:
 
 - The section set is **frozen** (the same eight, in the same order, every time). A frozen set is what makes a later *reconcile* deterministic — every check has a precise target, every downstream projection knows exactly what it reads.
 - **Each fact lives in exactly one section.** A pattern's NFRs render in `quality_nfrs` and nowhere else. If a fact could plausibly go in two sections, the frozen layout already decided which one — follow it.
-- **Keys are preserved verbatim.** Every requirement / outcome key shown in the material (backtick-quoted `F-1`, `NF-2`, `O-1`) is carried through unchanged so traceability survives the synthesis.
+- **Keys are preserved verbatim.** Every requirement / outcome key shown in the material (backtick-quoted `REQ-1`, `REQ-7`, `BO-1`) is carried through unchanged so traceability survives the synthesis.
 - **Thin material is stated plainly, never padded.** A sparse project produces honest "nothing recorded yet" lines, not invented content.
 
 ## When to use
@@ -78,7 +78,7 @@ This is the contract for authoring. Honour every clause.
 
 3. **Author each section grounded ONLY in its slice.** For each section, the assembled material routed to it is the **only** source. Do not pull a decision into the requirements section, or a pattern NFR into the application-shape section. The frozen layout already routed every fact; follow the routing.
 
-4. **Preserve every requirement / outcome key verbatim.** Carry every backtick-quoted key (`F-1`, `NF-2`, `O-1`, …) through unchanged. Traceability is the point — a renamed or dropped key silently breaks the thread from outcome to requirement to acceptance criterion.
+4. **Preserve every requirement / outcome key verbatim.** Carry every backtick-quoted key (`REQ-1`, `REQ-7`, `BO-1`, …) through unchanged. Traceability is the point — a renamed or dropped key silently breaks the thread from outcome to requirement to acceptance criterion.
 
 5. **Each fact in exactly one section.** A pattern's NFRs render only in `quality_nfrs`. The pattern's *identity* renders only in `application_architecture`. An override's *reason* can appear as a decision (section 6) and as an open trade-off (section 8) where the material genuinely carries both senses — but a plain fact has exactly one home. When in doubt, the table above is the tiebreak.
 
@@ -120,8 +120,8 @@ The user gets back a single markdown document: the eight frozen sections, in ord
 <project description, or: _No intake description was recorded._>
 
 ### Targeted outcomes
-- `O-1` — _faster onboarding_ — New analysts are productive within one day.
-- `O-2` — _lower support load_ — Tier-1 tickets fall by a third.
+- `BO-1` — _faster onboarding_ — New analysts are productive within one day.
+- `BO-2` — _lower support load_ — Tier-1 tickets fall by a third.
 
 ### Outcomes still being settled
 _every outcome is accepted_
@@ -132,10 +132,10 @@ _nothing recorded yet — no outcomes have been woven for this project._
 
 ## 3. Requirements & acceptance criteria
 
-### `O-1` — New analysts are productive within one day
-- `F-1` Guided first-run walkthrough.
+### `BO-1` — New analysts are productive within one day
+- `REQ-1` Guided first-run walkthrough.
     - _AC:_ A new user completes setup without contacting support.
-- `NF-1` First-run loads in under two seconds on a standard laptop.
+- `REQ-2` (NF) First-run loads in under two seconds on a standard laptop.
     - _AC:_ p95 first-paint < 2s measured on the reference device.
 
 ## 4. Application & solution shape
@@ -155,7 +155,7 @@ _Provenance: <recommendation rationale>_
 - **availability**: 99.9% monthly, business hours.
 
 ### Propagated non-functional requirements
-- `NF-1` First-run loads in under two seconds on a standard laptop.
+- `REQ-2` First-run loads in under two seconds on a standard laptop.
     - _AC:_ p95 first-paint < 2s measured on the reference device.
 
 ## 6. Key decisions & trade-offs
@@ -184,7 +184,7 @@ Each section is **individually exportable** as `<section_key>.md`, and all eight
 - **Do not reorder, merge, drop, or add sections.** The frozen eight in fixed order is the contract. A "this project doesn't need decisions" instinct is wrong — render the section with its honest empty line.
 - **Do not let a fact appear twice.** The classic leak is rendering the pattern's NFRs in both `application_architecture` and `quality_nfrs`. Section 4 is identity / topology / provenance only; NFRs are section 5's alone. Duplication makes a later "is this addressed?" check ambiguous.
 - **Do not fabricate to fill space.** Thin material is a true fact about the project. "No comparators were confirmed" is a better section than an invented comparator. Add no facts not in the material.
-- **Do not rename or paraphrase keys.** `F-1` stays `F-1`, backticked. The whole value of the document is the preserved thread from outcome to requirement to acceptance criterion.
+- **Do not rename or paraphrase keys.** `REQ-1` stays `REQ-1`, backticked. The whole value of the document is the preserved thread from outcome to requirement to acceptance criterion.
 - **Do not assemble per-section.** Read and reshape the graph once; route slices to sections. Re-reading per section is how facts and keys drift between sections.
 - **Do not editorialise or import codenames.** Plain solution-architect prose, grounded strictly in the slice. No product names or internal jargon in any rendered string.
 - **Do not treat the output as approval.** This is advisory synthesis. It proposes the written design; it blocks nothing and signs off nothing. If something is unresolved, it belongs in section 8 — surfaced, not tidied away.

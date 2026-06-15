@@ -43,7 +43,7 @@ exists to answer. So:
 
 ## The trace edge and the null signal
 
-Independently of its kind, **every delta carries a trace** (`derives_from_outcome_key`) to the **one** outcome
+Independently of its kind, **every delta carries a trace** (`derives_from`) to the **one** outcome
 it serves — copied exactly from the accepted outcomes, never invented.
 
 A delta with a **null trace is not an error**. It is the deliberate **scope-creep signal**: work with no

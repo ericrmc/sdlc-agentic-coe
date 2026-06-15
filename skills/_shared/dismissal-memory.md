@@ -26,7 +26,7 @@ against evidence the human already looked at and waved off trains the reader to
 ignore the channel, and a channel that is ignored is worse than no channel.
 
 The failure this prevents is the unconditional re-propose: a skill that recomputes
-its findings each run and re-emits every one, so the same "Requirement R-014 has no
+its findings each run and re-emits every one, so the same "Requirement REQ-014 has no
 acceptance criterion — how will it be tested?" question reappears after the human
 has deliberately deferred it — a wall of repeated notes that buries the one new thing.
 
@@ -86,7 +86,7 @@ Recommended location and format — a JSONL ledger, one dismissal per line:
 ```
 
 ```jsonl
-{"skill":"reconcile","key":["requirement_no_acceptance_criterion","R-014","requirements_acceptance","Requirement R-014 has no acceptance criterion. How will it be tested?"],"dismissed_on":"2026-06-13","by":"erica","note":"deferred — AC lands with the spike in phase 2"}
+{"skill":"reconcile","key":["requirement_no_acceptance_criterion","REQ-014","requirements_acceptance","Requirement REQ-014 has no acceptance criterion. How will it be tested?"],"dismissed_on":"2026-06-13","by":"erica","note":"deferred — AC lands with the spike in phase 2"}
 {"skill":"roadblocks","key":["HLD §4 in-boundary-LLM constraint"],"dismissed_on":"2026-06-13","by":"erica","note":"accepted-as-grey; client read deferred"}
 {"skill":"red-team-and-dissent","key":["pattern:event-sourcing","operational-complexity"],"dismissed_on":"2026-06-13","by":"sanjay","note":"team has ops bandwidth; dissent recorded, not blocking"}
 ```
@@ -97,7 +97,7 @@ A markdown table is an equally valid carrier if humans edit it by hand:
 <!-- .coe/dismissals.md — dismissed cues; a skill will not re-surface these against unchanged evidence -->
 | skill | key | dismissed_on | by | note |
 |---|---|---|---|---|
-| reconcile | requirement_no_acceptance_criterion · R-014 · requirements_acceptance | 2026-06-13 | erica | deferred to phase 2 |
+| reconcile | requirement_no_acceptance_criterion · REQ-014 · requirements_acceptance | 2026-06-13 | erica | deferred to phase 2 |
 | triage | "vendor renamed the auth endpoint" | 2026-06-13 | erica | cosmetic; no design impact |
 ```
 

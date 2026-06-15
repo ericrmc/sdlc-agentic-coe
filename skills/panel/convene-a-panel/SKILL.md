@@ -236,7 +236,7 @@ The panel proposes; you dispose.}
 ## Synthesis — proposals (accept or dismiss each on its home view)
 The panel aggregated the real findings and proposes:
 - **2 gaps** to address — REQ-7 has no way to be verified (untestable); NFR coverage gap on performance (missing_nfr).
-- **1 requirement** to carry orphaned value — "expose audit log export" (orphaned REQ-22), serves outcome O-3.
+- **1 requirement** to carry orphaned value — "expose audit log export" (orphaned REQ-22), serves outcome BO-3.
 - **1 decision** you own (a real split) — "Adopt the lighter pattern?":
     - *Adopt* — solution_designer: the override is no longer justified.
     - *Hold* — minimalist objected on migration cost (red-team note attached).

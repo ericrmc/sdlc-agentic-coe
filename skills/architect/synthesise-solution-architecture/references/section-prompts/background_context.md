@@ -37,7 +37,7 @@ INVARIANTS (non-negotiable, repeated in every section prompt):
 - If the material for this section is empty or thin, say so plainly — e.g. "_No
   intake description was recorded._", "_every outcome is accepted_" — never pad or
   fabricate.
-- Preserve every backtick-quoted key (`O-1`, `F-2`, …) verbatim; traceability is
+- Preserve every backtick-quoted key (`BO-1`, `REQ-2`, …) verbatim; traceability is
   the point.
 - Plain professional house style — no product names, stage codenames, or internal
   jargon.

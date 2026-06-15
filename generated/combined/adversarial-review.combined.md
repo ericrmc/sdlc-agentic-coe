@@ -5,7 +5,7 @@
 
 # Adversarial Review — combined pass
 
-> Generated bundle. Built 2026-06-15 by `skills/_scripts/concat_skills.py`.
+> Generated bundle. Built 2026-06-16 by `skills/_scripts/concat_skills.py`.
 
 A single paste-able file for the full advisory red-team pass over a project. Run the three skills in order: challenge the requirements, surface design-review findings (a11y/WCAG, risks, gaps — findings, never verdicts), then capture the strongest objections and the dissent that should be recorded even where the project proceeds. Everything here is advisory: it produces findings and a dissent register, not gates or approvals.
 
@@ -55,13 +55,13 @@ scope, never sets or changes any requirement's status. A human triages every cha
 
 Given a project's current requirement set, produce **one dismissible challenge per
 genuine issue**, each tagged with exactly one `kind` from a **closed 9-kind taxonomy**.
-A challenge names the offending requirement(s) by id, states the problem concretely,
-and proposes an action — but the verdict is always left to the human.
+A challenge names the offending requirement(s) by their `REQ-<n>` key, states the problem
+concretely, and proposes an action — but the verdict is always left to the human.
 
 What this skill does:
 
-- Reads the live requirement set (proposed + accepted rows; edited/rejected are settled
-  history and out of scope).
+- Reads the live requirement set (proposed + accepted `REQ-<n>` rows; edited/rejected are
+  settled history and out of scope).
 - Emits challenges of exactly nine kinds — no others. See **The method** below for the
   precise definitions and `references/challenge-kinds.md` for the closed vocabulary.
 - Is **conservative on `conflicting` and `gold_plated`**: precision over recall. A false
@@ -71,7 +71,7 @@ What this skill does:
 What this skill **never** does:
 
 - Pick a winner between two conflicting requirements. It *poses the disambiguation
-  question* and names both ids.
+  question* and names both REQ-<n> keys.
 - Delete, reject, or down-scope a requirement. For `gold_plated` it *asks whether the
   extra scope is justified*; it never removes it.
 - Set, change, or advance any requirement's `status` / disposition / version. It only
@@ -116,12 +116,13 @@ The user supplies, as markdown or pasted context:
    if it is terse or absent, the vision guard simply does not fire (no false steers).
 3. **The requirement set** — the live proposed/accepted rows. Each row should carry, at
    minimum:
-   - a **stable numeric `id`** (challenges reference rows by their real id),
+   - a **stable `REQ-<n>` key** (challenges reference rows by this key; a bare numeric
+     index may be kept internally, but the citation key is `REQ-<n>`),
    - the **requirement text**,
-   - ideally a **type** (`F` functional / `NF` non-functional) and, if known, a
-     **`value_outcome`** (the linked business outcome) and **`derives_from_id`** (parent
-     requirement). These sharpen `unquantified`, `orphan_value`, and `gold_plated` and
-     the conflict overlap guard — but the skill degrades gracefully without them.
+   - ideally a **classify** tag (functional / non-functional — this is metadata, never
+     part of the key) and, if known, a **`derives_from`** (the linked `BO-<n>` business
+     outcome). `derives_from` sharpens `unquantified`, `orphan_value`, and `gold_plated`
+     and the conflict overlap guard — but the skill degrades gracefully without it.
 
 A minimal input block looks like:
 
@@ -131,11 +132,11 @@ PROJECT CONTEXT / VISION: Cut manual claim triage time in half while keeping
   every decision auditable for the regulator.
 
 REQUIREMENTS:
-#8  [NF] The system must purge audit logs after 30 days.
-#12 [NF] The API should be fast.
-#14 [NF] The system must not purge audit logs.
-#21 [F]  Provide a Kafka topic for downstream consumers.   (value_outcome: none)
-#27 [F]  The triage screen should be intuitive and easy to use.
+REQ-8   (non-functional) The system must purge audit logs after 30 days.
+REQ-12  (non-functional) The API should be fast.
+REQ-14  (non-functional) The system must not purge audit logs.
+REQ-21  (functional)     Provide a Kafka topic for downstream consumers.   (derives_from: none)
+REQ-27  (functional)     The triage screen should be intuitive and easy to use.
 ```
 
 ---
@@ -169,11 +170,11 @@ Both layers emit the **same nine kinds and the same JSON shape**, so their outpu
   targets on the same subject, mutually-exclusive constraints (e.g. on-prem vs
   cloud-only), OR a LITERAL OPPOSITE / negation (one forbids what the other requires on
   the same subject, e.g. "must purge logs after 30 days" vs "must not purge logs"), OR
-  heavy semantic overlap that is actually contested. Name BOTH ids: set `requirement_id`
-  to the LOWER id and `contests_id` to the OTHER (higher) id. POSE the disambiguation
-  question; NEVER choose a winner. Watch for SCOPED prohibitions that are NOT a true
-  conflict (e.g. "must not retain logs CONTAINING card numbers" does not conflict with
-  "retain logs 90 days") — do not flag those.
+  heavy semantic overlap that is actually contested. Name BOTH keys: set `requirement_id`
+  to the LOWER `REQ-<n>` and `contests` to the OTHER (higher) `REQ-<n>`. POSE the
+  disambiguation question; NEVER choose a winner. Watch for SCOPED prohibitions that are
+  NOT a true conflict (e.g. "must not retain logs CONTAINING card numbers" does not
+  conflict with "retain logs 90 days") — do not flag those.
 - **`gold_plated`** — reaches for extra scope ("nice to have", "ideally", "as well as",
   "stretch goal") with no business outcome to justify it. ASK whether the extra
   capability is required; do not drop scope.
@@ -186,7 +187,7 @@ Both layers emit the **same nine kinds and the same JSON shape**, so their outpu
   against the north star; it never blocks acceptance. Only emit this when a vision is
   present and the drift is real.
 
-The full closed vocabulary — with the `requirement_id` / `contests_id` rules per kind —
+The full closed vocabulary — with the `requirement_id` / `contests` rules per kind —
 is reproduced as a reference card in `references/challenge-kinds.md`.
 
 #### The `conflicting` rules (read these carefully — this is where trust is won or lost)
@@ -194,10 +195,10 @@ is reproduced as a reference card in `references/challenge-kinds.md`.
 `conflicting` is the most valuable and the most dangerous kind. A *false* conflict
 corrodes trust in the entire channel. Apply these rules strictly:
 
-1. **Name BOTH ids.** Set `requirement_id` to the **LOWER** id and `contests_id` to the
-   **OTHER (higher)** id. Sorting the pair this way makes the challenge stable under
-   input reordering and gives it a stable dismissal signature. For every *other* kind,
-   omit `contests_id` or set it null.
+1. **Name BOTH keys.** Set `requirement_id` to the **LOWER** `REQ-<n>` and `contests` to
+   the **OTHER (higher)** `REQ-<n>`. Sorting the pair this way makes the challenge stable
+   under input reordering and gives it a stable dismissal signature. For every *other*
+   kind, omit `contests` or set it null.
 2. **Require a shared subject.** Two requirements only conflict if they are about the
    *same thing*. The deterministic base proves this via subject-token overlap (content
    words, stop-words and high-frequency domain words excluded, so "the system shall"
@@ -249,8 +250,8 @@ gold-plating. For both kinds:
 - For `gold_plated`, only fire when there is explicit discretionary language ("nice to
   have", "ideally", "would be great", "as well as", "stretch goal", "if possible", …)
   AND, for purely *additive* reach ("as well as", "also support", "additionally
-  support"), only when there is **no** captured `value_outcome` to back the extra scope.
-  A well-grounded broad requirement stays silent.
+  support"), only when there is **no** captured `derives_from` outcome to back the extra
+  scope. A well-grounded broad requirement stays silent.
 
 #### Step by step
 
@@ -260,9 +261,9 @@ every kind.
 
 **Step 2 — Deterministic per-requirement pass (backstop).** For each live requirement,
 walk the checklist and emit a challenge when a rule fires:
-- `unquantified` — type is `NF` and the text states a goal with no number/target.
+- `unquantified` — classified non-functional and the text states a goal with no number/target.
 - `solution_shaped` — the text names a mechanism/product/technology instead of the need.
-- `orphan_value` — no business outcome can be inferred (`value_outcome` empty).
+- `orphan_value` — no business outcome can be inferred (`derives_from` empty).
 - `vague` — references a control/term (e.g. CORS) without naming the exact value (e.g.
   CORS mentioned but no origin/method named).
 - `untestable` — contains a subjective quality ("user-friendly", "intuitive", "easy to
@@ -271,11 +272,12 @@ walk the checklist and emit a challenge when a rule fires:
 **Step 3 — Deterministic pairwise pass (backstop, conservative).** Over ordered-unique
 pairs of live requirements, apply the `conflicting` triggers above with the shared-subject
 gate and the scoped-prohibition guard. Emit one `conflicting` challenge per genuinely
-conflicting pair, naming both ids (lower = `requirement_id`, higher = `contests_id`).
+conflicting pair, naming both keys (lower = `requirement_id`, higher = `contests`).
 
 **Step 4 — Deterministic gold-plating pass (backstop, conservative).** For each live
 requirement with discretionary language, emit a `gold_plated` challenge that asks whether
-the extra scope is justified by the captured outcome. Apply the additive-language guard.
+the extra scope is justified by the `derives_from` outcome. Apply the additive-language
+guard.
 
 **Step 5 — Deterministic set-level passes (backstop).**
 - `missing_nfr` — compute coverage over the six categories; emit one `missing_nfr`
@@ -311,7 +313,7 @@ PROJECT TITLE: [project_title]
 PROJECT CONTEXT / VISION:
 [project_context]
 
-REQUIREMENTS (the live proposed/accepted set — reference rows by their real numeric id):
+REQUIREMENTS (the live proposed/accepted set — reference rows by their real REQ-<n> key):
 [requirements_block]
 
 Produce one challenge per genuine issue you find. Each challenge has a `kind`, a
@@ -332,11 +334,11 @@ concrete `message`, a concrete `suggested_action`, and a `requirement_id`.
   targets on the same subject, mutually-exclusive constraints (e.g. on-prem vs
   cloud-only), OR a LITERAL OPPOSITE / negation (one forbids what the other requires on
   the same subject, e.g. "must purge logs after 30 days" vs "must not purge logs"), OR
-  heavy semantic overlap that is actually contested. Name BOTH ids: set `requirement_id`
-  to the LOWER id and `contests_id` to the OTHER (higher) id. POSE the disambiguation
-  question; NEVER choose a winner. Watch for SCOPED prohibitions that are NOT a true
-  conflict (e.g. "must not retain logs CONTAINING card numbers" does not conflict with
-  "retain logs 90 days") — do not flag those.
+  heavy semantic overlap that is actually contested. Name BOTH keys: set `requirement_id`
+  to the LOWER REQ-<n> and `contests` to the OTHER (higher) REQ-<n>. POSE the
+  disambiguation question; NEVER choose a winner. Watch for SCOPED prohibitions that are
+  NOT a true conflict (e.g. "must not retain logs CONTAINING card numbers" does not
+  conflict with "retain logs 90 days") — do not flag those.
 - "gold_plated" — reaches for extra scope ("nice to have", "ideally", "as well as",
   "stretch goal") with no business outcome to justify it. ASK whether the extra
   capability is required; do not drop scope.
@@ -350,12 +352,12 @@ concrete `message`, a concrete `suggested_action`, and a `requirement_id`.
   this when a vision is present and the drift is real.
 
 Rules:
-- `requirement_id` is the real numeric id of the targeted requirement, taken from the
+- `requirement_id` is the real REQ-<n> key of the targeted requirement, taken from the
   list above; OR null for a set-level challenge (missing_nfr, or any genuinely set-wide
   gap).
-- `message` is specific and references the real id(s) — never generic boilerplate.
-- For a "conflicting" challenge ONLY, also set `contests_id` to the PARTNER requirement's
-  real id (the other side of the pair). For every other kind, omit `contests_id` or set
+- `message` is specific and references the real REQ-<n> key(s) — never generic boilerplate.
+- For a "conflicting" challenge ONLY, also set `contests` to the PARTNER requirement's
+  REQ-<n> key (the other side of the pair). For every other kind, omit `contests` or set
   it null.
 - `suggested_action` is concrete and actionable (what to add / restate / reconcile), and
   always leaves the verdict to the human.
@@ -368,16 +370,16 @@ Return ONLY a JSON object, no prose, of exactly this shape:
   "challenges": [
     {
       "kind": "unquantified",
-      "message": "Requirement #12 states a non-functional goal with no number.",
+      "message": "Requirement REQ-12 states a non-functional goal with no number.",
       "suggested_action": "Add a target (e.g. p95 <= 500 ms) and the consequence of breach.",
-      "requirement_id": 12
+      "requirement_id": "REQ-12"
     },
     {
       "kind": "conflicting",
-      "message": "Requirements #8 and #14 are direct opposites — #8 requires purging logs after 30 days; #14 forbids purging logs. Which holds, or do they apply to different scopes?",
+      "message": "Requirements REQ-8 and REQ-14 are direct opposites — REQ-8 requires purging logs after 30 days; REQ-14 forbids purging logs. Which holds, or do they apply to different scopes?",
       "suggested_action": "Reconcile the two (pick the binding rule or scope each). The agent does not choose a winner.",
-      "requirement_id": 8,
-      "contests_id": 14
+      "requirement_id": "REQ-8",
+      "contests": "REQ-14"
     },
     {
       "kind": "missing_nfr",
@@ -408,11 +410,11 @@ The critic never picks a winner, drops scope, or changes any requirement's statu
 
 | # | kind | targets | challenge | suggested action |
 |---|------|---------|-----------|------------------|
-| 1 | conflicting | #8 ↔ #14 | #8 requires purging audit logs after 30 days; #14 forbids purging audit logs. Direct opposites on the same subject. Which holds — or do they apply to different scopes? | Reconcile the two (pick the binding rule or scope each). The critic does not choose a winner. |
-| 2 | unquantified | #12 | #12 ("the API should be fast") states a non-functional goal with no number. | Add a target (e.g. p95 ≤ 500 ms) and the consequence of breach. |
-| 3 | solution_shaped | #21 | #21 names a mechanism (a Kafka topic) rather than the underlying need. | Restate as the need ("downstream systems must receive claim events within N s"); choose the mechanism at design time. |
-| 4 | orphan_value | #21 | #21 has no linked business outcome (value_outcome is empty). | Link it to a business outcome or reconsider scope. |
-| 5 | untestable | #27 | #27 uses subjective qualities ("intuitive", "easy to use") with no acceptance criterion. | Restate as an observable, testable condition (e.g. task completion in ≤ 3 clicks; SUS ≥ 80). |
+| 1 | conflicting | REQ-8 ↔ REQ-14 | REQ-8 requires purging audit logs after 30 days; REQ-14 forbids purging audit logs. Direct opposites on the same subject. Which holds — or do they apply to different scopes? | Reconcile the two (pick the binding rule or scope each). The critic does not choose a winner. |
+| 2 | unquantified | REQ-12 | REQ-12 ("the API should be fast") states a non-functional goal with no number. | Add a target (e.g. p95 ≤ 500 ms) and the consequence of breach. |
+| 3 | solution_shaped | REQ-21 | REQ-21 names a mechanism (a Kafka topic) rather than the underlying need. | Restate as the need ("downstream systems must receive claim events within N s"); choose the mechanism at design time. |
+| 4 | orphan_value | REQ-21 | REQ-21 has no linked business outcome (derives_from is empty). | Link it to a business outcome or reconsider scope. |
+| 5 | untestable | REQ-27 | REQ-27 uses subjective qualities ("intuitive", "easy to use") with no acceptance criterion. | Restate as an observable, testable condition (e.g. task completion in ≤ 3 clicks; SUS ≥ 80). |
 | 6 | missing_nfr | (set-level) | No requirement addresses DATA RESIDENCY. | Add an NFR for data residency, or confirm it is out of scope for this project. |
 ```
 
@@ -423,16 +425,16 @@ And the machine-readable form (one object per challenge):
   "challenges": [
     {
       "kind": "conflicting",
-      "message": "Requirements #8 and #14 are direct opposites — #8 requires purging audit logs after 30 days; #14 forbids purging audit logs. Which holds, or do they apply to different scopes?",
+      "message": "Requirements REQ-8 and REQ-14 are direct opposites — REQ-8 requires purging audit logs after 30 days; REQ-14 forbids purging audit logs. Which holds, or do they apply to different scopes?",
       "suggested_action": "Reconcile the two (pick the binding rule or scope each). The agent does not choose a winner.",
-      "requirement_id": 8,
-      "contests_id": 14
+      "requirement_id": "REQ-8",
+      "contests": "REQ-14"
     },
     {
       "kind": "unquantified",
-      "message": "Requirement #12 states a non-functional goal with no number.",
+      "message": "Requirement REQ-12 states a non-functional goal with no number.",
       "suggested_action": "Add a target (e.g. p95 <= 500 ms) and the consequence of breach.",
-      "requirement_id": 12
+      "requirement_id": "REQ-12"
     },
     {
       "kind": "missing_nfr",
@@ -446,11 +448,11 @@ And the machine-readable form (one object per challenge):
 
 Field contract:
 - `kind` — exactly one of the nine values.
-- `message` — specific, references the real id(s), never boilerplate.
+- `message` — specific, references the real REQ-<n> key(s), never boilerplate.
 - `suggested_action` — concrete, and always leaves the verdict to the human.
-- `requirement_id` — the real numeric id, or `null` for a set-level challenge.
-- `contests_id` — present (the partner's id) **only** for `conflicting`; omitted/null
-  otherwise. For a conflict, `requirement_id` is the LOWER id and `contests_id` the higher.
+- `requirement_id` — the real REQ-<n> key, or `null` for a set-level challenge.
+- `contests` — present (the partner's REQ-<n> key) **only** for `conflicting`; omitted/null
+  otherwise. For a conflict, `requirement_id` is the LOWER REQ-<n> and `contests` the higher.
 
 ---
 

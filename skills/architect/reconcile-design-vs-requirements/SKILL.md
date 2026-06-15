@@ -189,19 +189,19 @@ _Deterministic checks: N · Semantic observations: M · Dismissed (unchanged): K
 
 ### Deterministic findings
 
-- **[outcome_no_design_coverage]** `req_key: OUT-3`
-  Outcome OUT-3 ("reduce onboarding time to under a day") is not referenced in any current
-  design section. Should the sections be regenerated or updated to cover it?
-  _Evidence: token "OUT-3" absent from all section bodies._
+- **[outcome_no_design_coverage]** `req_key: BO-3`
+  Business outcome BO-3 ("reduce onboarding time to under a day") is not referenced in any
+  current design section. Should the sections be regenerated or updated to cover it?
+  _Evidence: token "BO-3" absent from all section bodies._
 
 - **[requirement_no_acceptance_criterion]** `req_key: REQ-12` · `section_key: requirements_acceptance`
   Requirement REQ-12 has no acceptance criterion. How will it be tested?
   _Evidence: acceptance-criteria count = 0._
 
-- **[nfr_unaddressed]** `req_key: NFR-1` · `section_key: quality_nfrs`
-  NFR-1 (availability) does not appear to be reflected in the Quality attributes section. Is
-  it addressed?
-  _Evidence: no keyword overlap between NFR text and the quality_nfrs body._
+- **[nfr_unaddressed]** `req_key: REQ-9` · `section_key: quality_nfrs`
+  Requirement REQ-9 (classify: nfr, kind=availability) does not appear to be reflected in the
+  Quality attributes section. Is it addressed?
+  _Evidence: no keyword overlap between the requirement text and the quality_nfrs body._
 
 - **[section_stale]** `section_key: application_architecture`
   The requirements source was last changed in commit `a1b2c3d` (2026-06-12), after this
@@ -212,10 +212,10 @@ _Deterministic checks: N · Semantic observations: M · Dismissed (unchanged): K
 
 ### Semantic observations
 
-- **[nfr_unaddressed]** `req_key: NFR-1` · `section_key: quality_nfrs`
-  NFR-1 asks for "availability", and the Quality section discusses "uptime targets and
-  failover" without using that word — so the token check above may be a false alarm. Is NFR-1
-  genuinely addressed by that wording?
+- **[nfr_unaddressed]** `req_key: REQ-9` · `section_key: quality_nfrs`
+  Requirement REQ-9 (classify: nfr, kind=availability) asks for "availability", and the
+  Quality section discusses "uptime targets and failover" without using that word — so the
+  token check above may be a false alarm. Is REQ-9 genuinely addressed by that wording?
   _Evidence: paraphrase, not literal match._
 
 - **[section_stale]** `section_key: application_architecture`

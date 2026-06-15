@@ -3,19 +3,19 @@
 `kind` MUST be exactly one of these **nine** values. No others. A challenge that does
 not fit a kind is probably not a challenge — resist inventing a tenth.
 
-Each entry gives the precise definition and the `requirement_id` / `contests_id` rule.
+Each entry gives the precise definition and the `requirement_id` / `contests` rule.
 
-| kind | definition | `requirement_id` | `contests_id` |
-|------|------------|------------------|---------------|
-| `vague` | References a control/term (e.g. CORS, an origin, a role) without naming the exact value, so it cannot be measured as written. | the targeted id | — |
-| `unquantified` | A non-functional goal stated with NO number/target (e.g. "fast", "secure", "scalable"). | the targeted id | — |
-| `untestable` | A subjective quality ("user-friendly", "intuitive", "seamless", "easy to use") with no observable acceptance criterion. | the targeted id | — |
-| `solution_shaped` | Names a mechanism/product/technology rather than the underlying need (solutioneering). | the targeted id | — |
-| `orphan_value` | No business outcome can be inferred; the requirement is not linked to value. | the targeted id | — |
-| `conflicting` | Two requirements genuinely contradict (see below). POSE the disambiguation; NEVER choose a winner. | the **LOWER** id of the pair | the **OTHER (higher)** id |
-| `gold_plated` | Reaches for extra scope ("nice to have", "ideally", "as well as", "stretch goal") with no business outcome to justify it. ASK whether the extra capability is required; do not drop scope. | the targeted id | — |
+| kind | definition | `requirement_id` | `contests` |
+|------|------------|------------------|------------|
+| `vague` | References a control/term (e.g. CORS, an origin, a role) without naming the exact value, so it cannot be measured as written. | the targeted REQ-<n> | — |
+| `unquantified` | A non-functional goal stated with NO number/target (e.g. "fast", "secure", "scalable"). | the targeted REQ-<n> | — |
+| `untestable` | A subjective quality ("user-friendly", "intuitive", "seamless", "easy to use") with no observable acceptance criterion. | the targeted REQ-<n> | — |
+| `solution_shaped` | Names a mechanism/product/technology rather than the underlying need (solutioneering). | the targeted REQ-<n> | — |
+| `orphan_value` | No business outcome can be inferred; the requirement is not linked to value. | the targeted REQ-<n> | — |
+| `conflicting` | Two requirements genuinely contradict (see below). POSE the disambiguation; NEVER choose a winner. | the **LOWER** REQ-<n> of the pair | the **OTHER (higher)** REQ-<n> |
+| `gold_plated` | Reaches for extra scope ("nice to have", "ideally", "as well as", "stretch goal") with no business outcome to justify it. ASK whether the extra capability is required; do not drop scope. | the targeted REQ-<n> | — |
 | `missing_nfr` | A SET-LEVEL gap: an entire NFR category is uncovered. | **null** | — |
-| `off_vision` | A requirement introduces a direction NOT reflected in the project vision or the rest of the set — a possible unintended pivot. ADVISORY only; never blocks. | the targeted id | — |
+| `off_vision` | A requirement introduces a direction NOT reflected in the project vision or the rest of the set — a possible unintended pivot. ADVISORY only; never blocks. | the targeted REQ-<n> | — |
 
 ## `conflicting` — the full definition
 
@@ -34,8 +34,8 @@ Two requirements genuinely contradict when:
 
 Rules for `conflicting`:
 
-- **Name BOTH ids.** `requirement_id` = the LOWER id, `contests_id` = the OTHER (higher)
-  id. This makes the challenge stable under input reordering.
+- **Name BOTH keys.** `requirement_id` = the LOWER REQ-<n>, `contests` = the OTHER
+  (higher) REQ-<n>. This makes the challenge stable under input reordering.
 - **Shared subject required.** Only flag requirements about the same thing (content-word
   overlap; stop-words and high-frequency project vocabulary excluded).
 - **Scoped-prohibition guard.** A prohibition qualified by *containing / when / unless /
