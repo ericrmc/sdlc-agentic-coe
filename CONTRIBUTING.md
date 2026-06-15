@@ -15,9 +15,11 @@ then [skills/MAP.md](skills/MAP.md) and [capabilities/INDEX.md](capabilities/IND
 > accident. Its §6 guard table maps a tempting change to the invariant it touches.
 >
 > The canonical per-decision record lives in [ADR.md](ADR.md), an immutable numbered
-> log (ADR-0001..N) that RATIONALE.md cites. **A new architectural decision adds the
-> next ADR-NNNN; reversing one supersedes it (`Status: Superseded by ADR-NNNN`) — you
-> never edit or delete an accepted record.**
+> log holding only the genuinely architectural, contested, or hard-to-reverse decisions
+> (ADR-0001..0015 today) that RATIONALE.md cites — routine schema-field and convention
+> rules live in the schema descriptions and this guide, where the linter is their guard.
+> **A new architectural decision adds the next ADR-NNNN; reversing one supersedes it
+> (`Status: Superseded by ADR-NNNN`) — you never edit or delete an accepted record.**
 
 ## The rules that hold everywhere
 
