@@ -7,6 +7,13 @@ instruction here is read by an agent; an agent authors the file and fills the PR
 and a human reviews and ratifies. New here? See [GETTING-STARTED.md](GETTING-STARTED.md),
 then [skills/MAP.md](skills/MAP.md) and [capabilities/INDEX.md](capabilities/INDEX.md).
 
+> **Before a structural change** — a new top-level folder, a schema field, the key
+> scheme, or weakening a gate, the grounding contract, or any invariant — read
+> [RATIONALE.md](RATIONALE.md) first. This guide tells you *how* to add; RATIONALE
+> records *why* each load-bearing decision was made, the alternatives and dissent, and
+> **what breaks if you change it** — so you do not dissolve a load-bearing property by
+> accident. Its §6 guard table maps a tempting change to the invariant it touches.
+
 ## The rules that hold everywhere
 
 - **Propose, then ratify.** An agent opens a PR adding or editing markdown; a human
