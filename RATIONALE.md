@@ -175,6 +175,7 @@ a load-bearing property by accident.
 | Reorder or rename a frozen solution-architecture section, or fold ingestion's deterministic read into the model step | Sequenced-trust foundation; structural lifted-vs-fabricated fact | ADR-0015 |
 | Do a mass edit (de-narration, rename, vocab change) | Every-file-class ownership; adversarial grep pass | §4 · ADR-0010 |
 | Present a static lint as a fabrication guarantee | Honest reach of the grounding lint | §2.4, §5 · ADR-0005 |
+| Pad a skill with a Purpose essay, a restated rule, a second example, or a re-embedded reference | Succinct over prose — state each rule once, at its enforcement point | ADR-0016 |
 
 ---
 

@@ -59,6 +59,10 @@ Every step a skill instructs produces exactly one of four kinds — `proposal`,
 `question`, `menu`, `halt`. There is no kind for a status, verdict, score, maturity
 grade, or judgement of a person: those are human-owned or computed in an Action.
 
+Write skills **tight**: a skill is loaded whole every run, so state each rule once at its
+point of enforcement and cite it elsewhere — never re-narrate the frontmatter or a quoted
+stub (see [ADR.md](ADR.md) ADR-0016; the advisory density check flags an over-long body).
+
 ## Add a pattern
 
 A pattern is a building block the firm has **actually built**, carrying its governed

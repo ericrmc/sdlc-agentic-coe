@@ -56,6 +56,7 @@ one.
 | ADR-0013 | Pattern lifecycle is human-owned — evidence-gated promotion, agent-writes-candidate-only, maturity computed | Accepted (1bffad7, 2026-06-15) |
 | ADR-0014 | reference_implementations is advisory, held out of the promotion / evidence gate (no gate-bleed) | Accepted (c5ac713, 2026-06-16) |
 | ADR-0015 | Grounding + ingestion were sequenced first, before the feature additions (the trust foundation) | Accepted (580e236 → c5ac713, 2026-06-16) |
+| ADR-0016 | Succinct over prose — state each rule once, at its point of enforcement (token efficiency) | Accepted (2026-06-16) |
 
 ---
 
@@ -631,3 +632,44 @@ reference-implementations) followed in `c5ac713` — so the later work stands on
 that already forbids ungrounded output. `skills/_contract/grounding-no-absent-input/SKILL.md`
 (the library's first working halt exemplar; halt is the fourth output kind applied additively,
 not as a gate).
+
+## ADR-0016 — Succinct over prose: state each rule once, at its point of enforcement
+
+**Status:** Accepted (2026-06-16)
+
+**Context.** A skill is loaded **whole, every run, to do one task** — every word is paid
+per-invocation. A density audit (2026-06-16) found the 47 skills average ~2,900 words and
+27 carry *structural* bloat (not one-off): Notes/anti-patterns that negate each numbered
+STEP; the keystone rule restated 4–5× (frontmatter + Purpose + STEP + prompt + Notes);
+Purpose-as-essay; the grounding/trace stub re-narrated right after it is quoted; a closed
+vocabulary restated 3–4×; a skill re-embedding its own reference's full content; two worked
+examples where one suffices. The top targets alone hold ~10k words of removable duplication.
+This **sharpens** the de-narration / agent-first decision (**ADR-0010**): that decision moved
+the *why* out of the files (into the ADRs + RATIONALE); this one governs what is *left* in a
+file once the why leaves.
+
+**Decision.** **State each rule once, at its point of enforcement; cite it elsewhere; never
+re-narrate the frontmatter or a byte-stable quoted stub.** CUT: step-negating anti-patterns,
+Purpose essays, pre-stub connective paragraphs, post-stub HALT re-narration, keystone
+restatements, the duplicated multi-agent block, second worked examples, a skill that embeds
+its own reference. KEEP (load-bearing, never cut): frontmatter; the byte-stable quoted stubs
+*verbatim*; the literal HALT; the numbered STEPS; the embedded model **prompt verbatim**; the
+OUTPUT template; controlled vocab / closed enums; the deterministic base; **one** tight
+worked example. Density is fine; **restatement** is the target. (Per-class cut/keep test:
+`skills/_scripts/lint_skill_density.py` header + the audit.)
+
+**Consequences.** Lower per-invocation token cost on the hottest path (skills) and a higher
+signal-to-noise for the reading agent. The advisory guard `lint_skill_density.py` flags a
+skill body over **~2,500 words** (excluding frontmatter + byte-stable stubs) for a tightening
+look — **warn, never block**. **What breaks if ignored:** skills drift back to ~4k-word
+essays, every invocation pays for prose the frontmatter / ADRs already own, and the reading
+agent's attention dilutes.
+
+**Alternatives / Dissent.** A **hard word cap** — rejected: some skills are *justifiably*
+dense (closed taxonomies, embedded prompts, multi-template outputs), so a cap punishes
+density, not restatement. **Trimming the byte-stable quoted stubs** to save words — rejected:
+they are mandatory (drift-guarded, quoted verbatim), and trimming one forces a re-quote
+everywhere.
+
+**Evidence.** The density audit (2026-06-16; 78 files, 27 bloated); sharpens ADR-0010;
+`skills/_scripts/lint_skill_density.py` (the advisory guard); the per-class cut/keep standard.

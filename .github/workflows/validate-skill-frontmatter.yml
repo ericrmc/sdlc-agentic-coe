@@ -445,3 +445,27 @@ jobs:
           printf '%b\n' "${MISSING:-(all SKILL.md carry one_liner + suggested_tier)}"
           # Advisory only.
           exit 0
+
+      # (6) Density advisory (ADR-0016, succinct over prose). Flags a SKILL.md whose
+      #     prose body (total minus frontmatter minus the byte-stable quoted stubs) is
+      #     large enough to warrant a tightening look — usually a Notes-echo or a
+      #     restated keystone. WARN only, never blocks; density is fine, restatement
+      #     is the target.
+      - name: Lint skill density (advisory, ADR-0016)
+        id: density
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          OUT="$(python3 skills/_scripts/lint_skill_density.py 2>&1 || true)"
+          {
+            echo "## Skill density (advisory — ADR-0016)"
+            echo ""
+            echo "A skill is loaded whole every run; a large prose body is paid per-invocation."
+            echo "Flagged files warrant a tightening look (density is fine — restatement is the target)."
+            echo '```'
+            printf '%s\n' "$OUT" | grep -E 'flag|over ~' || echo "(no skill body over threshold)"
+            echo '```'
+            echo "_Advisory — never blocks a merge._"
+          } >> "$GITHUB_STEP_SUMMARY"
+          printf '%s\n' "$OUT"
+          exit 0
