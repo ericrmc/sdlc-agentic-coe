@@ -1,0 +1,54 @@
+# tracked-projects.yml — the registry the portfolio-rollup Action reads.
+#
+# WHAT THIS IS
+#   One entry per downstream project the org-level portfolio board tracks. For each
+#   project, scripts/compute_portfolio_rollup.py recomputes an ADVISORY Red/Amber/
+#   Green standing from the SAME transparent checklist the
+#   skills/09-portfolio/portfolio-phase-health skill uses (see its
+#   references/rag-checklist.md). The standing is the WORST level of any firing
+#   check; `reasons[]` names every firing check. It is a render of derived-on-read
+#   facts, NEVER a stored score, and it gates nothing.
+#
+# HOW THE SIGNALS GET HERE (v1 — explicit, honest)
+#   In v1 each project's signals are recorded here as plain fields (the same
+#   handful the per-project advisory-governance-checklist reads). This keeps the
+#   rollup deterministic, dependency-light, and runnable in CI with no live API
+#   calls — a scheduled run is green out of the box on this example. A later
+#   version can replace these literal fields with a `signals_from:` block that
+#   tells the compute script how to read each signal live from the project's repo
+#   (issues/labels/markdown); until then, a human keeps these fields current the
+#   same way they keep the markdown record current.
+#
+# THE PHASE AXIS (delivery lifecycle; same ladder as describe-phases-releases-waves)
+#   prototype (0)  <  mvp (1)  <  pilot (2)  <  production (3)
+#   A check tagged with a min-phase only fires at/beyond that phase.
+#
+# THE CHECK SIGNALS (mirror references/rag-checklist.md — keep the two in lockstep)
+#   RED:
+#     gate_sent_back        bool  the advisory governance checklist was sent back
+#     open_required_checks  int   advisory checks open (fires only at phase >= pilot)
+#   AMBER:
+#     record_complete       bool  is the project record complete (fires at production when false)
+#     drafted_decisions     int   decisions still in draft (fires at phase >= mvp)
+#     open_reconcile_proposals int  design-drift reconcile proposals open (any phase)
+#   Advisory facts (surfaced, NOT scored in v1):
+#     open_critical_risks, open_roadblocks, has_pii, has_automated_decision
+#   Every field is optional and degrades to its safe default (0 / false) if absent,
+#   so a sparse or malformed entry is reported with whatever is readable, never crashed over.
+
+projects:
+  - name: Acme Returns Portal
+    repo: your-org/acme-returns-portal      # owner/name of the downstream repo
+    phase: mvp                              # prototype | mvp | pilot | production
+    # --- RED signals ---
+    gate_sent_back: false
+    open_required_checks: 0                 # min-phase pilot, so inert at mvp anyway
+    # --- AMBER signals ---
+    record_complete: true
+    drafted_decisions: 1                    # min-phase mvp -> this one fires
+    open_reconcile_proposals: 0
+    # --- advisory facts (surfaced only) ---
+    open_critical_risks: 0
+    open_roadblocks: 0
+    has_pii: true
+    has_automated_decision: false

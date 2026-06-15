@@ -1,0 +1,327 @@
+# ============================================================================
+# validate-skill-frontmatter.yml — the TARGET-RULE lint on every PR
+# ----------------------------------------------------------------------------
+# THIS ACTION IS THE SPINE OF THE LIGHT-GOVERNANCE POSTURE.
+#
+# We deliberately dropped the old platform's heavyweight machinery — the
+# nine-state state machine, the version-bound architecture-review gates, the
+# governance disposition that blocked an advance. None of that lives here.
+# In its place is exactly ONE mechanical invariant, made executable:
+#
+#     Every agent / skill output is exactly one of
+#         proposal | question | menu | halt
+#     — never a status, verdict, colour, ranking, score, queue disposition,
+#       feasibility status, or assessment of a person.
+#
+# That is docs/06 Principle VI (the TARGET RULE) and docs/09 Guardrail 1. It is
+# "the build-time lint that lets the platform be richly agent-driven without
+# collapsing into rubber-stamp review." Because the shape is lintable, the
+# Centre of Excellence can be aggressively agent-driven AND have no gates: a
+# derived output that stays a typed proposal can never masquerade as a human
+# verdict. This workflow is where that lint runs.
+#
+# Posture, stated plainly:
+#   * ADVISORY, not blocking. The job runs, comments, and surfaces a red ✗ to
+#     prompt a human fix — but it is NOT marked a required check (configure that
+#     in branch-protection only if a repo genuinely wants it). A failing lint
+#     never holds a downstream delivery project hostage; those run on their own
+#     GitHub Projects, guided by — not gated by — these skills.
+#   * The linter catches the SHAPE violation; a human still owns the call. If
+#     the linter is wrong, the fix is to refine the catalogue in
+#     skills/_contract/target-rule-output-kinds/SKILL.md (which owns the spec),
+#     not to override a gate — there is no gate to override.
+#
+# What it checks (delegated to skills/_scripts/lint_skill_target_rule.py):
+#   1. Required frontmatter present on every changed SKILL.md:
+#        name · description · when_to_use · output_kinds · deterministic_fallback
+#   2. output_kinds is a non-empty subset of {proposal, question, menu, halt}.
+#   3. No body asserts a forbidden output (a verdict/status/score wearing one of
+#      the four legal kinds as a costume).
+#   4. When PATTERN files are in the diff: the no-agent-set-approval_status blame
+#      check — a pattern's promotion past `candidate`, and its validated_by, must
+#      trace to a human committer per `git blame`, never to an agent. (Patterns
+#      are PR-reviewed by a human and carry evidence; an agent must not self-bless
+#      one.) Where blame is unavailable this downgrades to advisory — never a hard
+#      fail on missing provenance alone.
+#
+# The one script handles BOTH the skill checks and the pattern blame check; this
+# workflow simply feeds it the changed SKILL.md and pattern files from the diff.
+# git blame needs real history, so we checkout with fetch-depth: 0.
+# ============================================================================
+
+name: Validate skill frontmatter (TARGET-RULE lint)
+
+on:
+  pull_request:
+    # Advisory by intent: scoped to the surfaces the lint actually governs.
+    # Skill edits anywhere under skills/**, plus pattern edits (the blame check
+    # only has something to chew on when a pattern is in the diff). references/**
+    # is added because the navigation linters below assert that the spine's map
+    # and every cited references/<x> point at real files.
+    paths:
+      - "skills/**"
+      - "patterns/**"
+      - "references/**"
+
+# Least privilege: read the code, write a PR review comment. Nothing more.
+permissions:
+  contents: read
+  pull-requests: write
+
+# A newer push to the same PR supersedes an in-flight run.
+concurrency:
+  group: validate-skill-frontmatter-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  target-rule-lint:
+    name: TARGET-RULE lint (advisory)
+    runs-on: ubuntu-latest
+    # Advisory posture made explicit: this job NEVER fails the overall workflow
+    # in a way that must block a merge. We let the lint step's own exit code
+    # decide the step status (so a real shape violation shows a red ✗ and posts
+    # a comment), but the job is designed to be left OFF the required-checks list.
+    # If a repo opts into making it required, that is a deliberate branch-
+    # protection choice — the default here is guided, not gated.
+    steps:
+      # (1) Full history — git blame in the pattern provenance check needs it.
+      - name: Checkout (full history for git blame)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # (2) Python — the linter is standard-library only, so no pip install and
+      #     no requirements file; any modern 3.x is fine.
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Compute the changed SKILL.md and pattern .md files in this PR's diff.
+      # We diff the PR base against HEAD (both are present thanks to depth 0) and
+      # keep only Added/Copied/Modified/Renamed files (drop pure deletions — a
+      # deleted file cannot be linted, and the pattern-deletion invariant is the
+      # separate pattern workflow's job). The resulting NUL-delimited list is
+      # written to $GITHUB_ENV for the lint step.
+      - name: Collect changed skill & pattern files
+        id: changed
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # Restrict to the two trees the lint governs; ACMR = added/copied/
+          # modified/renamed (no deletions). -z keeps paths with odd chars safe.
+          mapfile -d '' CHANGED < <(
+            git diff -z --diff-filter=ACMR --name-only "$BASE_SHA" "$HEAD_SHA" -- \
+              'skills/**/SKILL.md' 'patterns/**/*.md' || true
+          )
+          {
+            echo "files<<__EOF__"
+            for f in "${CHANGED[@]}"; do
+              [ -n "$f" ] && printf '%s\n' "$f"
+            done
+            echo "__EOF__"
+          } >> "$GITHUB_OUTPUT"
+
+          if [ "${#CHANGED[@]}" -eq 0 ]; then
+            echo "count=0" >> "$GITHUB_OUTPUT"
+            echo "No changed SKILL.md or pattern files in this diff — nothing to lint."
+          else
+            echo "count=${#CHANGED[@]}" >> "$GITHUB_OUTPUT"
+            printf 'Will lint:\n'
+            printf '  %s\n' "${CHANGED[@]}"
+          fi
+
+      # (3) Run the TARGET-RULE linter over the changed files. One invocation
+      #     covers both the skill checks (required frontmatter + output_kinds
+      #     enum + forbidden-output body scan) AND, for any pattern files in the
+      #     list, the no-agent-set-approval_status / validated_by git-blame check.
+      #
+      #     We capture the linter's output so we can echo it into the job summary
+      #     and a PR comment, then re-surface its exit code as this step's status.
+      - name: Run target-rule lint
+        if: steps.changed.outputs.count != '0'
+        id: lint
+        run: |
+          set -uo pipefail
+          # Read the newline list back into a bash array.
+          mapfile -t FILES <<< "${{ steps.changed.outputs.files }}"
+          # Drop any empty trailing entry.
+          PATHS=()
+          for f in "${FILES[@]}"; do [ -n "$f" ] && PATHS+=("$f"); done
+
+          echo "Running: python3 skills/_scripts/lint_skill_target_rule.py ${PATHS[*]}"
+          set +e
+          OUT="$(python3 skills/_scripts/lint_skill_target_rule.py "${PATHS[@]}" 2>&1)"
+          CODE=$?
+          set -e
+
+          # Human-readable wherever the run is read.
+          printf '%s\n' "$OUT"
+          {
+            echo "## TARGET-RULE lint (advisory)"
+            echo ""
+            echo '```'
+            printf '%s\n' "$OUT"
+            echo '```'
+            if [ "$CODE" -eq 0 ]; then
+              echo "_All outputs stay advisory (proposal | question | menu | halt). ✓_"
+            else
+              echo "_A SHAPE violation was found. This check is **advisory** — it"
+              echo "does not block merge. Fix the shape above, or (if the linter is"
+              echo "wrong) refine \`skills/_contract/target-rule-output-kinds/SKILL.md\`,"
+              echo "which owns the spec._"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # Stash the body for the comment step, then re-raise the lint's verdict.
+          {
+            echo "report<<__EOF__"
+            printf '%s\n' "$OUT"
+            echo "__EOF__"
+          } >> "$GITHUB_OUTPUT"
+          echo "exit_code=$CODE" >> "$GITHUB_OUTPUT"
+          exit "$CODE"
+
+      # Post (or update) a single sticky PR comment with the lint report. Runs
+      # whether the lint passed or failed so the result is always visible inline.
+      # Skipped silently if it lacks permission (e.g. a fork PR) — never the
+      # reason a run goes red.
+      - name: Comment lint report on the PR
+        if: always() && steps.changed.outputs.count != '0' && github.event.pull_request.number
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = "<!-- target-rule-lint -->";
+            const report = process.env.LINT_REPORT || "(no output captured)";
+            const passed = process.env.LINT_EXIT === "0";
+            const body = [
+              marker,
+              `### TARGET-RULE lint — ${passed ? "✓ clean" : "✗ shape violation"} (advisory)`,
+              "",
+              "This is the only build-time invariant the Centre of Excellence enforces:",
+              "every skill / agent output is one of **proposal · question · menu · halt** —",
+              "never a status, verdict, score, or ranking. It is **advisory** and does not",
+              "block merge; a human owns the call.",
+              "",
+              "<details><summary>Lint report</summary>",
+              "",
+              "```",
+              report,
+              "```",
+              "</details>",
+            ].join("\n");
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner, repo, issue_number, per_page: 100,
+            });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
+        env:
+          LINT_REPORT: ${{ steps.lint.outputs.report }}
+          LINT_EXIT: ${{ steps.lint.outputs.exit_code }}
+
+  # ==========================================================================
+  # navigation-lint — the spine map + references discipline, made executable.
+  # --------------------------------------------------------------------------
+  # Two standard-library linters guard the navigation layer (DESIGN D5/D6):
+  #
+  #   lint_spine_links.py       — every skill path/id the front-door spine
+  #                               (skills/00-sdlc-spine/SKILL.md) names MUST
+  #                               resolve to a real SKILL.md. A map that points
+  #                               at a 404 is worse than no map.
+  #   lint_skill_references.py  — every references/<x> cited in any
+  #                               skills/**/SKILL.md (frontmatter or body) MUST
+  #                               resolve on disk beside the citing skill.
+  #
+  # POSTURE: advisory, exactly like the target-rule lint above. This job is
+  # designed to be left OFF the required-checks list. The spine-link check is
+  # expected GREEN on seed data; the reference check may legitimately list
+  # references that are still being authored by another contributor — so we run
+  # it with continue-on-error and surface its report in the job summary rather
+  # than crashing the workflow. The whole job NEVER blocks a merge.
+  #
+  # These linters scan the WHOLE repo (the spine and references discipline are
+  # global, not diff-scoped), so there is no changed-file collection step.
+  # ==========================================================================
+  navigation-lint:
+    name: Navigation lint — spine map + references discipline (advisory)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # (1) Spine-link check. This one is expected to pass on the seed data —
+      #     a broken spine map is a real defect, so we let its exit code show as
+      #     the step status (red ✗ on a genuine break) while keeping the job
+      #     itself non-blocking via continue-on-error.
+      - name: Lint spine links (skills/00-sdlc-spine map -> real SKILL.md)
+        id: spine
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          set +e
+          OUT="$(python3 skills/_scripts/lint_spine_links.py 2>&1)"
+          CODE=$?
+          set -e
+          printf '%s\n' "$OUT"
+          {
+            echo "## Spine-link lint (advisory)"
+            echo ""
+            echo '```'
+            printf '%s\n' "$OUT"
+            echo '```'
+            if [ "$CODE" -eq 0 ]; then
+              echo "_Every skill the spine names resolves to a real SKILL.md. ✓_"
+            else
+              echo "_The spine map points at a path with no SKILL.md. Repoint it"
+              echo "at a real nested skill path (advisory — does not block merge)._"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$CODE"
+
+      # (2) References-discipline check. May legitimately report references that
+      #     are still being authored elsewhere in the build; we surface the list
+      #     but never fail the job on it. continue-on-error keeps the workflow
+      #     green out-of-the-box even while some references are pending.
+      - name: Lint skill references (every cited references/<x> resolves)
+        id: refs
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          set +e
+          OUT="$(python3 skills/_scripts/lint_skill_references.py 2>&1)"
+          CODE=$?
+          set -e
+          printf '%s\n' "$OUT"
+          {
+            echo "## References-discipline lint (advisory)"
+            echo ""
+            echo '```'
+            printf '%s\n' "$OUT"
+            echo '```'
+            if [ "$CODE" -eq 0 ]; then
+              echo "_Every cited references/<x> resolves on disk. ✓_"
+            else
+              echo "_Some cited references are not yet on disk (listed above)."
+              echo "Advisory — author the missing files or fix the citation; this"
+              echo "never blocks a merge._"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          # Advisory: do NOT propagate a non-zero exit. Missing references are a
+          # surfaced TODO, not a merge blocker. (continue-on-error also guards
+          # this, but exiting 0 keeps the step itself green.)
+          exit 0

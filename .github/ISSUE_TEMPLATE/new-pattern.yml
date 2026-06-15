@@ -1,0 +1,192 @@
+name: Propose a pattern
+description: Propose a reusable component pattern for the library
+title: "[pattern] <pattern_key> — <name>"
+labels: [pattern, proposal]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Propose a component pattern
+
+        Patterns are the library's fast-track: a future project that adopts an
+        **approved** pattern inherits its governed NFRs without re-deriving them.
+        That trust is bought with **evidence** — so this form gatekeeps the
+        evidence, nothing else. Fill it in and the `author-component-pattern`
+        skill will open a PR for you.
+
+        **How a pattern enters the library (light + advisory):**
+        - This form opens a PR that adds the pattern at `approval_status: candidate`.
+        - Promotion `candidate → approved` happens only via a **CODEOWNERS-reviewed
+          PR merged by an architect**. There is no automated approval.
+        - **An agent may never set `approval_status`.** It enumerates, computes, and
+          proposes; a human architect blesses. (Frontmatter you author should leave
+          `approval_status: candidate` — reviewers move it.)
+
+        Required fields below are the floor for entering as a *candidate*. Be
+        concrete; a placeholder is worse than a gap.
+  - type: input
+    id: pattern_key
+    attributes:
+      label: pattern_key
+      description: >-
+        Stable, cite-able key that survives renames. UPPER-KEBAB, `PAT-` prefix.
+        The build bundle and retrieval cite this, so pick it once and keep it.
+      placeholder: PAT-WEBAPP-PG
+    validations:
+      required: true
+  - type: input
+    id: name
+    attributes:
+      label: name
+      description: Human-readable name.
+      placeholder: Containerised web + managed Postgres
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: category
+      description: The one category this pattern belongs to.
+      options:
+        - deployment
+        - integration
+        - data
+    validations:
+      required: true
+  - type: textarea
+    id: intent
+    attributes:
+      label: intent — "Use this WHEN … so that …"
+      description: >-
+        One sentence. This is the retrieval anchor and the embedding seed — a
+        reviewer (and an agent) decides applicability from this line. State the
+        triggering situation and the payoff, not a description of the components.
+      placeholder: >-
+        Use this WHEN you have a line-of-business app with moderate throughput and
+        strict data-residency, so that you get horizontal scale-out with a single
+        in-region state authority and no cross-region replication to govern.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence — artefacts proving it was actually built (at least one link)
+      description: >-
+        A pattern is not an idea; it is a shortcut someone already walked. Link at
+        least one artefact of having built it: a repo, a merged PR, a deployed-service
+        note / runbook, an architecture record. "Used in N engagements" is computed
+        from real adoptions — this is the seed of that provenance. No evidence, no
+        candidate.
+      placeholder: |
+        - Repo: https://github.com/org/citizen-portal
+        - PR that shipped it: https://github.com/org/citizen-portal/pull/482
+        - Deployed-service note: runbooks/citizen-portal-prod.md (single-region ECS + RDS, SLA held 6mo)
+    validations:
+      required: true
+  - type: input
+    id: deployment_topology
+    attributes:
+      label: deployment_topology
+      description: How it is deployed — the physical/runtime shape.
+      placeholder: Single-region container service (Kubernetes / ECS) + managed Postgres instance
+    validations:
+      required: true
+  - type: input
+    id: data_placement
+    attributes:
+      label: data_placement
+      description: Where the data lives and what residency/governance boundary it implies.
+      placeholder: In-region managed relational DB; no cross-region replication by default
+    validations:
+      required: true
+  - type: checkboxes
+    id: attached_nfrs
+    attributes:
+      label: Attached NFR kinds (closed list)
+      description: >-
+        Tick the NFR kinds this pattern carries. On adopt, each becomes a derived
+        requirement in the downstream project, so a project inherits exactly these
+        governed concerns. Tick only the kinds you can write a real, measurable NFR
+        for in the pattern file (statement + acceptance criterion). At least one.
+      options:
+        - label: security
+        - label: availability
+        - label: performance
+        - label: data-residency
+        - label: observability
+        - label: resilience
+        - label: cost
+        - label: compliance
+        - label: scalability
+        - label: data-governance
+        - label: operations
+  - type: textarea
+    id: nfr_detail
+    attributes:
+      label: NFR detail (one line per ticked kind)
+      description: >-
+        For each kind ticked above, give the statement and how "done" is verified.
+        Format `kind: statement — acceptance criterion (measurable target if any)`.
+        These flow verbatim into the pattern's NFR rows.
+      placeholder: |
+        security: TLS 1.2+ in transit between tiers and to managed Postgres — all inter-tier connections present a cert chain to TLS>=1.2, verified by scan
+        availability: 99.9% monthly SLA — achievable with multi-AZ container placement; measured monthly
+        data-residency: data at rest stays in declared region — verify managed Postgres region setting matches data classification
+        scalability: horizontal container scaling — DB connection pool required (e.g. PgBouncer)
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints this pattern ENFORCES (what you give up by adopting it)
+      description: >-
+        Optional but valued. A constraint is the pattern saying "if you adopt me, you
+        give this up" — `hard` (cannot be waived) or `soft` (a waiver is a recorded
+        compromise). These are what re-validation replays, so a downstream project can
+        be told honestly where the pattern degrades a need.
+      placeholder: |
+        - hard: all writes are async via the event bus; no synchronous DB writes (degrades: instant-write)
+        - soft: single-region only; cross-region read is a recorded compromise (degrades: cross-region)
+    validations:
+      required: false
+  - type: textarea
+    id: anti_signals
+    attributes:
+      label: When NOT to use it (avoid-when)
+      description: >-
+        Optional but the most trusted line in the file. The honest "this does NOT fit
+        because…" cue. Precision over volume.
+      placeholder: |
+        - avoid-when: high-throughput event fan-out across teams (use an event-driven broker pattern instead)
+        - avoid-when: hard no-cloud / data-sovereignty mandate (use an on-prem pattern)
+    validations:
+      required: false
+  - type: input
+    id: review_by
+    attributes:
+      label: Suggested review-by / validity-check date (ISO)
+      description: >-
+        When should this pattern next be re-checked for validity? Patterns carry a
+        review_by and can be sunset/superseded — they are dated, not eternal.
+      placeholder: "2027-06-15"
+    validations:
+      required: false
+  - type: input
+    id: supersedes
+    attributes:
+      label: Supersedes (optional)
+      description: >-
+        If this replaces an existing pattern, give its pattern_key. Never delete a
+        pattern that has adoptions — supersede it so the chain stays walkable.
+      placeholder: PAT-WEBAPP-VM
+    validations:
+      required: false
+  - type: dropdown
+    id: ack
+    attributes:
+      label: Acknowledgement
+      description: This keeps the gate light and honest.
+      options:
+        - "I understand this enters as a candidate via PR; only a CODEOWNERS-reviewed architect promotes it to approved, and no agent ever sets approval_status."
+    validations:
+      required: true

@@ -1,0 +1,72 @@
+# bundles.yml — the combined-bundle manifest for concat_skills.py.
+#
+# This is the single source of truth for which SKILL.md / pattern .md files get
+# concatenated into the paste-able combined views under generated/combined/.
+#
+# It is read by skills/_scripts/concat_skills.py (run by the concat-patterns
+# GitHub Action). The script is DETERMINISTIC — no LLM step — so re-running on the
+# same inputs reproduces byte-identical output and every diff is meaningful.
+#
+# RULES
+#   - Every `out:` path is written under generated/ (which is action-output only;
+#     never hand-edit it — edit the source files below and re-run the Action).
+#   - Every `parts:` entry MUST resolve to a real on-disk file. The skill layout
+#     is the numeric-prefixed 9-bucket scheme (skills/01-intake-outcomes/... ..
+#     skills/09-portfolio/...); the pattern library is foldered by category
+#     (patterns/<category>/<human-readable-kebab>.md). Keep these paths in sync
+#     when a skill or pattern is moved/renamed.
+#   - This manifest intentionally mirrors the built-in DEFAULT_BUNDLES in
+#     concat_skills.py, so the bundles build identically whether the manifest is
+#     present or absent.
+#
+# The folded `intro:` blocks use the tiny YAML subset the script's built-in
+# parser understands (so CI needs no PyYAML install): scalar keys plus one folded
+# `>` intro and a `parts:` list.
+
+bundles:
+  # 1. Adversarial review — the full advisory red-team pass over a project.
+  - out: combined/adversarial-review.combined.md
+    title: Adversarial Review — combined pass
+    intro: >
+      A single paste-able file for the full advisory red-team pass over a project.
+      Run the three skills in order: challenge the requirements, surface
+      design-review findings (a11y/WCAG, risks, gaps — findings, never verdicts),
+      then capture the strongest objections and the dissent that should be
+      recorded even where the project proceeds. Everything here is advisory: it
+      produces findings and a dissent register, not gates or approvals.
+    parts:
+      - skills/02-review/red-team-requirements/SKILL.md
+      - skills/04-review-and-panel/design-review-findings/SKILL.md
+      - skills/04-review-and-panel/red-team-and-dissent/SKILL.md
+
+  # 2. Solution design — the author + reconcile loop, with the frozen-8 reference.
+  - out: combined/solution-design.combined.md
+    title: Solution Design — combined author + reconcile loop
+    intro: >
+      The end-to-end solution-architecture authoring method in one file. Start
+      with the synthesise-solution-architecture skill (read the codebase +
+      context, then author the document as the frozen-8 sections), keep the
+      frozen-8 section reference alongside it so every section has a precise
+      target, and close with reconcile-design-vs-requirements to check the
+      authored design back against the requirement set. Advisory throughout —
+      reconcile reports drift, it does not block.
+    parts:
+      - skills/05-solution-architecture/synthesise-solution-architecture/SKILL.md
+      - references/frozen-8-sections.md
+      - skills/05-solution-architecture/reconcile-design-vs-requirements/SKILL.md
+
+  # 3. Component patterns — the whole catalogue, one entry per category.
+  - out: combined/component-patterns.combined.md
+    title: Component patterns — combined catalogue
+    intro: >
+      The whole component-pattern library in one paste-able file, one entry per
+      category (deployment / integration / data). Each entry keeps its own
+      pattern_key, approval_status, validity / review-by metadata, attached NFRs
+      and evidence in its frontmatter — read those before adopting. Superseded or
+      deprecated patterns are still included so you can see what replaced what;
+      check the status field. This is a generated view; PR-review and edit the
+      individual pattern files, not this bundle.
+    parts:
+      - patterns/deployment/containerised-web-managed-postgres.md
+      - patterns/integration/api-gateway-bff-managed-identity.md
+      - patterns/data/databricks-lakehouse-delta.md

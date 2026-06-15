@@ -1,0 +1,310 @@
+# .github/workflows/check-shared-stub-drift.yml
+#
+# Guard the quoted shared stubs — duplication-for-portability must never
+# silently diverge.
+#
+# WHY THIS EXISTS:
+#   This library is meant to run in ANY workflow that can read a markdown file
+#   (Claude Code, a plain prompt, a CI step). There is no reliable import
+#   mechanism at read time, so every skill carries the shared conventions
+#   (the TARGET RULE, the TRACE EDGE, ...) IN ITS OWN BYTES — quoted verbatim
+#   between BEGIN/END markers. That redundancy is deliberate: zero coupling at
+#   use time, one canonical source for edits.
+#
+#   The cost of that choice is drift: a quoted copy can be edited in place and
+#   quietly fall out of step with its canonical source. THIS is the explicit
+#   mitigation. On any PR that touches skills/**, we diff each quoted copy
+#   against its canonical block in skills/_shared/ and fail the check if a
+#   single byte has drifted. The rule the library asks authors to follow —
+#   "edit the canonical _shared/ file first, then re-quote into every skill in
+#   the SAME PR; never edit a quoted copy in place" — is what this enforces.
+#
+# WHAT THIS IS NOT:  a gate. Like every Action in this repo, the check is
+#   ADVISORY. It is allowed to fail without blocking the merge
+#   (continue-on-error + a non-required job + a friendly sticky PR comment).
+#   It catches a SHAPE problem (a copy drifted) and asks a human to fix it; it
+#   never holds a downstream project hostage. Consistent with the library's
+#   keep-it-light stance: the machine catches the drift, a human owns the call.
+#
+# HOW IT WORKS:
+#   Each file in skills/_shared/ defines exactly one canonical block, delimited
+#   by HTML-comment markers:
+#       <!-- BEGIN <name> ... -->
+#       ...the canonical bytes...
+#       <!-- END <name> -->
+#   Skills that need the convention paste that block — markers included —
+#   verbatim into their own SKILL.md. The drift check extracts the bytes
+#   between the markers from the canonical file and from every quoted copy, and
+#   compares them byte-for-byte.
+#
+#   The logic prefers the canonical script skills/_scripts/check_shared_stub_drift.py
+#   if it is present (the rest of the library references it by that name). If
+#   that script does not exist yet, this workflow runs an equivalent, minimal
+#   inline diff so the check is functional from the moment this file lands.
+
+name: check-shared-stub-drift (advisory)
+
+on:
+  pull_request:
+    paths:
+      - 'skills/**'
+
+# Least-privilege: read the repo, write one PR comment.
+permissions:
+  contents: read
+  pull-requests: write
+
+# A new push to the PR supersedes the previous drift run.
+concurrency:
+  group: check-shared-stub-drift-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  check-shared-stub-drift:
+    name: Quoted shared stubs vs canonical (advisory — never a gate)
+    runs-on: ubuntu-latest
+
+    steps:
+      # (1) checkout.
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # (2) + (3) diff every quoted copy against its canonical source and
+      # remember whether anything drifted. ADVISORY: we never fail the job on
+      # drift; we capture the report and a status and post it for a human.
+      - name: Diff quoted shared stubs against canonical (advisory)
+        id: drift
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+
+          # Prefer the canonical script if a future PR has added it; otherwise
+          # run the minimal inline equivalent below. Either way the contract is
+          # the same: exit 0 == no drift, exit 1 == at least one drifted copy,
+          # and a markdown report written to drift_report.md.
+          if [ -f skills/_scripts/check_shared_stub_drift.py ]; then
+            echo "Using canonical skills/_scripts/check_shared_stub_drift.py"
+            python skills/_scripts/check_shared_stub_drift.py \
+              --shared-dir skills/_shared \
+              --skills-dir skills \
+              --format markdown \
+              --output drift_report.md
+            status=$?
+          else
+            echo "Canonical script not present; running inline drift check."
+            # The heredoc body is indented for YAML readability; strip the common
+            # 12-space prefix so Python sees top-level code at column 0. (A quoted
+            # heredoc preserves leading spaces verbatim, so this sed is required.)
+            sed 's/^            //' <<'PY' | python -
+            import re
+            import sys
+            from pathlib import Path
+
+            SHARED_DIR = Path("skills/_shared")
+            SKILLS_DIR = Path("skills")
+            REPORT = Path("drift_report.md")
+
+            # Marker pair: <!-- BEGIN <name> ...optional trailing... --> / <!-- END <name> -->
+            BEGIN = re.compile(r"<!--\s*BEGIN\s+([A-Za-z0-9_.\-]+).*?-->", re.DOTALL)
+
+
+            def extract_blocks(text):
+                """Return {name: [block_text, ...]} for every BEGIN/END pair in text.
+
+                The compared bytes are exactly what sits BETWEEN the marker lines
+                (markers excluded), so a cosmetic edit to a marker's trailing note
+                never trips the check — only the canonical content matters.
+                """
+                blocks = {}
+                for m in BEGIN.finditer(text):
+                    name = m.group(1)
+                    end_re = re.compile(r"<!--\s*END\s+" + re.escape(name) + r"\s*-->")
+                    end = end_re.search(text, m.end())
+                    if not end:
+                        # Unterminated block: record a sentinel so it surfaces as drift.
+                        blocks.setdefault(name, []).append(None)
+                        continue
+                    body = text[m.end():end.start()]
+                    blocks.setdefault(name, []).append(body)
+                return blocks
+
+
+            # 1. Load the canonical block for each shared stub.
+            canonical = {}        # name -> canonical body
+            canonical_file = {}   # name -> source path (for messages)
+            problems = []         # (severity, message)
+
+            shared_files = sorted(SHARED_DIR.glob("*.md")) if SHARED_DIR.exists() else []
+            for sf in shared_files:
+                text = sf.read_text(encoding="utf-8")
+                found = extract_blocks(text)
+                if not found:
+                    # A shared file with no BEGIN/END block defines no stub to
+                    # guard — that is fine (some _shared files are prose-only).
+                    continue
+                for name, bodies in found.items():
+                    if None in bodies:
+                        problems.append(("error",
+                            f"`{sf}` has an **unterminated** `{name}` block "
+                            f"(BEGIN with no matching END)."))
+                        bodies = [b for b in bodies if b is not None]
+                    if not bodies:
+                        continue
+                    if name in canonical:
+                        problems.append(("error",
+                            f"Stub `{name}` is defined as canonical in more than one "
+                            f"file (`{canonical_file[name]}` and `{sf}`). A stub must "
+                            f"have exactly one canonical source."))
+                        continue
+                    # A _shared file legitimately shows its own block twice — once
+                    # as the canonical block and once inside its own "how to quote
+                    # it" example. Both are byte-identical by construction, so the
+                    # FIRST occurrence is canonical, silently. (A genuine in-file
+                    # mismatch would surface anyway: the example copy is checked as
+                    # a quoted copy in step 2 like any other.)
+                    canonical[name] = bodies[0]
+                    canonical_file[name] = str(sf)
+
+            # 2. Walk every SKILL.md (and any other markdown under skills/, except
+            #    the canonical _shared/ files themselves) and diff each quoted copy.
+            drifts = []   # (path, name, detail)
+            copies_checked = 0
+
+            for md in sorted(SKILLS_DIR.rglob("*.md")):
+                # Skip the canonical sources; they ARE the reference.
+                try:
+                    md.relative_to(SHARED_DIR)
+                    continue
+                except ValueError:
+                    pass
+                text = md.read_text(encoding="utf-8")
+                for name, bodies in extract_blocks(text).items():
+                    for body in bodies:
+                        if body is None:
+                            drifts.append((str(md), name,
+                                "unterminated quoted block (BEGIN with no matching END)"))
+                            continue
+                        if name not in canonical:
+                            # A quoted block whose canonical source is missing is
+                            # itself a drift signal: nothing to pin it to.
+                            drifts.append((str(md), name,
+                                f"no canonical source found in `{SHARED_DIR}/` "
+                                f"for stub `{name}`"))
+                            continue
+                        copies_checked += 1
+                        if body != canonical[name]:
+                            drifts.append((str(md), name,
+                                f"quoted copy differs from canonical "
+                                f"`{canonical_file[name]}` (byte-level diff)"))
+
+            # 3. Write the markdown report and choose an exit code.
+            errors = [m for sev, m in problems if sev == "error"]
+            warns = [m for sev, m in problems if sev == "warn"]
+            lines = []
+            lines.append(f"Canonical stubs: **{len(canonical)}** "
+                         f"({', '.join(sorted(canonical)) or 'none'})")
+            lines.append(f"Quoted copies checked: **{copies_checked}**")
+            lines.append("")
+            if not drifts and not errors:
+                lines.append("**No drift.** Every quoted shared stub matches its "
+                             "canonical source byte-for-byte.")
+            else:
+                if drifts:
+                    lines.append("**Drift found — a quoted copy diverged from its "
+                                 "canonical source:**")
+                    lines.append("")
+                    for path, name, detail in drifts:
+                        lines.append(f"- `{path}` — stub **{name}**: {detail}")
+                    lines.append("")
+                if errors:
+                    lines.append("**Canonical-source problems:**")
+                    lines.append("")
+                    for e in errors:
+                        lines.append(f"- {e}")
+                    lines.append("")
+                lines.append("**To fix:** edit the canonical block in "
+                             "`skills/_shared/` FIRST, then re-paste it (markers "
+                             "included) into every skill that quotes it, in the "
+                             "SAME PR. Never edit a quoted copy in place.")
+            if warns:
+                lines.append("")
+                lines.append("_Notes:_")
+                for w in warns:
+                    lines.append(f"- {w}")
+
+            REPORT.write_text("\n".join(lines) + "\n", encoding="utf-8")
+            print("----- drift_report.md -----")
+            print(REPORT.read_text(encoding="utf-8"))
+
+            sys.exit(1 if (drifts or errors) else 0)
+            PY
+            status=$?
+          fi
+
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          echo "----- drift_report.md -----"
+          cat drift_report.md || echo "(no report produced)"
+          # Advisory: never fail the job here. The exit code drives the comment,
+          # not the merge.
+          exit 0
+
+      # Post / update a single sticky PR comment with the advisory result.
+      - name: Find existing advisory comment
+        uses: peter-evans/find-comment@v3
+        id: find
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: '<!-- check-shared-stub-drift-advisory -->'
+
+      - name: Assemble comment body
+        run: |
+          {
+            echo '<!-- check-shared-stub-drift-advisory -->'
+            echo '### Shared-stub drift — advisory'
+            echo ''
+            if [ "${{ steps.drift.outputs.exit_code }}" = "0" ]; then
+              echo '**Result: no drift.** Every quoted shared stub matches its canonical source in `skills/_shared/`.'
+            else
+              echo '**Result: drift found (advisory — does not block merge).**'
+            fi
+            echo ''
+            if [ -f drift_report.md ]; then
+              cat drift_report.md
+            else
+              echo '_No report file was produced; see the workflow run log._'
+            fi
+            echo ''
+            echo '---'
+            echo '> This check is **advisory**. It never hard-blocks a merge. It exists for one reason:'
+            echo '> the library duplicates the shared conventions (the TARGET RULE, the TRACE EDGE, ...) into'
+            echo '> every skill **on purpose** — so a skill stays self-contained and portable when copied alone.'
+            echo '> The price of that portability is drift, and this check is the mitigation: duplication-for-'
+            echo '> portability must never *silently* diverge.'
+            echo '>'
+            echo '> **Fix:** edit the canonical block in `skills/_shared/` first, then re-paste it (markers'
+            echo '> included) into every skill that quotes it, in the **same PR**. Never edit a quoted copy in place.'
+          } > comment_body.md
+
+      - name: Post / update advisory comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: comment_body.md
+          edit-mode: replace
+
+      # Upload the raw report for anyone who wants the detail without scrolling
+      # the PR thread. Still no failing of the job.
+      - name: Upload drift report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shared-stub-drift-report
+          path: drift_report.md
+          if-no-files-found: ignore

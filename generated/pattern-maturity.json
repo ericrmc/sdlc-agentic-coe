@@ -1,0 +1,69 @@
+{
+  "generated_by": ".github/workflows/pattern-lifecycle.yml",
+  "generated_at": "2026-06-15T11:18:23Z",
+  "as_of": "2026-06-15",
+  "source_of_truth": "adoptions/ledger.jsonl + patterns/**/*.md frontmatter",
+  "caveat": "Maturity/adoption counts are only as complete as adoptions/ledger.jsonl. Cross-org discovery of adoptions in downstream repos is a deferred upgrade; absent == adopted-by-zero, shown honestly.",
+  "maturity_ladder": {
+    "experimental": "0 adoptions",
+    "emerging": "1-2",
+    "battle-tested": "3+"
+  },
+  "ledger_problems": [],
+  "patterns": [
+    {
+      "pattern_key": "PAT-APIGW-BFF",
+      "name": "API gateway + managed identity + backend-for-frontend",
+      "file": "patterns/integration/api-gateway-bff-managed-identity.md",
+      "approval_status": "provisional",
+      "adoption_count": 0,
+      "overridden_out_count": 1,
+      "maturity": "experimental",
+      "adopted_in": [
+        {
+          "repo": "acme/citizen-portal",
+          "disposition": "overridden-out",
+          "at": "2026-06-13"
+        }
+      ],
+      "valid_from": "2026-06-15",
+      "validity_check_months": 12,
+      "next_review_at": "2027-06-15",
+      "review_due": false,
+      "sunset_at": null,
+      "past_sunset": false
+    },
+    {
+      "pattern_key": "PAT-LAKEHOUSE-DELTA",
+      "name": "Databricks Lakehouse + Delta Lake",
+      "file": "patterns/data/databricks-lakehouse-delta.md",
+      "approval_status": "provisional",
+      "adoption_count": 0,
+      "overridden_out_count": 0,
+      "maturity": "experimental",
+      "adopted_in": [],
+      "valid_from": "2026-06-15",
+      "validity_check_months": 12,
+      "next_review_at": "2027-06-15",
+      "review_due": false,
+      "sunset_at": null,
+      "past_sunset": false
+    },
+    {
+      "pattern_key": "PAT-WEBAPP-PG",
+      "name": "Containerised web + managed Postgres",
+      "file": "patterns/deployment/containerised-web-managed-postgres.md",
+      "approval_status": "provisional",
+      "adoption_count": 0,
+      "overridden_out_count": 0,
+      "maturity": "experimental",
+      "adopted_in": [],
+      "valid_from": "2026-06-15",
+      "validity_check_months": 12,
+      "next_review_at": "2027-06-15",
+      "review_due": false,
+      "sunset_at": null,
+      "past_sunset": false
+    }
+  ]
+}

@@ -1,0 +1,161 @@
+# concat-patterns — build the combined skill/pattern bundles.
+#
+# This is the "concatenate related patterns into a larger combined skill file"
+# Action from the Centre of Excellence brief. It runs the DETERMINISTIC
+# concatenator at skills/_scripts/concat_skills.py, which joins the small,
+# individually-PR-reviewed SKILL.md / pattern .md files into single paste-able
+# bundles under generated/ (adversarial-review, solution-design, and the
+# patterns-by-category catalogues).
+#
+# LIGHT + ADVISORY by design: there is NO LLM step, NO approval gate, NO state
+# machine. The script is byte-for-byte deterministic, so re-running on the same
+# inputs reproduces the same output and every diff is meaningful.
+#
+# generated/ is ACTION-OUTPUT ONLY. Never hand-edit it. Edit the source skill /
+# pattern files and let this Action rebuild. Everything written there is marked
+# `linguist-generated` in .gitattributes so it collapses in GitHub diffs.
+#
+# Triggers:
+#   - push to main                -> rebuild + commit the bundles back (the
+#                                    patterns-by-category + everything else).
+#   - PR labelled `build:combined`-> rebuild + upload bundles as an artifact so a
+#                                    reviewer can preview the review/design
+#                                    bundles without a bot writing to their branch.
+#   - workflow_dispatch           -> manual rebuild (commits back when run on main,
+#                                    otherwise uploads an artifact).
+
+name: concat-patterns
+
+on:
+  push:
+    branches: [main]
+    # Only rebuild when something that feeds a bundle changed.
+    paths:
+      - "skills/**"
+      - "patterns/**"
+      - "skills/_scripts/concat_skills.py"
+      - "skills/_scripts/bundles.yml"
+      - ".github/workflows/concat-patterns.yml"
+  pull_request:
+    types: [labeled, synchronize, reopened]
+  workflow_dispatch:
+
+# Only the most recent run per ref needs to finish; cancel superseded ones.
+concurrency:
+  group: concat-patterns-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write # needed to commit the regenerated bundles back to main
+
+jobs:
+  build-bundles:
+    runs-on: ubuntu-latest
+
+    # On PRs, only run when the `build:combined` label is present. (push and
+    # workflow_dispatch always run.) Keeps the review/design-bundle preview
+    # opt-in instead of firing on every PR push.
+    if: >-
+      github.event_name != 'pull_request' ||
+      contains(github.event.pull_request.labels.*.name, 'build:combined')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # On a label/dispatch against a PR we want the PR head; default
+          # checkout already does the right thing for push.
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # The concatenator has ZERO mandatory third-party deps (PyYAML is optional;
+      # a tiny built-in parser covers the manifest subset). Install PyYAML only if
+      # the repo has pinned it, so CI stays fast and offline-friendly.
+      - name: Install optional deps (best-effort)
+        run: |
+          python -m pip install --upgrade pip >/dev/null
+          if [ -f skills/_scripts/requirements.txt ]; then
+            pip install -r skills/_scripts/requirements.txt
+          fi
+
+      # Make sure generated/ is flagged linguist-generated even on a fresh repo
+      # that has no .gitattributes yet, so the committed bundles collapse in diffs
+      # and don't skew language stats. Idempotent.
+      - name: Ensure generated/ is marked linguist-generated
+        run: |
+          touch .gitattributes
+          if ! grep -qE '^generated/\*\* ' .gitattributes 2>/dev/null; then
+            {
+              echo "# Action-output bundles — never hand-edited (see concat-patterns workflow)."
+              echo "generated/** linguist-generated=true -diff merge=ours"
+            } >> .gitattributes
+            echo "added generated/** rule to .gitattributes"
+          else
+            echo ".gitattributes already marks generated/**"
+          fi
+
+      - name: Build combined bundles
+        run: |
+          python skills/_scripts/concat_skills.py --allow-missing
+
+      # ---- Path A: push / dispatch on main -> commit the bundles back ---------
+      - name: Commit regenerated bundles
+        if: >-
+          github.event_name != 'pull_request' &&
+          github.ref == 'refs/heads/main'
+        run: |
+          git config user.name  "coe-bot"
+          git config user.email "coe-bot@users.noreply.github.com"
+          git add generated/ .gitattributes
+          if git diff --cached --quiet; then
+            echo "Bundles already up to date — nothing to commit."
+            exit 0
+          fi
+          git commit -m "chore(bundles): rebuild combined skill/pattern bundles [skip ci]
+
+          Regenerated by the concat-patterns Action from the source skill/pattern
+          files. Do not hand-edit generated/.
+
+          Co-Authored-By: coe-bot <coe-bot@users.noreply.github.com>"
+          git push
+
+      # ---- Path B: PR label / dispatch off main -> upload as artifact ---------
+      # On a PR we do NOT write to the contributor's branch; a reviewer downloads
+      # the artifact to preview the review/design bundles. Advisory, not enforced.
+      - name: Upload bundles artifact
+        if: >-
+          github.event_name == 'pull_request' ||
+          (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main')
+        uses: actions/upload-artifact@v4
+        with:
+          name: combined-bundles
+          path: generated/combined/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## concat-patterns"
+            echo ""
+            echo "Built the combined skill/pattern bundles from source files."
+            echo ""
+            if [ -d generated/combined ]; then
+              echo "Bundles produced:"
+              echo ""
+              for f in generated/combined/*.combined.md; do
+                [ -e "$f" ] || continue
+                echo "- \`$f\`"
+              done
+            else
+              echo "_No bundles directory produced._"
+            fi
+            echo ""
+            echo "> Advisory build step — no gates, no approvals. Edit the source"
+            echo "> skill/pattern files (never \`generated/\`) and this Action rebuilds."
+          } >> "$GITHUB_STEP_SUMMARY"

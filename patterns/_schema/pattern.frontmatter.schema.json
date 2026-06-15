@@ -1,0 +1,289 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sdlc-agentic-coe/patterns/_schema/pattern.frontmatter.schema.json",
+  "title": "Component Pattern Frontmatter (v1)",
+  "description": "CI-enforced schema for the YAML frontmatter of a component pattern in the SDLC Centre of Excellence. Validated by patterns/_schema/lint and the validate-patterns GitHub Action on every PR that touches a pattern file. LIGHT and advisory: this checks that a pattern is well-formed and cite-able and carries the evidence/validity/sunset metadata the library promises — it does NOT enforce any approval gate. A human PR review is what blesses a pattern; this schema only makes sure the human has the fields they need to do it. Forbids the computed fields (maturity, adoption_count) as inputs because they are derived from the adoption ledger, never authored.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "pattern_key",
+    "name",
+    "category",
+    "intent",
+    "deployment_topology",
+    "data_placement",
+    "summary",
+    "approval_status",
+    "valid_from",
+    "attached_nfrs"
+  ],
+  "properties": {
+    "pattern_key": {
+      "type": "string",
+      "description": "Stable, cite-able key that survives renames. Cited by the build bundle, retrieval and every superseding/superseded reference. UPPER-KEBAB after the PAT- prefix, e.g. PAT-WEBAPP-PG.",
+      "pattern": "^PAT-[A-Z0-9]+(-[A-Z0-9]+)*$",
+      "minLength": 5,
+      "maxLength": 64
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable pattern name, e.g. 'Three-tier web app on managed Postgres'.",
+      "minLength": 3,
+      "maxLength": 120
+    },
+    "category": {
+      "type": "string",
+      "description": "Top-level family the pattern belongs to.",
+      "enum": ["deployment", "integration", "data"]
+    },
+    "intent": {
+      "type": "string",
+      "description": "One sentence in 'Use this WHEN ... so that ...' form. The retrieval anchor and embedding seed — make it discriminating, not generic.",
+      "minLength": 10,
+      "maxLength": 280
+    },
+    "deployment_topology": {
+      "type": "string",
+      "description": "Where the components run, in a phrase, e.g. 'single-region managed containers + managed Postgres'.",
+      "minLength": 3,
+      "maxLength": 200
+    },
+    "data_placement": {
+      "type": "string",
+      "description": "Where data lives / residency shape, in a phrase, e.g. 'in-region only; no cross-region replication'.",
+      "minLength": 3,
+      "maxLength": 200
+    },
+    "summary": {
+      "type": "string",
+      "description": "A short paragraph: what the pattern is, at a glance. The body of the pattern file carries the full Context/Solution/Tradeoffs.",
+      "minLength": 20,
+      "maxLength": 1000
+    },
+    "approval_status": {
+      "type": "string",
+      "description": "Lifecycle state, set by a human in PR review. 'candidate' = proposed, not yet reviewed. 'provisional' = reviewed, usable with care, limited evidence. 'approved' = reviewed and blessed for fast-track reuse. 'deprecated' = retired; do not adopt, see superseded_by. No agent ever sets this — it is changed only via a human-reviewed PR.",
+      "enum": ["candidate", "provisional", "approved", "deprecated"]
+    },
+    "valid_from": {
+      "type": "string",
+      "format": "date",
+      "description": "ISO date (YYYY-MM-DD) the pattern became valid / was first authored.",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "validity_check_months": {
+      "type": "integer",
+      "description": "How often (in months) the pattern should be re-checked for currency. Used to derive a review-by date from the last validation. Defaults to 12 if omitted.",
+      "default": 12,
+      "minimum": 1,
+      "maximum": 120
+    },
+    "sunset_at": {
+      "type": "string",
+      "format": "date",
+      "description": "Optional ISO date (YYYY-MM-DD) after which the pattern should be considered for retirement even if not yet superseded. Advisory: surfaces in the library as 'sunsetting', never auto-removes.",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "supersedes": {
+      "type": "array",
+      "description": "Pattern_keys this pattern replaces (the forward half of the deprecation chain). Each entry must be a valid pattern_key.",
+      "items": {
+        "type": "string",
+        "pattern": "^PAT-[A-Z0-9]+(-[A-Z0-9]+)*$"
+      },
+      "uniqueItems": true
+    },
+    "superseded_by": {
+      "type": "string",
+      "description": "The pattern_key that replaces this one. REQUIRED when approval_status = deprecated (a deprecated pattern must name its successor so adopters are never dead-ended). A valid pattern_key.",
+      "pattern": "^PAT-[A-Z0-9]+(-[A-Z0-9]+)*$"
+    },
+    "approved_by": {
+      "type": "string",
+      "description": "Who blessed the pattern in PR review (name or GitHub handle). REQUIRED when approval_status is provisional or approved. A net-new human-owned fact.",
+      "minLength": 2,
+      "maxLength": 120
+    },
+    "approved_at": {
+      "type": "string",
+      "format": "date",
+      "description": "ISO date (YYYY-MM-DD) of the human approval. REQUIRED when approval_status is provisional or approved.",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "evidence": {
+      "type": "array",
+      "description": "Artefacts proving the pattern was actually BUILT — not just imagined. Links to a repo, PR, runbook, ADR, dashboard, post-mortem, or load-test report. REQUIRED (at least one) when approval_status is provisional or approved: the library only fast-tracks reuse of things with evidence behind them.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "url"],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "What the artefact is, e.g. 'Prod deploy of Citizen Services on this topology'.",
+            "minLength": 2,
+            "maxLength": 200
+          },
+          "url": {
+            "type": "string",
+            "description": "Link to the artefact (repo, PR, runbook, dashboard, doc).",
+            "format": "uri",
+            "minLength": 4
+          },
+          "kind": {
+            "type": "string",
+            "description": "Optional classifier for the artefact.",
+            "enum": [
+              "repo",
+              "pull_request",
+              "runbook",
+              "adr",
+              "dashboard",
+              "load_test",
+              "post_mortem",
+              "doc"
+            ]
+          },
+          "project": {
+            "type": "string",
+            "description": "Optional: the engagement/project the artefact came from (provenance 'first proven on X').",
+            "maxLength": 200
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "Optional ISO date the artefact was produced.",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          }
+        }
+      }
+    },
+    "attached_nfrs": {
+      "type": "array",
+      "description": "The typed, propagatable NFRs this pattern carries — the heart of the reuse payoff. On adopt, each becomes a derivable requirement in a downstream project. Every NFR must carry a kind, a statement, and an acceptance_criterion (the testable 'done' that makes it inspectable, not just an assertion).",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "statement", "acceptance_criterion"],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "The NFR family. The 11 governed kinds.",
+            "enum": [
+              "security",
+              "availability",
+              "performance",
+              "data-residency",
+              "observability",
+              "resilience",
+              "cost",
+              "compliance",
+              "scalability",
+              "data-governance",
+              "operations"
+            ]
+          },
+          "nfr_key": {
+            "type": "string",
+            "description": "Optional stable key for the NFR, e.g. NFR-TLS-TRANSIT — becomes a req_key prefix on propagation.",
+            "pattern": "^NFR-[A-Z0-9]+(-[A-Z0-9]+)*$",
+            "maxLength": 64
+          },
+          "statement": {
+            "type": "string",
+            "description": "What the NFR asserts, e.g. 'TLS 1.2+ in transit between tiers and to managed Postgres'.",
+            "minLength": 5,
+            "maxLength": 400
+          },
+          "acceptance_criterion": {
+            "type": "string",
+            "description": "The testable 'done', e.g. 'All inter-tier connections present a cert chain to TLS>=1.2; verified by scan'. Carried verbatim into the downstream requirement on adopt.",
+            "minLength": 5,
+            "maxLength": 400
+          },
+          "measurable_target": {
+            "type": "string",
+            "description": "Optional concrete target, e.g. '99.9% monthly' or '<=200ms p95'.",
+            "maxLength": 120
+          },
+          "is_waivable": {
+            "type": "boolean",
+            "description": "Optional: can a downstream project waive this NFR? Waiving a non-waivable NFR is a recorded compromise. Defaults to true if omitted."
+          }
+        }
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "description": "What the pattern ENFORCES — the things you give up by adopting it. Each is the fuel a downstream re-validation replays. 'hard' = cannot be waived; 'soft' = a waiver is a recorded compromise.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["statement", "enforced"],
+        "properties": {
+          "constraint_key": {
+            "type": "string",
+            "description": "Optional stable key, e.g. CON-ASYNC-WRITES-ONLY.",
+            "pattern": "^CON-[A-Z0-9]+(-[A-Z0-9]+)*$",
+            "maxLength": 64
+          },
+          "statement": {
+            "type": "string",
+            "description": "What the pattern forces, e.g. 'All writes are async via the event bus; no synchronous DB writes'.",
+            "minLength": 5,
+            "maxLength": 400
+          },
+          "enforced": {
+            "type": "string",
+            "description": "'hard' = cannot be waived. 'soft' = a waiver is a recorded compromise.",
+            "enum": ["hard", "soft"]
+          },
+          "degrades_capability": {
+            "type": "string",
+            "description": "Optional machine hint matched against a requirement's capability tags, e.g. 'instant-write', 'real-time', 'cross-region'.",
+            "maxLength": 120
+          }
+        }
+      }
+    },
+    "maturity": {
+      "not": {},
+      "description": "FORBIDDEN as an input. maturity (battle-tested / emerging / experimental) is COMPUTED from the adoption ledger, never authored in frontmatter. Remove it from this file."
+    },
+    "adoption_count": {
+      "not": {},
+      "description": "FORBIDDEN as an input. adoption_count ('used in N engagements') is COMPUTED from the adoption ledger, never authored in frontmatter. Remove it from this file."
+    }
+  },
+  "allOf": [
+    {
+      "$comment": "approval_status in {provisional, approved} requires the human approval trail + at least one piece of build evidence.",
+      "if": {
+        "properties": {
+          "approval_status": { "enum": ["provisional", "approved"] }
+        },
+        "required": ["approval_status"]
+      },
+      "then": {
+        "required": ["approved_by", "approved_at", "evidence"],
+        "properties": {
+          "evidence": { "minItems": 1 }
+        }
+      }
+    },
+    {
+      "$comment": "A deprecated pattern must name its successor so adopters are never dead-ended.",
+      "if": {
+        "properties": {
+          "approval_status": { "const": "deprecated" }
+        },
+        "required": ["approval_status"]
+      },
+      "then": {
+        "required": ["superseded_by"]
+      }
+    }
+  ]
+}

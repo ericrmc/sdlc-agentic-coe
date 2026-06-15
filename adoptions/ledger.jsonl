@@ -1,0 +1,1 @@
+{"pattern_key":"PAT-APIGW-BFF","repo":"acme/citizen-portal","disposition":"overridden-out","at":"2026-06-13","override_reason":"Client IT security policy prohibits a separate BFF tier; chose path-prefix routing in a single container.","override_count":1}

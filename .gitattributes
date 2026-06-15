@@ -1,0 +1,5 @@
+# generated/ is ACTION-OUTPUT ONLY (concat-patterns, portfolio-rollup) — never hand-edit; edit the source skill/pattern files instead.
+# linguist-generated  -> collapse in PR diffs + exclude from language stats; -diff -> no inline diff noise; merge=ours -> Action always rebuilds, so don't fight merge conflicts here.
+generated/** linguist-generated=true -diff merge=ours
+
+# adoptions/ledger.jsonl is intentionally NOT marked generated: it is a human/PR-appended append-only ledger and SHOULD show full diffs under review.

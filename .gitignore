@@ -1,0 +1,24 @@
+# --- Python bytecode / caches -------------------------------------------------
+# The CoE ships a few small, dependency-light helper scripts (concat_skills.py,
+# the linters, the portfolio rollup). Never commit their compiled artefacts.
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Throwaway run artefacts --------------------------------------------------
+# The portfolio-rollup Action recomputes its RAG projection from scratch every
+# run and writes it here. It is a derived-on-read cache, NEVER a persisted score,
+# so it must not be committed (see .github/workflows/portfolio-rollup.yml and
+# docs/portfolio-github-projects.md). The committed combined/*.md bundles under
+# generated/ ARE checked in (built by concat-patterns) — keep those; ignore only
+# the rollup JSON.
+/generated/portfolio-rollup.json
+
+# --- OS / editor cruft --------------------------------------------------------
+.DS_Store
+*.swp
+.idea/
+.vscode/

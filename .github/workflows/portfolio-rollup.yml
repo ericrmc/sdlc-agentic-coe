@@ -1,0 +1,145 @@
+# Portfolio rollup — derived-on-read RAG to the org Project board.
+#
+# WHAT THIS IS
+#   A scheduled (+ manual) projection job. For every tracked downstream project it
+#   recomputes an ADVISORY Red/Amber/Green standing from the SAME transparent
+#   checklist the advisory-governance-checklist skill uses, then pushes the
+#   phase + RAG + reasons onto the org-level GitHub Project board fields.
+#
+#   It is a PURE PROJECTION. The verdict is recomputed from scratch on every run
+#   and is NEVER committed as a persisted score (generated/portfolio-rollup.json is
+#   a throwaway run artefact, regenerated each time — git-ignore it). Nothing here
+#   gates anything; the board cell is a signal, not a stop sign.
+#
+# WHY "worst-of" + reasons (lifted from project_health() in the old app)
+#   The standing is the WORST level across a small fixed check set — a transparent
+#   boolean fold, never a weighted grade — and every failing check is named in the
+#   reasons list. Because it reads the same signals the per-project checklist reads,
+#   the board and a project's own checklist can never disagree.
+#
+#   It carries NO per-person and NO throughput/velocity metric. Phases only — each
+#   downstream project owns its own GitHub Project for the detail; this board is the
+#   portfolio-of-phases view.
+#
+# PREREQUISITE (documented, not enforced here)
+#   Writing to an *org-level* Project from a workflow needs a token with org project
+#   scope — the default GITHUB_TOKEN cannot see org Projects. Create a fine-grained
+#   PAT (or GitHub App installation token) with "Projects: read & write" on the org
+#   and store it as the repo/org secret PORTFOLIO_PROJECT_TOKEN. Set the board's
+#   number in the PROJECT_NUMBER env below and its owner in PROJECT_OWNER.
+#
+#   The list of tracked projects + how to read each one's signals lives in
+#   portfolio/tracked-projects.yml (one entry per downstream repo). The compute
+#   script reads that file; this workflow just orchestrates checkout -> compute ->
+#   project-board write.
+
+name: portfolio-rollup
+
+on:
+  schedule:
+    # 07:00 UTC every weekday — before the working day, advisory only.
+    - cron: "0 7 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Compute + upload the JSON artefact but do NOT write the board"
+        type: boolean
+        default: false
+
+# Read-only on this repo's contents; the board write uses the scoped PAT below.
+permissions:
+  contents: read
+
+concurrency:
+  group: portfolio-rollup
+  cancel-in-progress: true
+
+env:
+  # The org-level Project (Projects v2) to project onto. Owner may be an org or user.
+  PROJECT_OWNER: "your-org"
+  PROJECT_NUMBER: "1"
+  # Where the tracked-project registry lives in THIS repo.
+  TRACKED_PROJECTS_FILE: "portfolio/tracked-projects.yml"
+  # Throwaway run artefact — regenerated every run, git-ignored, never committed.
+  ROLLUP_OUT: "generated/portfolio-rollup.json"
+
+jobs:
+  rollup:
+    runs-on: ubuntu-latest
+    steps:
+      # (1) checkout — we need the tracked-projects registry + the compute script.
+      - name: Checkout CoE repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install minimal deps
+        run: pip install --quiet pyyaml
+
+      # (2) compute the advisory RAG verdict for each tracked downstream project.
+      #     worst-of over the transparent checklist; same signals as the checklist
+      #     skill; reasons name every failing check. No per-person metric, ever.
+      #     (3) write generated/portfolio-rollup.json — the throwaway projection.
+      - name: Compute portfolio rollup (derived-on-read RAG)
+        env:
+          # Read access to each tracked repo's signals (issues/labels/checks).
+          # Reuse the scoped PAT; it just needs read on those repos too.
+          GH_TOKEN: ${{ secrets.PORTFOLIO_PROJECT_TOKEN }}
+        run: python scripts/compute_portfolio_rollup.py
+
+      - name: Upload rollup artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: portfolio-rollup
+          path: ${{ env.ROLLUP_OUT }}
+          if-no-files-found: error
+
+      # (4) project the phase + RAG + reasons onto the org Project board fields.
+      #     Pure projection: we look up each tracked project's board item and set
+      #     its Phase / Standing / Reasons fields to the freshly-computed values.
+      #     Skipped on dry-run and when the scoped token is absent (advisory job
+      #     must never hard-fail a schedule).
+      - name: Push standing to the org Project board
+        if: ${{ inputs.dry_run != true }}
+        env:
+          # MUST be a token with org "Projects: read & write" — see the PREREQUISITE
+          # note at the top. The default GITHUB_TOKEN cannot see org Projects.
+          GH_TOKEN: ${{ secrets.PORTFOLIO_PROJECT_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::warning::PORTFOLIO_PROJECT_TOKEN not set — skipping board write (advisory job, not failing). See workflow header PREREQUISITE."
+            # Still run the projection as a DRY-RUN so the step summary shows what
+            # *would* be written. The script writes nothing and exits 0 without --apply.
+            python scripts/push_portfolio_to_board.py \
+              --rollup "${ROLLUP_OUT}" \
+              --owner "${PROJECT_OWNER}" \
+              --number "${PROJECT_NUMBER}"
+            exit 0
+          fi
+          # Token present: do the real projection. --apply still degrades safely
+          # (re-checks gh + token, never hard-fails this advisory schedule).
+          python scripts/push_portfolio_to_board.py \
+            --rollup "${ROLLUP_OUT}" \
+            --owner "${PROJECT_OWNER}" \
+            --number "${PROJECT_NUMBER}" \
+            --apply
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Portfolio rollup"
+            echo ""
+            echo "Advisory RAG recomputed from the transparent checklist (worst-of + reasons)."
+            echo "No persisted score; this run's projection is the artefact above."
+            echo ""
+            if [ -f "${ROLLUP_OUT}" ]; then
+              python scripts/render_rollup_summary.py "${ROLLUP_OUT}"
+            else
+              echo "_No rollup produced._"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

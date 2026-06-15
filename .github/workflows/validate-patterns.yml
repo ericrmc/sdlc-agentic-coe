@@ -1,0 +1,173 @@
+# .github/workflows/validate-patterns.yml
+#
+# Advisory frontmatter lint for component PATTERNS.
+#
+# WHAT THIS IS:  a thin RUNNER. All the logic lives in the script
+#   skills/_scripts/lint_pattern_frontmatter.py
+# This workflow only: checks out, sets up Python, installs two light deps,
+# runs the linter over the changed pattern files, and posts the result as a
+# friendly PR comment.
+#
+# WHAT THIS IS NOT:  a gate. This check is ADVISORY. It is allowed to fail
+# without blocking the merge (continue-on-error + a non-required job). The
+# REAL gate for patterns is human review: CODEOWNERS on patterns/** plus
+# branch protection requiring a CODEOWNER approval. A pattern carries trust
+# because a named architect reviewed it and attached evidence — not because a
+# YAML linter went green. See CONTRIBUTING.md and .github/CODEOWNERS.
+#
+# The script enforces (advisory):
+#   - schema validation of the YAML frontmatter
+#     (patterns/_schema/pattern.frontmatter.schema.json; jsonschema when present,
+#     else equivalent stdlib structural checks)
+#   - pattern_key shape: ^PAT-[A-Z0-9]+(-[A-Z0-9]+)*$ (UPPER-KEBAB after PAT-).
+#     The cite-able key is independent of the human-readable filename — the linter
+#     does NOT require pattern_key == filename stem.
+#   - closed NFR-kind enum on attached_nfrs[].kind
+#     (patterns/_schema/nfr-kinds.enum.txt)
+#   - conditional fields:
+#       approval_status=provisional|approved -> requires approved_by + approved_at
+#         + at least one evidence[] entry, each a {title, url} mapping
+#       approval_status=deprecated           -> requires superseded_by
+#   - the never-delete-with-adoptions invariant (a pattern with recorded
+#     adoptions may be deprecated, never deleted), read via the one shared
+#     ledger reader the pattern-lifecycle workflow also uses
+
+name: validate-patterns (advisory)
+
+on:
+  pull_request:
+    paths:
+      - 'patterns/**'
+
+# Least-privilege: we only read the repo and write a PR comment.
+permissions:
+  contents: read
+  pull-requests: write
+
+# A new push to the PR supersedes the previous lint run.
+concurrency:
+  group: validate-patterns-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  lint-pattern-frontmatter:
+    name: Lint pattern frontmatter (advisory — human review is the gate)
+    runs-on: ubuntu-latest
+
+    steps:
+      # (1) checkout — fetch enough history to diff against the PR base.
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # (2) set up Python.
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # (3) install the light deps (PyYAML, jsonschema) — nothing heavier.
+      - name: Install light deps
+        run: python -m pip install --upgrade pip PyYAML jsonschema
+
+      # Collect the changed pattern files (added/copied/modified/renamed) on
+      # this PR. Deletions are intentionally excluded here — the script's
+      # never-delete-with-adoptions invariant is checked separately below
+      # against the full set of removed files.
+      - name: Collect changed pattern files
+        id: changed
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # Files present at HEAD that were added/modified/renamed under patterns/
+          git diff --name-only --diff-filter=ACMR "$BASE_SHA" "$HEAD_SHA" -- 'patterns/**' > changed_patterns.txt || true
+          # Files removed under patterns/ (feeds the never-delete invariant)
+          git diff --name-only --diff-filter=D "$BASE_SHA" "$HEAD_SHA" -- 'patterns/**' > deleted_patterns.txt || true
+          echo "Changed pattern files:"
+          cat changed_patterns.txt || true
+          echo "Deleted pattern files:"
+          cat deleted_patterns.txt || true
+
+      # (4) run the linter. The script is the logic. We capture its markdown
+      # report to a file and remember the exit code, but DO NOT fail the job
+      # on a non-zero exit — this check is advisory.
+      - name: Run pattern frontmatter linter (advisory)
+        id: lint
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          python skills/_scripts/lint_pattern_frontmatter.py \
+            --changed-list changed_patterns.txt \
+            --deleted-list deleted_patterns.txt \
+            --format markdown \
+            --output lint_report.md
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          # Surface the human-readable report in the run log too.
+          echo "----- lint_report.md -----"
+          cat lint_report.md || echo "(no report produced)"
+          exit 0
+
+      # Post / update a single sticky PR comment with the advisory result.
+      # find-comment + create-or-update keeps the thread to one comment that
+      # we edit on each push, rather than spamming a new comment every time.
+      - name: Find existing advisory comment
+        uses: peter-evans/find-comment@v3
+        id: find
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: '<!-- validate-patterns-advisory -->'
+
+      - name: Assemble comment body
+        id: body
+        run: |
+          {
+            echo '<!-- validate-patterns-advisory -->'
+            echo '### Pattern frontmatter lint — advisory'
+            echo ''
+            if [ "${{ steps.lint.outputs.exit_code }}" = "0" ]; then
+              echo '**Result: clean.** No frontmatter problems found in the changed pattern files.'
+            else
+              echo '**Result: issues found (advisory — does not block merge).**'
+            fi
+            echo ''
+            if [ -f lint_report.md ]; then
+              cat lint_report.md
+            else
+              echo '_No report file was produced; see the workflow run log._'
+            fi
+            echo ''
+            echo '---'
+            echo '> This check is **advisory**. It never hard-blocks a merge. The actual gate for'
+            echo '> patterns is **human review**: `CODEOWNERS` on `patterns/**` plus branch'
+            echo '> protection requiring a CODEOWNER approval. A pattern earns trust because a named'
+            echo '> reviewer validated it and attached build evidence — not because this linter is green.'
+            echo '>'
+            echo '> The linter checks: frontmatter schema, the `pattern_key` shape (`PAT-UPPER-KEBAB`),'
+            echo '> the closed NFR-kind enum, the conditional `approved_by`/`approved_at`/`evidence`'
+            echo '> (when `approval_status: provisional`/`approved`) and `superseded_by` (when'
+            echo '> `approval_status: deprecated`) fields, and the never-delete-a-pattern-with-adoptions'
+            echo '> invariant.'
+          } > comment_body.md
+
+      - name: Post / update advisory comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: comment_body.md
+          edit-mode: replace
+
+      # Upload the raw report as an artifact for anyone who wants the detail
+      # without scrolling the PR thread. Still no failing of the job.
+      - name: Upload lint report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pattern-lint-report
+          path: lint_report.md
+          if-no-files-found: ignore

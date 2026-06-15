@@ -1,0 +1,103 @@
+name: Dissent record
+description: Record what was decided NOT to do, and why (preserve-dissent)
+title: "[dissent] "
+labels: [dissent]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## What we decided NOT to do, and why
+
+        This is a **dissent record** — a durable, first-class note of something this
+        project *declined*, kept with its human-owned WHY so nothing that was
+        suggested-and-rejected is silently re-proposed later against unchanged evidence.
+
+        A dissent usually originates from a **red-team objection** or a **panel split**:
+        the red team surfaces the single strongest objection to a proposal, a human
+        weighs it, and — if the call is to NOT proceed — records it here. It can also be
+        a standalone dissent a human raises directly.
+
+        **This log is advisory, not a gate.** It blocks nothing. Its job is memory:
+        if the same idea comes back, this record is the evidence of what was decided and
+        why, so the conversation starts from the rationale rather than from zero.
+
+  - type: input
+    id: title
+    attributes:
+      label: Title — what was declined
+      description: A short, plain name for the thing we decided NOT to do.
+      placeholder: e.g. "Do not add a hard architecture-review approval gate"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      description: What sort of thing is being declined? (matches the object the proposal was about)
+      options:
+        - requirement
+        - capability
+        - component / pattern
+        - solution / architecture approach
+        - NFR target
+        - process / mechanic
+        - other
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: The WHY — rationale for declining (human-owned)
+      description: >
+        The durable reasoning for NOT doing this. Own every word — this is the record a
+        future reader (or a future you) will weigh the idea against. State the evidence
+        and the tradeoff, not just the verdict. Be specific enough that someone can tell
+        whether the evidence behind it has changed.
+      placeholder: |
+        e.g. We declined a state-machine enforcement gate because the business will not
+        support a bespoke approval tool, and the cost of false-blocks (work stalled on a
+        ceremony) outweighed the benefit over a light advisory review. We accept the risk
+        that a weak design ships un-gated; the red-team skill + PR review are the
+        compensating controls. Revisit if we ever centralise on a platform that can own
+        the state machine cheaply.
+    validations:
+      required: true
+
+  - type: input
+    id: provenance
+    attributes:
+      label: Provenance — where this came from
+      description: >
+        Link the red-team objection, panel split, or proposal this dissent was recorded
+        against (issue/PR/discussion URL, or the panel session reference). This is the
+        thread that proposed it; the dissent is the answer.
+      placeholder: e.g. https://github.com/<org>/<repo>/issues/123 (red-team objection) or "panel session 2026-06-13, split 3-2"
+    validations:
+      required: false
+
+  - type: textarea
+    id: revisit_conditions
+    attributes:
+      label: What would make us revisit this? (optional)
+      description: >
+        Name the change in evidence that should re-open this. The dissent log is
+        revisitable by design — re-opening preserves this record, its WHY, and its
+        comment thread rather than erasing them.
+      placeholder: |
+        e.g. Revisit if a downstream project hits a compliance need for hard gates, or
+        if the platform pivot is reversed.
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        **How this is used.** A dissent record is never write-only. To re-open it for
+        reconsideration, comment on this issue and re-apply the `dissent` label / re-open
+        the issue — the history (this WHY + the thread) stays intact, so the decision is
+        revisited, not lost. This is the project's **dismissal-memory**: an idea that was
+        declined here should not be re-proposed silently against the *same* evidence —
+        bring it back only with what changed.

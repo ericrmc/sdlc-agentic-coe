@@ -1,0 +1,603 @@
+# .github/workflows/pattern-lifecycle.yml
+#
+# SCHEDULED pattern maturity / validity / sunset housekeeping for the
+# component-pattern library. Runs weekly (and on demand). It is the GitHub-native
+# replacement for the old `pattern_adoption` COUNT(*) and the platform's
+# derived-on-read review/sunset logic.
+#
+# WHAT IT DOES (all LIGHT and ADVISORY — there is no gate here):
+#   (2) MATURITY   — tallies adoptions/ledger.jsonl per pattern_key and writes the
+#                    computed maturity (battle-tested | emerging | experimental) and
+#                    adoption count to generated/pattern-maturity.json. It NEVER writes
+#                    maturity back into a pattern file's frontmatter — maturity is
+#                    arithmetic over the ledger, read by tools, authored by no one.
+#   (3) VALIDITY   — for each pattern computes (today - valid_from) against
+#                    validity_check_months and OPENS a pattern-revalidation issue
+#                    (from the issue template, assigned via CODEOWNERS) when review is
+#                    due and no open revalidation issue already exists for that key.
+#   (4) SUNSET     — flags any pattern past its sunset_at / sunset_on date by opening
+#                    (or refreshing) a sunset issue for a human to action.
+#   (5) DELETE     — verifies that no pattern WITH recorded adoptions was deleted in
+#                    the last week's history (deprecate-don't-delete; the provenance
+#                    must survive). Reports a violation as a job warning; never reverts.
+#
+# WHAT IT IS NOT:  an approval engine. This workflow NEVER edits approval_status,
+#   approved_by, approved_at, or any human-owned trust field. It opens issues for
+#   humans and writes computed artifacts under generated/. Humans (CODEOWNERS) decide.
+#
+# HONEST CAVEAT (read this):  the maturity tally is only as complete as
+#   adoptions/ledger.jsonl. Today an adoption is a fact only if some downstream repo
+#   appended a line here via PR. A pattern adopted in a repo that never sent its PR
+#   back will under-count, and the workflow will honestly report it as "used in N
+#   engagements (per ledger)". A cross-org scan of downstream repos to discover
+#   adoptions automatically is a DEFERRED upgrade — see the note in the maturity step.
+#   Absent = adopted-by-zero, shown honestly, never padded.
+
+name: pattern-lifecycle (advisory — maturity / validity / sunset)
+
+on:
+  # Weekly: Mondays at 06:00 UTC. Cheap, predictable, off the working day's critical path.
+  schedule:
+    - cron: '0 6 * * 1'
+  # On demand, e.g. right after a batch of adoptions or a new pattern lands.
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Compute and log only; do not open or refresh any issues.'
+        type: boolean
+        default: false
+
+# Least privilege. We READ the repo, WRITE computed artifacts back (a commit to
+# generated/), and OPEN ISSUES for humans. We never touch pull requests or anything else.
+permissions:
+  contents: write   # commit generated/pattern-maturity.json
+  issues: write     # open revalidation / sunset issues
+
+# One housekeeping run at a time; a newer run supersedes an in-flight one.
+concurrency:
+  group: pattern-lifecycle
+  cancel-in-progress: false
+
+jobs:
+  lifecycle:
+    name: Compute maturity + open revalidation/sunset issues (advisory)
+    runs-on: ubuntu-latest
+
+    steps:
+      # (1) checkout — full history so the delete-invariant (step 5) can look back a week.
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # PyYAML for robust frontmatter parsing. Kept light — no other deps.
+      - name: Install light deps
+        run: python -m pip install --upgrade pip PyYAML
+
+      # ---------------------------------------------------------------------- #
+      # (2) MATURITY + (3) VALIDITY + (4) SUNSET, computed in one deterministic
+      #     pass over the ledger and every patterns/**/*.md. The script:
+      #       - writes generated/pattern-maturity.json (the computed artifact),
+      #       - emits a JSON plan of issues to open (revalidation + sunset) to
+      #         $GITHUB_OUTPUT for the issue-opening steps below,
+      #       - never edits any pattern frontmatter.
+      #     It is pure arithmetic + date math; no LLM, no network.
+      # ---------------------------------------------------------------------- #
+      - name: Compute maturity, validity and sunset
+        id: compute
+        env:
+          # workflow_dispatch dry-run flag is empty on schedule (treated as false).
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          mkdir -p generated
+          python - <<'PY'
+          import json, os, re, sys
+          from datetime import date, datetime, timezone
+          from pathlib import Path
+
+          ROOT = Path(os.environ.get("GITHUB_WORKSPACE", "."))
+          LEDGER = ROOT / "adoptions" / "ledger.jsonl"
+          PATTERNS_DIR = ROOT / "patterns"
+          OUT = ROOT / "generated" / "pattern-maturity.json"
+          TODAY = date.today()
+
+          # Use the ONE shared ledger reader that the pattern linter exports, so
+          # this maturity tally and the linter's never-delete invariant parse the
+          # ledger identically (pure JSONL; the prose header lives in
+          # adoptions/README.md). Fall back to an inline copy only if the import
+          # path is unavailable, so the workflow never hard-crashes.
+          sys.path.insert(0, str(ROOT / "skills" / "_scripts"))
+          try:
+              from lint_pattern_frontmatter import iter_ledger_records, ledger_pattern_key
+          except Exception:
+              iter_ledger_records = None
+              ledger_pattern_key = None
+
+          # --- Maturity ladder (COUNT of clean+with-overrides adoptions) -------- #
+          # The thresholds are arithmetic over the ledger, not opinion:
+          #   0           -> experimental   (adopted by zero — shown honestly)
+          #   1-2         -> emerging
+          #   3+          -> battle-tested
+          # "overridden-out" lines are real data but do NOT count toward maturity
+          # (a team that evaluated and declined is signal, not an adoption).
+          def maturity_for(adopted_count: int) -> str:
+              if adopted_count >= 3:
+                  return "battle-tested"
+              if adopted_count >= 1:
+                  return "emerging"
+              return "experimental"
+
+          # --- Parse the append-only adoption ledger ---------------------------- #
+          # Honest caveat: this tally is ONLY as complete as this file. A cross-org
+          # scan to discover adoptions in downstream repos that never sent a PR back
+          # is a DEFERRED upgrade; until then, absent == adopted-by-zero, shown as-is.
+          tally = {}   # pattern_key -> {"adopted": n, "overridden_out": n, "repos": [...]}
+          ledger_problems = []
+
+          def _records():
+              """Yield (lineno, obj) ledger records via the shared reader, or an
+              equivalent inline parse if the import was unavailable."""
+              if iter_ledger_records is not None:
+                  yield from iter_ledger_records(ROOT, ledger_problems)
+                  return
+              if not LEDGER.is_file():
+                  ledger_problems.append("adoptions/ledger.jsonl not found; treated as empty (adopted-by-zero)")
+                  return
+              for lineno, raw in enumerate(LEDGER.read_text(encoding="utf-8").splitlines(), 1):
+                  s = raw.strip()
+                  if not s:
+                      continue
+                  try:
+                      obj = json.loads(s)
+                  except json.JSONDecodeError as exc:
+                      ledger_problems.append(f"ledger.jsonl:{lineno} not valid JSON ({exc})")
+                      continue
+                  if isinstance(obj, dict):
+                      yield lineno, obj
+
+          def _key_of(obj):
+              if ledger_pattern_key is not None:
+                  return ledger_pattern_key(obj)
+              return obj.get("pattern_key") or obj.get("pattern") or obj.get("adopted_pattern_key")
+
+          for lineno, obj in _records():
+              key = _key_of(obj)
+              if not isinstance(key, str) or not key:
+                  ledger_problems.append(f"ledger.jsonl:{lineno} has no pattern_key")
+                  continue
+              disp = obj.get("disposition", "")
+              rec = tally.setdefault(key, {"adopted": 0, "overridden_out": 0, "repos": []})
+              if isinstance(disp, str) and disp.startswith("adopted"):
+                  rec["adopted"] += 1
+              elif disp == "overridden-out":
+                  rec["overridden_out"] += 1
+              repo = obj.get("repo") or obj.get("project")
+              if repo:
+                  rec["repos"].append({"repo": repo, "disposition": disp, "at": obj.get("at")})
+
+          # --- Minimal frontmatter loader (PyYAML if present, else a tiny parse) - #
+          FM_RE = re.compile(r"\A﻿?---[ \t]*\r?\n(.*?\n?)^---[ \t]*\r?$", re.DOTALL | re.MULTILINE)
+
+          def load_frontmatter(text: str):
+              m = FM_RE.match(text)
+              if not m:
+                  return None
+              block = m.group(1)
+              try:
+                  import yaml  # type: ignore
+                  data = yaml.safe_load(block)
+                  return data if isinstance(data, dict) else None
+              except Exception:
+                  # last-ditch: pull the handful of scalar keys we actually need
+                  out = {}
+                  for line in block.splitlines():
+                      mm = re.match(r"^([a-zA-Z_][\w-]*):[ \t]*(.*)$", line)
+                      if mm:
+                          k, v = mm.group(1), mm.group(2).strip().strip("'\"")
+                          out[k] = v if v not in ("", "null", "~") else None
+                  return out
+
+          def parse_iso(value):
+              if isinstance(value, (datetime,)):
+                  return value.date()
+              if isinstance(value, date):
+                  return value
+              if not isinstance(value, str):
+                  return None
+              mm = re.match(r"^(\d{4})-(\d{2})-(\d{2})", value.strip())
+              if not mm:
+                  return None
+              try:
+                  return date(int(mm.group(1)), int(mm.group(2)), int(mm.group(3)))
+              except ValueError:
+                  return None
+
+          def months_between(start: date, end: date) -> int:
+              return (end.year - start.year) * 12 + (end.month - start.month) - (1 if end.day < start.day else 0)
+
+          # --- Walk every pattern file ------------------------------------------ #
+          patterns = []           # rows for the generated artifact
+          revalidation_due = []   # -> issues
+          sunset_due = []         # -> issues
+          if PATTERNS_DIR.is_dir():
+              for p in sorted(PATTERNS_DIR.rglob("*.md")):
+                  rel = p.relative_to(ROOT).as_posix()
+                  if "/_schema/" in "/" + rel:
+                      continue
+                  if p.name.lower() in {"readme.md", "contributing.md", "index.md", "_template.md"}:
+                      continue
+                  fm = load_frontmatter(p.read_text(encoding="utf-8"))
+                  if not fm:
+                      continue
+                  # The cite-able key the ledger joins on. Canonical field is
+                  # `pattern_key`; tolerate `id` for older converted files that lead
+                  # with it, so a pattern is never silently dropped from the tally.
+                  key = fm.get("pattern_key") or fm.get("id")
+                  if not isinstance(key, str) or not key:
+                      continue
+
+                  rec = tally.get(key, {"adopted": 0, "overridden_out": 0, "repos": []})
+                  adopted = rec["adopted"]
+                  mat = maturity_for(adopted)
+
+                  approval = fm.get("approval_status")
+                  valid_from = parse_iso(fm.get("valid_from"))
+                  # validity cadence; default 12 months when omitted (matches schema default)
+                  try:
+                      vcm = int(fm.get("validity_check_months") or 12)
+                  except (TypeError, ValueError):
+                      vcm = 12
+                  # tolerate both the schema name (sunset_at) and the seed-file name (sunset_on)
+                  sunset = parse_iso(fm.get("sunset_at") or fm.get("sunset_on"))
+
+                  # next-review date computed from valid_from + cadence (NOT written into the file)
+                  next_review = None
+                  review_due = False
+                  if valid_from is not None:
+                      ny = valid_from.year + (valid_from.month - 1 + vcm) // 12
+                      nm = (valid_from.month - 1 + vcm) % 12 + 1
+                      # clamp day to a safe 28 to avoid month-length edge cases
+                      next_review = date(ny, nm, min(valid_from.day, 28))
+                      review_due = TODAY >= next_review
+
+                  past_sunset = sunset is not None and TODAY >= sunset
+
+                  patterns.append({
+                      "pattern_key": key,
+                      "name": fm.get("name"),
+                      "file": rel,
+                      "approval_status": approval,
+                      "adoption_count": adopted,            # clean + with-overrides
+                      "overridden_out_count": rec["overridden_out"],
+                      "maturity": mat,                      # COMPUTED — battle-tested|emerging|experimental
+                      "adopted_in": rec["repos"],
+                      "valid_from": valid_from.isoformat() if valid_from else None,
+                      "validity_check_months": vcm,
+                      "next_review_at": next_review.isoformat() if next_review else None,
+                      "review_due": review_due,
+                      "sunset_at": sunset.isoformat() if sunset else None,
+                      "past_sunset": past_sunset,
+                  })
+
+                  # Skip already-retired patterns for revalidation nags — deprecated
+                  # patterns are out of rotation; nagging to re-review them is noise.
+                  if review_due and approval != "deprecated":
+                      months_stale = months_between(valid_from, TODAY) if valid_from else None
+                      revalidation_due.append({
+                          "pattern_key": key, "name": fm.get("name"), "file": rel,
+                          "valid_from": valid_from.isoformat() if valid_from else None,
+                          "next_review_at": next_review.isoformat() if next_review else None,
+                          "validity_check_months": vcm,
+                          "months_since_valid_from": months_stale,
+                          "approval_status": approval,
+                          "adoption_count": adopted, "maturity": mat,
+                      })
+
+                  if past_sunset and approval != "deprecated":
+                      sunset_due.append({
+                          "pattern_key": key, "name": fm.get("name"), "file": rel,
+                          "sunset_at": sunset.isoformat(),
+                          "approval_status": approval,
+                          "adoption_count": adopted,
+                      })
+
+          # --- Write the computed artifact (NEVER a pattern file) --------------- #
+          artifact = {
+              "generated_by": ".github/workflows/pattern-lifecycle.yml",
+              "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
+              "as_of": TODAY.isoformat(),
+              "source_of_truth": "adoptions/ledger.jsonl + patterns/**/*.md frontmatter",
+              "caveat": ("Maturity/adoption counts are only as complete as adoptions/ledger.jsonl. "
+                         "Cross-org discovery of adoptions in downstream repos is a deferred upgrade; "
+                         "absent == adopted-by-zero, shown honestly."),
+              "maturity_ladder": {"experimental": "0 adoptions", "emerging": "1-2", "battle-tested": "3+"},
+              "ledger_problems": ledger_problems,
+              "patterns": sorted(patterns, key=lambda r: r["pattern_key"]),
+          }
+          OUT.parent.mkdir(parents=True, exist_ok=True)
+          OUT.write_text(json.dumps(artifact, indent=2) + "\n", encoding="utf-8")
+
+          # --- Human-readable run-log summary ----------------------------------- #
+          print(f"Computed maturity for {len(patterns)} pattern(s) as of {TODAY.isoformat()}:")
+          for r in artifact["patterns"]:
+              print(f"  {r['pattern_key']:<24} {r['maturity']:<14} "
+                    f"adopted={r['adoption_count']} review_due={r['review_due']} "
+                    f"past_sunset={r['past_sunset']}")
+          if ledger_problems:
+              print("Ledger notes:")
+              for n in ledger_problems:
+                  print(f"  - {n}")
+          print(f"Revalidation due: {len(revalidation_due)}; Sunset to flag: {len(sunset_due)}")
+
+          # --- Hand the issue plans to the workflow (for the opening steps) ------ #
+          gh_out = os.environ["GITHUB_OUTPUT"]
+          with open(gh_out, "a", encoding="utf-8") as fh:
+              fh.write("revalidation_json<<__EOF__\n" + json.dumps(revalidation_due) + "\n__EOF__\n")
+              fh.write("sunset_json<<__EOF__\n" + json.dumps(sunset_due) + "\n__EOF__\n")
+              fh.write(f"revalidation_count={len(revalidation_due)}\n")
+              fh.write(f"sunset_count={len(sunset_due)}\n")
+          PY
+
+      # Commit the recomputed artifact back to the repo so the library and the
+      # portfolio/recommend skills can READ today's maturity without re-running CI.
+      # Skipped on dry-run and when nothing changed.
+      - name: Commit generated/pattern-maturity.json
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add generated/pattern-maturity.json
+          if git diff --cached --quiet; then
+            echo "No change to generated/pattern-maturity.json; nothing to commit."
+          else
+            git commit -m "chore(patterns): refresh computed maturity/validity artifact [skip ci]"
+            git push
+          fi
+
+      # ---------------------------------------------------------------------- #
+      # (3) VALIDITY — open a pattern-revalidation issue per due pattern, from the
+      #     issue template, assigned via CODEOWNERS. Idempotent: we de-dupe on a
+      #     stable marker so a weekly re-run does not spam a new issue every Monday
+      #     for the same still-due pattern (dismissal-memory, GitHub-native).
+      # ---------------------------------------------------------------------- #
+      - name: Open pattern-revalidation issues (assigned via CODEOWNERS)
+        if: ${{ steps.compute.outputs.revalidation_count != '0' && github.event.inputs.dry_run != 'true' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const due = JSON.parse(process.env.REVAL_JSON || '[]');
+
+            // Resolve the CODEOWNERS for patterns/** so we can assign a human reviewer.
+            // We read .github/CODEOWNERS, find the rule whose glob covers patterns/, and
+            // assign its @owners (stripping the org prefix). If none resolves, we open
+            // the issue UNASSIGNED and label it for triage — never silently drop it.
+            function patternOwners() {
+              for (const path of ['.github/CODEOWNERS', 'CODEOWNERS', 'docs/CODEOWNERS']) {
+                if (!fs.existsSync(path)) continue;
+                const lines = fs.readFileSync(path, 'utf8').split('\n');
+                let owners = [];
+                for (const raw of lines) {
+                  const line = raw.replace(/#.*/, '').trim();
+                  if (!line) continue;
+                  const [glob, ...handles] = line.split(/\s+/);
+                  if (glob === '*' || glob.includes('patterns')) {
+                    owners = handles;  // last matching rule wins, like CODEOWNERS does
+                  }
+                }
+                if (owners.length) {
+                  return owners.filter(o => o.startsWith('@') && !o.includes('/'))
+                               .map(o => o.slice(1));
+                }
+              }
+              return [];
+            }
+            const assignees = patternOwners();
+
+            for (const p of due) {
+              const marker = `<!-- pattern-revalidation:${p.pattern_key} -->`;
+              const title = `Revalidate pattern ${p.pattern_key} — review due`;
+
+              // Dismissal-memory: skip if an OPEN revalidation issue already exists for
+              // this key (search by our stable marker). Don't re-nag unchanged evidence.
+              const existing = await github.rest.search.issuesAndPullRequests({
+                q: `repo:${context.repo.owner}/${context.repo.repo} is:issue is:open in:body "${marker}"`,
+              });
+              if (existing.data.total_count > 0) {
+                core.info(`revalidation issue already open for ${p.pattern_key}; skipping`);
+                continue;
+              }
+
+              const body = [
+                marker,
+                `### Pattern revalidation due (advisory)`,
+                ``,
+                `**Pattern:** \`${p.pattern_key}\`${p.name ? ` — ${p.name}` : ''}`,
+                `**File:** \`${p.file}\``,
+                `**Valid from:** ${p.valid_from || '(unset)'}  ·  **Check cadence:** every ${p.validity_check_months} month(s)`,
+                `**Next review was due:** ${p.next_review_at}  (${p.months_since_valid_from ?? '?'} months since \`valid_from\`)`,
+                `**Approval status:** ${p.approval_status || '(unset)'}  ·  **Maturity (computed):** ${p.maturity} · adopted in ${p.adoption_count} engagement(s)`,
+                ``,
+                `A human reviewer (a pattern CODEOWNER) should confirm this pattern is still`,
+                `current: are the NFRs, constraints and evidence still accurate? If yes, bump`,
+                `\`valid_from\` (or refresh the evidence) in a PR. If it is being retired, set`,
+                `\`approval_status: deprecated\` + \`superseded_by\`. If it should sunset, set`,
+                `\`sunset_at\`.`,
+                ``,
+                `> This issue is **advisory** — it tracks freshness, it does not block anything.`,
+                `> It was opened automatically by \`.github/workflows/pattern-lifecycle.yml\`.`,
+                `> \`approval_status\` is never changed by the workflow — only by a human in a PR.`,
+              ].join('\n');
+
+              // Prefer the repo's issue template when present; github-script's create API
+              // doesn't render .md templates, so we carry the template's intent in the body
+              // above and tag with the template's label so it lands in the same view.
+              const created = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['pattern-revalidation', 'advisory'],
+                assignees: assignees.length ? assignees : undefined,
+              });
+              core.info(`opened #${created.data.number} for ${p.pattern_key}` +
+                        (assignees.length ? ` (assigned: ${assignees.join(', ')})` : ' (unassigned — no CODEOWNER resolved)'));
+            }
+        env:
+          REVAL_JSON: ${{ steps.compute.outputs.revalidation_json }}
+
+      # ---------------------------------------------------------------------- #
+      # (4) SUNSET — flag patterns past their sunset_at/sunset_on date. Same
+      #     de-dupe discipline; a sunset is advisory ("consider retiring"), the
+      #     human decides whether to deprecate + supersede.
+      # ---------------------------------------------------------------------- #
+      - name: Flag patterns past sunset
+        if: ${{ steps.compute.outputs.sunset_count != '0' && github.event.inputs.dry_run != 'true' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const due = JSON.parse(process.env.SUNSET_JSON || '[]');
+            for (const p of due) {
+              const marker = `<!-- pattern-sunset:${p.pattern_key} -->`;
+              const existing = await github.rest.search.issuesAndPullRequests({
+                q: `repo:${context.repo.owner}/${context.repo.repo} is:issue is:open in:body "${marker}"`,
+              });
+              if (existing.data.total_count > 0) {
+                core.info(`sunset issue already open for ${p.pattern_key}; skipping`);
+                continue;
+              }
+              const body = [
+                marker,
+                `### Pattern past sunset date (advisory)`,
+                ``,
+                `**Pattern:** \`${p.pattern_key}\`${p.name ? ` — ${p.name}` : ''}`,
+                `**File:** \`${p.file}\``,
+                `**Sunset date:** ${p.sunset_at} (now passed)`,
+                `**Approval status:** ${p.approval_status || '(unset)'}  ·  adopted in ${p.adoption_count} engagement(s)`,
+                ``,
+                `This pattern has passed its declared \`sunset_at\`. A CODEOWNER should decide:`,
+                `retire it (\`approval_status: deprecated\` + \`superseded_by: <key>\`), or extend`,
+                `its life by moving the \`sunset_at\` out in a reviewed PR. If it has adoptions it`,
+                `must be **deprecated, never deleted** — the provenance has to survive.`,
+                ``,
+                `> Advisory only. Opened by \`.github/workflows/pattern-lifecycle.yml\`.`,
+              ].join('\n');
+              const created = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `Sunset reached: ${p.pattern_key}`,
+                body,
+                labels: ['pattern-sunset', 'advisory'],
+              });
+              core.info(`opened sunset issue #${created.data.number} for ${p.pattern_key}`);
+            }
+        env:
+          SUNSET_JSON: ${{ steps.compute.outputs.sunset_json }}
+
+      # ---------------------------------------------------------------------- #
+      # (5) DELETE INVARIANT — verify no pattern WITH adoptions was deleted in the
+      #     last week of history. Deprecate-don't-delete: a pattern any engagement
+      #     adopted is provenance that must survive. We REPORT a violation as a job
+      #     warning (and fail the step so it is visible) — we never auto-revert.
+      # ---------------------------------------------------------------------- #
+      - name: Verify no adopted pattern was deleted
+        run: |
+          set -uo pipefail
+          # The deleted file's filename is human-readable lower-kebab and does NOT
+          # equal its UPPER-KEBAB pattern_key. So we recover the REAL pattern_key
+          # from the file's frontmatter as it stood in git history (the commit just
+          # before the delete) and compare THAT against the ledger keys — read via
+          # the same shared reader the linter uses. (The old stem-vs-UPPER compare
+          # never matched and silently passed.)
+          python - <<'PY'
+          import json, os, re, subprocess, sys
+          from datetime import date, timedelta
+          from pathlib import Path
+
+          ROOT = Path(os.environ.get("GITHUB_WORKSPACE", "."))
+          sys.path.insert(0, str(ROOT / "skills" / "_scripts"))
+          try:
+              from lint_pattern_frontmatter import iter_ledger_records, ledger_pattern_key
+              problems = []
+              adopted = set()
+              for _ln, obj in iter_ledger_records(ROOT, problems):
+                  k = ledger_pattern_key(obj)
+                  if k:
+                      adopted.add(k)
+          except Exception as exc:
+              print(f"::warning::could not load shared ledger reader ({exc}); skipping delete-invariant.")
+              raise SystemExit(0)
+
+          if not adopted:
+              print("No adopted pattern_keys in the ledger; delete-invariant has nothing to protect.")
+              raise SystemExit(0)
+
+          # Pattern .md files deleted in the last 7 days of history.
+          since = (date.today() - timedelta(days=7)).isoformat()
+          out = subprocess.run(
+              ["git", "log", f"--since={since}", "--diff-filter=D", "--name-only",
+               "--pretty=format:%H", "--", "patterns/**/*.md"],
+              capture_output=True, text=True, cwd=ROOT,
+          ).stdout
+
+          FM_RE = re.compile(r"\A﻿?---[ \t]*\r?\n(.*?\n?)^---[ \t]*\r?$", re.DOTALL | re.MULTILINE)
+
+          def pattern_key_at(commit, path):
+              """pattern_key from the file's frontmatter as it stood in commit^ (pre-delete)."""
+              blob = subprocess.run(
+                  ["git", "show", f"{commit}^:{path}"],
+                  capture_output=True, text=True, cwd=ROOT,
+              )
+              if blob.returncode != 0:
+                  return None
+              m = FM_RE.match(blob.stdout)
+              if not m:
+                  return None
+              for line in m.group(1).splitlines():
+                  mm = re.match(r"^(?:pattern_key|id)\s*:\s*(.+?)\s*$", line)
+                  if mm:
+                      return mm.group(1).strip().strip("'\"")
+              return None
+
+          # Walk the log: lines are either a 40-hex commit hash or a deleted path.
+          violations = 0
+          commit = None
+          for line in out.splitlines():
+              line = line.strip()
+              if not line:
+                  continue
+              if re.fullmatch(r"[0-9a-f]{40}", line):
+                  commit = line
+                  continue
+              path = line
+              if "/_schema/" in "/" + path or not path.endswith(".md"):
+                  continue
+              key = pattern_key_at(commit, path) if commit else None
+              if key and key in adopted:
+                  print(f"::warning file={path}::DELETE INVARIANT — pattern '{key}' has "
+                        "recorded adoptions; it must be deprecated, not deleted. Restore it "
+                        "and set approval_status: deprecated + superseded_by.")
+                  violations += 1
+
+          if violations:
+              print(f"Found {violations} deleted-but-adopted pattern(s). Advisory, but should be corrected.")
+              raise SystemExit(1)
+          print("OK: no adopted pattern was deleted in the last week.")
+          PY
+
+      # Always publish the computed artifact as a run artifact, even on dry-run or
+      # if the commit step was skipped, so anyone can read this week's maturity.
+      - name: Upload pattern-maturity artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pattern-maturity
+          path: generated/pattern-maturity.json
+          if-no-files-found: warn

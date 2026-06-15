@@ -1,0 +1,31 @@
+# nfr-kinds.enum.txt — the closed NFR `kind` vocabulary.
+#
+# One value per line. This is the SINGLE SOURCE the pattern frontmatter schema
+# and the PR-time lint both reference; do not duplicate the list anywhere else.
+#
+# These 11 values are the CLOSED list promoted from the open-ended seed strings
+# that early patterns carried as free-text `attached_nfrs` (e.g. "security",
+# "data-residency", "data-governance"). Closing the list keeps NFRs typed and
+# propagatable across patterns instead of drifting into synonyms.
+#
+# Rules of thumb (advisory, not enforced):
+#   - A pattern's `attached_nfrs[].kind` MUST be one of these values.
+#   - Lines starting with `#` and blank lines are ignored by the lint.
+#   - To add a kind: open a PR, get human review, and add ONE line here. The
+#     schema/lint pick it up automatically — no other edits needed.
+#   - To retire a kind: do NOT delete it (existing patterns reference it);
+#     leave a `# retired:` note so old references still validate.
+#
+# Order is the canonical order; keep it stable for diff readability.
+
+security
+availability
+performance
+data-residency
+observability
+resilience
+cost
+compliance
+scalability
+data-governance
+operations

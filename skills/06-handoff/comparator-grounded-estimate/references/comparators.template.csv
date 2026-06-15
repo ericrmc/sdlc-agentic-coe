@@ -1,0 +1,11 @@
+# Effort-actual comparators — EMPTY SCHEMA (seed before wiring the LLM step).
+# Each row is a CONFIRMED past project whose ACTUAL effort in person-days is known and
+# human-verified. Only confirmed rows are evidence. Do NOT fabricate rows or figures.
+#
+# id                  integer, cited verbatim in basis_comparator_ids
+# name                short human-readable name of the past project / phase
+# actual_effort_days  the KNOWN actual effort in person-days (human-confirmed)
+# confirmed           true|false — only `true` rows are used as evidence
+# similarity_notes    optional free text: scope/tech/team overlap to judge closeness
+# completed_on        optional ISO date the comparator actually finished
+id,name,actual_effort_days,confirmed,similarity_notes,completed_on
