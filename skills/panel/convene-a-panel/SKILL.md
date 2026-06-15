@@ -4,7 +4,7 @@ description: Cast a fixed balanced 5-lens panel, derive 4-7 grounded questions, 
 one_liner: Battle-test a design with a balanced affirmative-plus-adversarial panel.
 aliases: [design review panel, devil's advocate, second opinion, peer review, pros and cons, stress test a design, get critique, red team and champion]
 when_to_use: battle-testing a design or a feature brief with balanced affirmative and adversarial lenses
-output_kinds: [proposal, question, menu]
+output_kinds: [proposal, question, menu, halt]
 deterministic_fallback: the fixed roster + the 4 fixed feature-brief questions
 suggested_tier: frontier
 neighbours:
@@ -41,9 +41,9 @@ Run it at any time. It is read-only and advisory — there is no precondition, n
 
 ## Inputs
 
-Supply a context bundle. Two modes:
+Supply a context bundle. Two modes. **At least one substantive panel subject is *Required*** — either an artefact context bundle (artefact mode) OR a `feature_brief` (feature-brief mode). The individual artefact context keys below are each *Optional* (the panel degrades gracefully, key by key). *If absent/unreadable/empty:* when **neither** an artefact bundle nor a `feature_brief` is supplied, there is nothing to convene a panel over — HALT and ask which artefact or brief to point the panel at (per `skills/_shared/grounding.md` / `skills/_contract/grounding-no-absent-input`); never invent a design, a requirement, or a brief to argue against. See STEP 0 below.
 
-**Artefact mode** (`scope: requirements` or `scope: solution`) — supply the project's current findings, ideally already computed by upstream skills. The lenses read these nodes directly:
+**Artefact mode** (`scope: requirements` or `scope: solution`) — supply the project's current findings, ideally already computed by upstream skills. Each context key is *Optional*. The lenses read these nodes directly:
 
 | context key | what it holds | which lens reads it |
 |---|---|---|
@@ -57,9 +57,43 @@ Supply a context bundle. Two modes:
 | `sections` | design sections with `body_md` (a thin section is a body-length heuristic) | solution_designer (gap) |
 | `by_id` | id → row lookup, so a proposal can cite the node it came from | synthesis |
 
-**Feature-brief mode** (`scope: feature`) — supply only `feature_brief: "<free text>"`. The skill skips signal-gating and asks the four fixed questions below.
+**Feature-brief mode** (`scope: feature`) — supply only `feature_brief: "<free text>"` (*Required* in this mode; absent it, fall to the HALT above). The skill skips signal-gating and asks the four fixed questions below.
 
-If a context key is absent or empty, that is fine — the lens that reads it will honestly say "no open signal for this lens" rather than invent one. The skill degrades gracefully from a fully-instrumented project to a bare feature brief.
+An absent or empty *Optional* artefact context key is fine — the lens that reads it honestly says "no open signal for this lens" rather than invent one (this is the contract's absent-optional-input rule: surface the gap honestly, never pad it; per `skills/_contract/grounding-no-absent-input`). The skill degrades gracefully from a fully-instrumented project to a bare feature brief. What it never does is run with **no** subject at all — that is the HALT, not a degrade.
+
+## Grounding (quoted)
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
+
+This contract (`skills/_contract/grounding-no-absent-input`) is what keeps the panel honest at its *entry*: the Honesty rule below keeps a seated lens from fabricating a finding; the grounding contract keeps the skill from running at all on a subject it never actually received.
 
 ## The roster (fixed, balanced, 5 lenses)
 
@@ -91,7 +125,33 @@ These two rules together are the whole contract: the panel is always balanced, a
 
 ## The method (numbered steps)
 
-The method has a **deterministic base** (steps 1, 2, 6) you can run with no model at all, and a **model reasoning step** (steps 3, 4, 5) that deepens the prose without changing the structure. Keep both. The base guarantees grounding and balance; the model gives the argument its voice.
+The method has a **deterministic base** (steps 0, 1, 2, 6) you can run with no model at all, and a **model reasoning step** (steps 3, 4, 5) that deepens the prose without changing the structure. Keep both. The base guarantees grounding and balance; the model gives the argument its voice.
+
+### Step 0 — DETERMINISTIC: verify there is a subject to panel (the grounding halt)
+
+Before casting a single lens, confirm the skill actually received something to argue over. This is a file-level fact computed **before the model runs**, never a judgement on "is this enough to work with":
+
+- an artefact context bundle with **at least one non-empty key** from the Inputs table, OR
+- a non-empty `feature_brief`.
+
+If **neither** is present (both absent, unreadable, or empty), emit the clean HALT below and **stop** — do not cast a roster, do not derive questions, do not invent a design or a brief to give the lenses something to read. A halt is a question, never a verdict: it names the missing subject and asks where it is, carrying no finding.
+
+```markdown
+HALT — required input missing.
+
+I can't convene a panel without something for it to argue over, and I won't invent a
+design or a brief to fill the table. Tell me what to point the panel at and I'll cast the
+five lenses against it.
+
+I can panel any of these:
+  • an artefact context bundle (requirements / solution findings — open_challenges, sections, roadblocks, …)
+  • a free-text feature brief ("add SSO with SCIM provisioning")
+  • a docs folder or a design draft I can read into one of the above
+
+Which one, and where? (Nothing is cast or argued until you point me at a real subject.)
+```
+
+If a subject is present, proceed to Step 1.
 
 ### Step 1 — DETERMINISTIC: cast the roster
 

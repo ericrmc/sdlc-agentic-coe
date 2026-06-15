@@ -22,7 +22,15 @@ New here? Start with [`GETTING-STARTED.md`](../GETTING-STARTED.md). Know the *ne
 
 ## View 1 — category table
 
-Six categories. Each row is `category/skill — purpose — tier`. If you know your category, jump straight to its `SKILL.md`.
+Seven categories. Each row is `category/skill — purpose — tier`. If you know your category, jump straight to its `SKILL.md`.
+
+### Ingest — lift a structured-but-messy source into traceable requirement markdown (feeds understand)
+
+| Skill | Purpose | Tier |
+|---|---|---|
+| `ingest/ingest-source-to-requirements` | Turn a structured-but-messy source into traceable requirement markdown — or HALT for the source, never invent it. | frontier |
+| `ingest/stage-and-fingerprint` | Vault the original byte-untouched, fingerprint it, and propose whether it is new or a new version. | light |
+| `ingest/reingest-delta` | Re-read a staged source, diff against the prior version, and surface only what changed — never silently overwrite. | mid |
 
 ### Understand — structure a raw ask into outcomes, requirements, and NFR coverage
 
@@ -88,7 +96,7 @@ Six categories. Each row is `category/skill — purpose — tier`. If you know y
 | `library/portfolio-phase-health` | Derived-on-read advisory RAG health per project phase. | mid |
 | `library/advisory-governance-checklist` | Cited evidence against four advisory review lenses; a human reads only the delta. | mid |
 
-> **Conventions (cross-cutting, under `skills/_contract/`).** Every skill obeys two rules: every output is one of exactly four kinds — **proposal, question, menu, or halt** (`_contract/target-rule-output-kinds`), and the rhythm is **propose → ratify**: an agent proposes, a human ratifies by merging the PR (`_contract/propose-ratify-rhythm`). Multi-call skills reuse one provider-agnostic convention for fan-out (`_contract/parallel-agents`) and one for scoping it (`_contract/explore-one-area-at-a-time`).
+> **Conventions (cross-cutting, under `skills/_contract/`).** Every skill obeys two rules: every output is one of exactly four kinds — **proposal, question, menu, or halt** (`_contract/target-rule-output-kinds`), and the rhythm is **propose → ratify**: an agent proposes, a human ratifies by merging the PR (`_contract/propose-ratify-rhythm`). The no-fabrication keystone — an absent/unreadable/empty **required** input becomes a **HALT** that asks where it is, never an invented hypothetical — is `_contract/grounding-no-absent-input` (it carries the library's canonical HALT exemplar). Multi-call skills reuse one provider-agnostic convention for fan-out (`_contract/parallel-agents`) and one for scoping it (`_contract/explore-one-area-at-a-time`).
 
 ---
 
@@ -97,21 +105,22 @@ Six categories. Each row is `category/skill — purpose — tier`. If you know y
 **This is a map, not a track — enter at any node, loop back freely.** The arrows show the order delivery usually wants, not a sequence anything enforces.
 
 ```
-   understand ──► challenge ──► architect ──► panel ──► deliver
-  (outcomes &    (pressure-    (choose a     (battle-  (lifecycle
-   requirements)  test them)    shape &       test it)  & handoff)
-        │                        author the      ▲          │
-        │                        design) ────────┘          │
-        │                          ▲   │                     │
-        │           capabilities   │   │ reads patterns      │ writes
-        └─ requirement ──► CAP ────┘   ▼ & capabilities      ▼ patterns
-            (fulfils_capability)   ┌─────────────────────────────┐
-                                   │   library  (side-store)      │
-                                   │  patterns + capabilities +   │
-                                   │  portfolio health            │
-                                   └─────────────────────────────┘
+   ingest ──► understand ──► challenge ──► architect ──► panel ──► deliver
+  (lift a     (outcomes &    (pressure-    (choose a     (battle-  (lifecycle
+   messy       requirements)  test them)    shape &       test it)  & handoff)
+   source)         │                        author the      ▲          │
+                   │                        design) ────────┘          │
+                   │                          ▲   │                     │
+                   │           capabilities   │   │ reads patterns      │ writes
+                   └─ requirement ──► CAP ────┘   ▼ & capabilities      ▼ patterns
+                       (fulfils_capability)   ┌─────────────────────────────┐
+                                              │   library  (side-store)      │
+                                              │  patterns + capabilities +   │
+                                              │  portfolio health            │
+                                              └─────────────────────────────┘
 ```
 
+- **ingest → understand** is the optional front door when requirements already live somewhere structured-but-messy (a spreadsheet, a ticket board, a docs folder, an export). `ingest` lifts that source into traceable requirement markdown — or HALTs for it, never invents — and hands the result to `understand`. Skip it when the ask arrives as free text (go straight to `understand/decompose-intake-to-outcomes`).
 - **understand → challenge → architect → panel → deliver** is the main path. Loop back at will: a panel can re-open outcomes; a release can re-enter the whole front half under a new direction.
 - **library is a side-store**, not a stage in the line. `architect` *reads* it (proven patterns and capabilities), `deliver` *writes* to it (promoting a shape worth reusing). It also holds the portfolio health view that sits *across* projects.
 - **capabilities are the bridge** from a requirement to a component. A requirement in `understand` cites the capability it fulfils (`fulfils_capability: CAP-…`); the capability names which proven pattern (a component in `library`) fulfils it, or the candidates and spikes still owed. This is why a need-first reader starts at [`capabilities/INDEX.md`](../capabilities/INDEX.md).

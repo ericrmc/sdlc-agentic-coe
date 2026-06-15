@@ -28,7 +28,7 @@ description: Adversarially critique a requirement set and emit one dismissible c
 one_liner: Pressure-test a requirement set for conflicts, gaps, and gold-plating.
 aliases: [requirements review, critique requirements, find conflicting requirements, requirements quality check, scope creep check, ambiguous requirements, missing NFR check, requirements sanity check]
 when_to_use: pressure-testing a requirement set before solutioning — the highest-value review pass. Run it after requirements are derived and before identifying capabilities or recommending components.
-output_kinds: [question, proposal]
+output_kinds: [question, proposal, halt]
 deterministic_fallback: the 9-kind vocabulary as a manual review checklist
 suggested_tier: frontier
 tier_reason: adversarial judgement over a whole set, with strict precision discipline on conflict/gold-plating — strong reasoning required.
@@ -111,18 +111,23 @@ most expensive to miss downstream.
 
 The user supplies, as markdown or pasted context:
 
-1. **Project title** — one line.
-2. **Project context / vision** — the foreword / north star. Needed for `off_vision`;
-   if it is terse or absent, the vision guard simply does not fire (no false steers).
-3. **The requirement set** — the live proposed/accepted rows. Each row should carry, at
-   minimum:
+1. **Project title** — *Optional.* One line. If absent: proceed with an untitled set; never invent a project name.
+2. **Project context / vision** — *Optional.* The foreword / north star. Needed for `off_vision`;
+   if it is terse or absent, the vision guard simply does not fire (no false steers) — that is the
+   honest-null behaviour, never a fabricated vision to steer against.
+3. **The requirement set** — *Required.* The live proposed/accepted rows. If absent/unreadable/empty:
+   HALT and ask where the requirements live (per `_shared/grounding.md`); never invent a requirement
+   to critique — there is nothing to red-team without the set. Readable forms: a markdown file, an
+   xlsx/csv path, a GitHub Project owner+number, a docs folder, or a pasted block. Each row should
+   carry, at minimum:
    - a **stable `REQ-<n>` key** (challenges reference rows by this key; a bare numeric
      index may be kept internally, but the citation key is `REQ-<n>`),
    - the **requirement text**,
    - ideally a **classify** tag (functional / non-functional — this is metadata, never
      part of the key) and, if known, a **`derives_from`** (the linked `BO-<n>` business
-     outcome). `derives_from` sharpens `unquantified`, `orphan_value`, and `gold_plated`
-     and the conflict overlap guard — but the skill degrades gracefully without it.
+     outcome). `derives_from` is *Optional*: it sharpens `unquantified`, `orphan_value`, and
+     `gold_plated` and the conflict overlap guard — but the skill degrades gracefully without it
+     (it does not invent the missing outcome; it reasons at lower confidence).
 
 A minimal input block looks like:
 
@@ -138,6 +143,43 @@ REQ-14  (non-functional) The system must not purge audit logs.
 REQ-21  (functional)     Provide a Kafka topic for downstream consumers.   (derives_from: none)
 REQ-27  (functional)     The triage screen should be intuitive and easy to use.
 ```
+
+This skill's no-fabrication discipline is one contract: see `skills/_contract/grounding-no-absent-input`
+— an absent required input HALTs and asks, never an invented hypothetical. The "Don't invent
+requirements — only critique what is in the supplied set" rule below is an instance of it, and an
+absent requirement set is its halt case (not an empty challenge list).
+
+### Grounding (quoted)
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
 
 ---
 
@@ -254,6 +296,33 @@ gold-plating. For both kinds:
   scope. A well-grounded broad requirement stays silent.
 
 #### Step by step
+
+**Step 0 — Locate and verify the requirement set (deterministic, pre-model).** Before any
+critique, check the one required input as a file-level fact: is a requirement set supplied and
+readable? If it is **absent, unreadable, or empty**, emit the clean halt below and **stop** —
+do not invent a requirement to red-team, and do not return an empty challenge list (that reads
+downstream as "the set is clean", a silent-proceed failure). The Optional inputs (title, vision,
+`derives_from`) being absent never halts: proceed and let the relevant guards stay silent.
+
+```
+HALT — required input missing.
+
+I can't red-team a requirement set without the set, and I won't invent requirements
+to critique. Tell me where the requirements live and I'll pick up from there.
+
+I can read any of these:
+  • a markdown file
+  • an xlsx / csv file path
+  • a GitHub Project (owner + project number)
+  • a docs folder (markdown / text)
+  • the rows pasted directly into the chat
+
+Which one, and where? (Once you point me at it, I'll read it and emit the challenges —
+nothing is assumed until then.)
+```
+
+The halt copies the canonical exemplar in `skills/_contract/grounding-no-absent-input`; it names
+the missing input and asks where it is, carrying no challenge, finding, or status.
 
 **Step 1 — Scope the live set.** Take only requirements whose status is `proposed` or
 `accepted`. Ignore edited/rejected rows. This is the set the critic reasons over for
@@ -496,7 +565,7 @@ description: Read a design or solution-architecture draft (or a running front-en
 one_liner: Emit severity-tagged, cited findings over a design draft.
 when_to_use: reviewing a design draft or a running front-end for concrete actionable findings
 aliases: [design review, architecture review, design critique, solution review, gap analysis, design feedback, review checklist, security review checklist]
-output_kinds: [proposal, question]
+output_kinds: [proposal, question, halt]
 deterministic_fallback: the architecture checklist + the severity-clamp / default-ref / drop-empty harness
 suggested_tier: frontier
 neighbours:
@@ -545,16 +614,63 @@ process needs a decision, that is a human's call downstream of these findings.
 
 The user supplies, as markdown / context:
 
-- **The design material** — the draft document, the section bundle, or a
-  description of the running front-end. This is the substance to review.
-- **Project context** (optional but recommended) — title and a short
+- **The design material** — *Required.* The draft document, the section bundle,
+  or a description of the running front-end. This is the substance to review.
+  *If absent/unreadable/empty:* HALT and ask where the design is (per
+  `skills/_shared/grounding.md` / `skills/_contract/grounding-no-absent-input`);
+  never manufacture findings, sections, NFRs, or a design from nothing. See
+  Step 0.
+- **Project context** — *Optional* (recommended) — title and a short
   description, so findings stay anchored to what the project is actually for.
-- **Attached NFRs / adopted patterns** (optional) — so a finding can cite a
+  *If absent:* proceed; findings cite the draft directly and stay
+  project-agnostic — never invent a project purpose to anchor to.
+- **Attached NFRs / adopted patterns** — *Optional* — so a finding can cite a
   specific NFR (`NFR-availability`) or pattern (`pattern:containerised-web`)
-  rather than a vague "the design".
+  rather than a vague "the design". *If absent:* a finding cites the design
+  section it attaches to instead — never invent an NFR id or a pattern key that
+  was not supplied.
 
-If the material is empty, there is nothing to review — say so and stop. Do not
-manufacture findings from nothing.
+The empty-material case is a **HALT, not a silent "nothing to review"**: "I read
+nothing" and "I cannot read this" are different outputs (per the contract). An
+absent or unreadable draft asks where the design is; it does not return an empty
+findings list that reads downstream as "the design was clean".
+
+### Grounding (quoted)
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
+
+Per `skills/_contract/grounding-no-absent-input`, this is also why the engine's
+posture is "findings, not verdicts": a halt over a missing draft asks where it is
+— it never smuggles a finding or an "this is infeasible" disposition, exactly as
+no finding over a *present* draft is ever an approval or a rejection.
 
 > **Multi-agent option (advisory).** This step deepens with independent parallel
 > agents: launch one sub-agent per candidate finding area (or per design
@@ -566,9 +682,33 @@ manufacture findings from nothing.
 
 ### The method (numbered STEPS)
 
-The engine has a **deterministic base** (steps 1, 3, 4) and a **model reasoning
+The engine has a **deterministic base** (steps 0, 1, 3, 4) and a **model reasoning
 step** (step 2). The base is what makes the output trustworthy even when the
 model is weak or unavailable; the model step is what makes it insightful.
+
+#### Step 0 — DETERMINISTIC: verify the design material is present (the grounding halt)
+
+Before walking the checklist, confirm the design material was actually supplied —
+a file-level fact (absent / unreadable / empty), computed **before** any model
+reasoning. If there is nothing to review, emit the clean HALT below and **stop**.
+Do not invent sections, NFRs, or a design to find six things wrong with. A halt is
+a question, never a verdict: it names the missing draft and asks where it is.
+
+```markdown
+HALT — required input missing.
+
+I can't run a design review without the design, and I won't invent one to review.
+Tell me where the draft is and I'll walk the architecture checklist against it.
+
+I can read any of these:
+  • a solution-architecture / design draft (markdown or text)
+  • a section bundle or a docs folder
+  • a description (or screenshot / DOM dump) of the running front-end
+
+Where is the design? (No findings are produced until you point me at real material.)
+```
+
+If the material is present, proceed to Step 1.
 
 #### Step 1 — DETERMINISTIC: walk the architecture checklist
 
@@ -729,10 +869,11 @@ to act on a single row without reading the others.
   "this design is approved", "ready to ship", or "fails review", you have left
   the skill's lane. Surface concerns; let a human decide.
 - **Stay in the material.** Do not invent requirements, scope, or
-  infrastructure the draft does not imply. A finding about something that isn't
-  in the draft and isn't on the checklist is noise. The checklist is the only
-  licence to flag an *absence*; everything else must be grounded in text that
-  is present.
+  infrastructure the draft does not imply — this is the no-fabrication rule of
+  `skills/_contract/grounding-no-absent-input` applied to a *present* draft. A
+  finding about something that isn't in the draft and isn't on the checklist is
+  noise. The checklist is the only licence to flag an *absence*; everything else
+  must be grounded in text that is present.
 - **Always cite.** Every finding carries a `ref`. "The design is weak" with no
   citation is useless and will be defaulted to `design` by the harness anyway —
   do better and name the section, NFR, pattern, comparator, or WCAG SC.
@@ -769,7 +910,7 @@ aliases:
   - dissent register
   - objection log
 when_to_use: adversarially stress-testing a proposal, or recording what was decided NOT to do and why
-output_kinds: [question, proposal]
+output_kinds: [question, proposal, halt]
 deterministic_fallback: the single-objection template + the dissent register template
 suggested_tier: frontier
 tier_reason: adversarial judgement plus a durable human-facing dissent record is high-stakes.
@@ -846,13 +987,56 @@ pass means "no strong objection surfaced" — not "this is blessed".
 
 | Input | Required | Shape |
 |---|---|---|
-| `proposal(s)` | yes | Free-text or markdown. One proposal, or a list. Each carries: a one-line statement + enough grounding (facts, source) to object against. |
-| `proposal_kind` | per proposal | One of `requirement \| decision \| roadblock \| gap \| solution-shape \| feature`. Drives the objection framing. |
-| `lens(es)` | optional | One persona kind, or N. Defaults to `skeptic` then `minimalist`, alternating (see below). |
-| `grounding` | recommended | The facts the objection must keep — the proposal's source, prior context, any objection-so-far to *deepen*. |
+| `proposal(s)` | **yes** | Free-text or markdown. One proposal, or a list. Each carries: a one-line statement + enough grounding (facts, source) to object against. *If absent/unreadable/empty:* HALT and ask for the proposal(s) (per `skills/_shared/grounding.md` / `skills/_contract/grounding-no-absent-input`); never invent a proposal to red-team. See Step 0. |
+| `proposal_kind` | per proposal | One of `requirement \| decision \| roadblock \| gap \| solution-shape \| feature`. Drives the objection framing. *If absent on a proposal:* infer it from the proposal's shape (Step 1), never default silently to a kind that changes the framing. |
+| `lens(es)` | optional | One persona kind, or N. Defaults to `skeptic` then `minimalist`, alternating (see below). *If absent:* use the default adversarial voices; never invent a domain expert the proposal doesn't call for. |
+| `grounding` | recommended (optional) | The facts the objection must keep — the proposal's source, prior context, any objection-so-far to *deepen*. *If absent:* object only from the proposal's own stated facts; never back-fill grounding the human did not supply. |
 
 No database, panel, or session state is needed. A proposal pasted into a prompt is
 enough.
+
+**The empty case has two distinct shapes** (per the contract's "I read nothing" vs "I
+cannot read this"): **no proposals supplied at all** is a HALT (Step 0 — ask for them);
+**proposals supplied, but none of them is a genuine emerging proposal** is the honest
+empty case (Step 1 — say so, propose nothing). Never conflate the two; never invent an
+objection to fill either.
+
+### Grounding (quoted)
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
+
+Per `skills/_contract/grounding-no-absent-input`: the halt over a missing proposal is
+itself a question, never a verdict — it asks where the proposals are. It must not become
+the very thing this skill forbids elsewhere: a disposition ("nothing here is worth
+red-teaming") dressed as a stop.
 
 #### The persona lenses
 
@@ -875,6 +1059,31 @@ in a row. The others are available when the proposal is clearly in their domain.
 
 ### The method
 
+#### Step 0 — DETERMINISTIC: verify proposals were supplied (the grounding halt)
+
+Before identifying emerging proposals, confirm the `proposal(s)` input was actually
+supplied — a file-level fact (absent / unreadable / empty), computed **before** any model
+reasoning. If **nothing** was supplied to red-team, emit the clean HALT below and **stop** —
+do not invent a proposal to object to. A halt is a question, never a verdict.
+
+```markdown
+HALT — required input missing.
+
+I can't red-team without a proposal to object to, and I won't invent one. Tell me what to
+stress-test and I'll raise the single strongest objection per proposal.
+
+I can read any of these:
+  • one or more proposals pasted directly (a requirement, decision, roadblock, gap, solution-shape, feature)
+  • the synthesis output of panel/synthesise-panel (its four proposal categories)
+  • a markdown brief or design pass to pull the emerging proposals from
+
+What should I red-team? (No objection is raised until you give me a real proposal.)
+```
+
+This is distinct from Step 1's empty case: a HALT means *no input arrived*; the Step 1
+empty case means *input arrived but held no genuine proposal*. If proposals were supplied,
+proceed to Step 1.
+
 #### Step 1 — DETERMINISTIC: identify the emerging proposals (no model)
 
 Walk the input and pick out only the things that are genuinely **proposals**. A
@@ -889,8 +1098,10 @@ to) are:
 | `decision` | proposes an alternative to weigh | `decision` |
 | `roadblock` | raises a risk that constrains the build | `roadblock` |
 
-If there are **zero** proposals, stop and say so. The honest empty case is a result,
-not a gap — do **not** invent an objection to have something to say.
+If the supplied input held genuine content but **zero** of it is an emerging proposal,
+stop and say so — *the honest empty case*. (This differs from Step 0's HALT: there the
+input was missing entirely; here it was present but proposed nothing.) The honest empty
+case is a result, not a gap — do **not** invent an objection to have something to say.
 
 Assign each surviving proposal a stable `proposal_ref` (`gap-0`, `req-0`, `decision-0`,
 `roadblock-0`, …) and alternate the lens across the batch (`skeptic`, `minimalist`,
@@ -1061,9 +1272,12 @@ standing up a queue. Revisit if p95 regresses past the NFR target in staging.
 - **Keep the proposal's facts.** Deepen the objection; don't re-litigate a different
   point or restate the proposal back. The "objection so far" is given to *sharpen*, not
   replace.
-- **The honest empty case is a result.** Zero proposals → zero objections. A lens with
-  no real signal says "no strong objection from this lens" and proposes nothing. Never
-  manufacture an objection to look diligent.
+- **The honest empty case is a result.** *Proposals present but* zero emerging → zero
+  objections. A lens with no real signal says "no strong objection from this lens" and
+  proposes nothing. Never manufacture an objection to look diligent. (No proposals supplied
+  *at all* is the Step 0 HALT, not this empty case — per
+  `skills/_contract/grounding-no-absent-input`, "I read nothing" and "I cannot read this"
+  are different outputs.)
 - **The human owns the WHY; the agent owns the provenance.** When recording a dissent,
   the reason/title are the human's words (editable forever); the link back to the
   objection, lens, and proposal_ref is immutable. Don't let an edit silently rewrite

@@ -4,7 +4,7 @@ description: When a specific technical component is proposed, ask "necessary for
 one_liner: Ask whether a proposed component earns its keep against a named outcome.
 aliases: [gold-plating check, over-engineering check, is this component needed, scope creep check, justify this component, do we really need this, lean design check]
 when_to_use: a specific technical component is proposed (Redis, Kafka, a queue, a cache, a second database) and you want to test that it isn't gold-plating relative to the outcomes it claims to serve
-output_kinds: [question]
+output_kinds: [question, halt]
 deterministic_fallback: the component->NFR->outcome over-reach predicate
 suggested_tier: mid
 neighbours: |
@@ -42,16 +42,76 @@ Do **not** use this to rank components, to score a design, or to produce a "lean
 
 The user supplies (as markdown, or points you at the files):
 
-1. **The component under test** — a named id and one line of what it is (`comp:redis — in-memory cache fronting the search index`).
-2. **The outcomes** — the business outcomes in play, each with an id (`out:fast-search — users find a record in under one screen-wait`).
-3. **The NFRs** — non-functional requirements, each with an id, a measurable target, and **which outcome it derives from** (`nfr:search-latency — p95 ≤ 200ms · derives_from out:fast-search`).
-4. **The trace** — for each component, which NFR(s) it claims to satisfy; and crucially, **what already satisfies that NFR** (the adopted pattern, an existing service, a simpler component). Without the "already satisfied by" column the predicate cannot fire honestly — say so rather than guess.
+1. **The component under test** — *Required.* A named id and one line of what it is (`comp:redis — in-memory cache fronting the search index`). If absent: HALT and ask which component to test (per `_shared/grounding.md`); never invent a component to interrogate.
+2. **The outcomes** — *Required.* The business outcomes in play, each with an id (`out:fast-search — users find a record in under one screen-wait`). If absent/unreadable/empty: HALT and ask where the outcomes live (per `_shared/grounding.md`); never invent an outcome.
+3. **The NFRs** — *Required.* Non-functional requirements, each with an id, a measurable target, and **which outcome it derives from** (`nfr:search-latency — p95 ≤ 200ms · derives_from out:fast-search`). If absent/unreadable/empty: HALT and ask where they live (per `_shared/grounding.md`); never invent a target.
+4. **The trace** — *Required.* For each component, which NFR(s) it claims to satisfy; and crucially, **what already satisfies that NFR** (the adopted pattern, an existing service, a simpler component). The predicate (Step 2) is computed over this trace, so without it the check is meaningless. If the trace is **wholly absent**: HALT and ask for it (per `_shared/grounding.md`). If the trace is present but **one edge is incomplete** (e.g. the "already satisfied by" column is missing for the component under test): emit a single clarifying `question` for that missing edge rather than inventing it — never guess that the pattern covers it.
 
-If any of the four is missing, **emit a single clarifying question** for the missing edge rather than inventing it. The check is only as honest as the trace it reads.
+Readable forms for any of the above: a markdown file, an xlsx/csv path, a GitHub Project owner+number, a docs folder, or a pasted block. The check is only as honest as the trace it reads — a wholly-absent required input HALTs and asks; a present-but-incomplete edge is surfaced as a `question`, never patched with a plausible-looking guess.
+
+This skill's no-fabrication discipline is one contract: see `skills/_contract/grounding-no-absent-input` — an absent required input HALTs and asks, never an invented hypothetical; "never arm on a hunch" and "ask for the missing edge — do not assume" are instances of it.
+
+## Grounding (quoted)
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
 
 ## The method
 
 The base is deterministic; one reasoning step phrases the result. Keep them separate — the determinism is what makes this defensible, the phrasing is what makes it usable.
+
+### Step 0 — Locate and verify the required inputs (deterministic, pre-model)
+
+Before walking any edge, check the required inputs as file-level facts: a named component under test, the outcomes, the NFRs, and the trace. If the **component, outcomes, NFRs, or the trace are wholly absent / unreadable / empty**, emit the clean halt below and **stop** — do not interrogate an invented component or walk an invented edge:
+
+```
+HALT — required input missing.
+
+I can't run a necessity check without the component and the trace it walks
+(component → NFR → outcome, plus what already satisfies each NFR), and I won't
+invent either. Tell me where they live and I'll pick up from there.
+
+I'm missing: <name each absent input — e.g. the trace / the outcomes>.
+
+I can read any of these:
+  • a markdown file (outcomes / NFRs / the component list with trace edges)
+  • an xlsx / csv file path
+  • a GitHub Project (owner + project number)
+  • a docs folder (markdown / text)
+  • the rows pasted directly into the chat
+
+Which one, and where? (Once you point me at it, I'll build the trace and ask the
+necessity question — nothing is assumed until then.)
+```
+
+A *present-but-incomplete* edge is different from a wholly-absent input: if the trace exists but the "already satisfied by" edge for the component under test is missing, do **not** halt and do **not** guess the pattern covers it — emit the single clarifying `question` for that one edge (Step 3 / Inputs row 4). The halt copies the canonical exemplar in `skills/_contract/grounding-no-absent-input`; it names what is missing and asks, and carries no verdict.
 
 ### Step 1 — Build the component → NFR → outcome trace (deterministic)
 

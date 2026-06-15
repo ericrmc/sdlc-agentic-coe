@@ -4,7 +4,7 @@ description: After a build, diff an as-built markdown against the as-designed se
 one_liner: Diff what was built against what was designed; flag divergences.
 aliases: [as-built review, build vs design diff, delivery reconciliation, scope drift check, what shipped vs what was planned, handover review, design-vs-delivery gap check]
 when_to_use: closing the design->reality loop at handover
-output_kinds: [question, proposal]
+output_kinds: [question, proposal, halt]
 deterministic_fallback: heading-split + req_key + Jaccard requirement scan
 suggested_tier: mid
 neighbours: |
@@ -49,19 +49,69 @@ score here, by design.
 
 The user supplies, as markdown / context:
 
-1. **As-built document** — markdown describing what was delivered. Ideally organised
-   under headings (ATX `#`/`##` style). Free-form prose still works; it just yields
-   coarser matches.
-2. **As-designed sections** — the solution-design sections, each with a stable
-   `section_key` (e.g. `solution_overview`), a human `title`, and the designed body
-   markdown.
-3. **Requirements** — each with a `req_key` (e.g. `REQ-1`, `REQ-3`) and its text.
-4. **Acceptance criteria** — the AC text per requirement (optional but improves the
-   model step's judgement of whether a requirement is truly reflected).
+1. **As-built document** — *Required.* Markdown describing what was delivered. Ideally
+   organised under headings (ATX `#`/`##` style). Free-form prose still works; it just
+   yields coarser matches. *If absent/unreadable/empty: HALT and ask where the as-built
+   write-up is (per `_shared/grounding.md`); never invent what was built.* Readable
+   forms: a markdown file, a docs folder, or a pasted block.
+2. **As-designed material** (sections **and/or** requirements) — *Required as a set
+   (at least one present).* The **as-designed sections** — solution-design sections,
+   each with a stable `section_key` (e.g. `solution_overview`), a human `title`, and
+   the designed body markdown — **and/or** the **requirements** — each with a `req_key`
+   (e.g. `REQ-1`, `REQ-3`) and its text. This is what the as-built is reconciled
+   *against*. *If both the sections and the requirements are absent: HALT and ask where
+   the design / requirements live (per `_shared/grounding.md`); never invent a section,
+   `req_key`, or scope to reconcile against.*
+3. **Acceptance criteria** — *Optional.* The AC text per requirement; it improves the
+   model step's judgement of whether a requirement is truly reflected. *If absent:
+   proceed without them and rely on requirement text; never invent an AC.*
 
-If some inputs are missing, the method **degrades gracefully** (see Step 5): with
-zero designed sections, every as-built heading becomes an `addition` and every
-requirement becomes a `gap` — it never crashes and never invents material.
+> **Graceful degrade is for PARTIAL material, not for an absent required set.** With
+> both Required inputs present but one side thin — e.g. zero designed *sections* while
+> the *requirements* are present — the method degrades (every as-built heading becomes
+> an `addition`, every uncovered requirement a `gap`); it never crashes and never
+> invents material (see Step 5). What it must **not** do is silently reconcile against
+> nothing: an absent as-built, or an absent as-designed *set entirely*, HALTs and asks
+> — it never returns an empty observation list that reads downstream as "nothing
+> diverged."
+
+## Grounding (quoted)
+
+This skill reasons over a requirement, acceptance criterion, and design section, so it
+carries the no-fabrication keystone — see `skills/_contract/grounding-no-absent-input`.
+The existing "stay strictly within the material; do not invent sections, requirements,
+or scope" / "never invents material" discipline in this skill is one **instance** of
+this contract.
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
 
 ## The four kinds (verbatim)
 
@@ -109,6 +159,32 @@ operations — no markdown library, no network) and a **model reasoning step**
 (Step 5) that does the same reconciliation with judgement. Run the model step when
 one is available; fall back to the deterministic base when it is not, or run both and
 let the deterministic pass catch anything the model glossed.
+
+### Step 0 — Locate / verify the required inputs (deterministic, pre-model)
+
+Before splitting anything, confirm the Required inputs are present as a file-level fact:
+the **as-built document**, and **at least one** of (as-designed sections, requirements).
+This is mechanical — absent / unreadable / empty — never a judgement on "is there enough
+to reconcile."
+
+- **As-built document absent/unreadable/empty** → emit the clean HALT below and stop.
+- **Both as-designed sections AND requirements absent** → HALT and ask where the design /
+  requirements live. (One side thin is fine — that is graceful degrade, not a halt.)
+
+```
+HALT — required input missing.
+
+I can't reconcile a build without the as-built write-up of what was actually delivered,
+and I won't invent what shipped. Point me at it and I'll diff it against the design and
+requirements — nothing is assumed until then.
+
+I can read any of: a markdown file · a docs folder · the write-up pasted directly here.
+Which one, and where?
+```
+
+(If only the *as-designed* side is missing, the halt asks for the design / requirements
+instead — "I have the as-built but nothing to reconcile it against; where do the design
+sections or requirements live?")
 
 ### Step 1 — Heading-split the as-built markdown
 

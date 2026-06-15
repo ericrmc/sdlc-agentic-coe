@@ -12,7 +12,7 @@ aliases:
   - dissent register
   - objection log
 when_to_use: adversarially stress-testing a proposal, or recording what was decided NOT to do and why
-output_kinds: [question, proposal]
+output_kinds: [question, proposal, halt]
 deterministic_fallback: the single-objection template + the dissent register template
 suggested_tier: frontier
 tier_reason: adversarial judgement plus a durable human-facing dissent record is high-stakes.
@@ -87,13 +87,56 @@ pass means "no strong objection surfaced" — not "this is blessed".
 
 | Input | Required | Shape |
 |---|---|---|
-| `proposal(s)` | yes | Free-text or markdown. One proposal, or a list. Each carries: a one-line statement + enough grounding (facts, source) to object against. |
-| `proposal_kind` | per proposal | One of `requirement \| decision \| roadblock \| gap \| solution-shape \| feature`. Drives the objection framing. |
-| `lens(es)` | optional | One persona kind, or N. Defaults to `skeptic` then `minimalist`, alternating (see below). |
-| `grounding` | recommended | The facts the objection must keep — the proposal's source, prior context, any objection-so-far to *deepen*. |
+| `proposal(s)` | **yes** | Free-text or markdown. One proposal, or a list. Each carries: a one-line statement + enough grounding (facts, source) to object against. *If absent/unreadable/empty:* HALT and ask for the proposal(s) (per `skills/_shared/grounding.md` / `skills/_contract/grounding-no-absent-input`); never invent a proposal to red-team. See Step 0. |
+| `proposal_kind` | per proposal | One of `requirement \| decision \| roadblock \| gap \| solution-shape \| feature`. Drives the objection framing. *If absent on a proposal:* infer it from the proposal's shape (Step 1), never default silently to a kind that changes the framing. |
+| `lens(es)` | optional | One persona kind, or N. Defaults to `skeptic` then `minimalist`, alternating (see below). *If absent:* use the default adversarial voices; never invent a domain expert the proposal doesn't call for. |
+| `grounding` | recommended (optional) | The facts the objection must keep — the proposal's source, prior context, any objection-so-far to *deepen*. *If absent:* object only from the proposal's own stated facts; never back-fill grounding the human did not supply. |
 
 No database, panel, or session state is needed. A proposal pasted into a prompt is
 enough.
+
+**The empty case has two distinct shapes** (per the contract's "I read nothing" vs "I
+cannot read this"): **no proposals supplied at all** is a HALT (Step 0 — ask for them);
+**proposals supplied, but none of them is a genuine emerging proposal** is the honest
+empty case (Step 1 — say so, propose nothing). Never conflate the two; never invent an
+objection to fill either.
+
+## Grounding (quoted)
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
+
+Per `skills/_contract/grounding-no-absent-input`: the halt over a missing proposal is
+itself a question, never a verdict — it asks where the proposals are. It must not become
+the very thing this skill forbids elsewhere: a disposition ("nothing here is worth
+red-teaming") dressed as a stop.
 
 ### The persona lenses
 
@@ -116,6 +159,31 @@ in a row. The others are available when the proposal is clearly in their domain.
 
 ## The method
 
+### Step 0 — DETERMINISTIC: verify proposals were supplied (the grounding halt)
+
+Before identifying emerging proposals, confirm the `proposal(s)` input was actually
+supplied — a file-level fact (absent / unreadable / empty), computed **before** any model
+reasoning. If **nothing** was supplied to red-team, emit the clean HALT below and **stop** —
+do not invent a proposal to object to. A halt is a question, never a verdict.
+
+```markdown
+HALT — required input missing.
+
+I can't red-team without a proposal to object to, and I won't invent one. Tell me what to
+stress-test and I'll raise the single strongest objection per proposal.
+
+I can read any of these:
+  • one or more proposals pasted directly (a requirement, decision, roadblock, gap, solution-shape, feature)
+  • the synthesis output of panel/synthesise-panel (its four proposal categories)
+  • a markdown brief or design pass to pull the emerging proposals from
+
+What should I red-team? (No objection is raised until you give me a real proposal.)
+```
+
+This is distinct from Step 1's empty case: a HALT means *no input arrived*; the Step 1
+empty case means *input arrived but held no genuine proposal*. If proposals were supplied,
+proceed to Step 1.
+
 ### Step 1 — DETERMINISTIC: identify the emerging proposals (no model)
 
 Walk the input and pick out only the things that are genuinely **proposals**. A
@@ -130,8 +198,10 @@ to) are:
 | `decision` | proposes an alternative to weigh | `decision` |
 | `roadblock` | raises a risk that constrains the build | `roadblock` |
 
-If there are **zero** proposals, stop and say so. The honest empty case is a result,
-not a gap — do **not** invent an objection to have something to say.
+If the supplied input held genuine content but **zero** of it is an emerging proposal,
+stop and say so — *the honest empty case*. (This differs from Step 0's HALT: there the
+input was missing entirely; here it was present but proposed nothing.) The honest empty
+case is a result, not a gap — do **not** invent an objection to have something to say.
 
 Assign each surviving proposal a stable `proposal_ref` (`gap-0`, `req-0`, `decision-0`,
 `roadblock-0`, …) and alternate the lens across the batch (`skeptic`, `minimalist`,
@@ -302,9 +372,12 @@ standing up a queue. Revisit if p95 regresses past the NFR target in staging.
 - **Keep the proposal's facts.** Deepen the objection; don't re-litigate a different
   point or restate the proposal back. The "objection so far" is given to *sharpen*, not
   replace.
-- **The honest empty case is a result.** Zero proposals → zero objections. A lens with
-  no real signal says "no strong objection from this lens" and proposes nothing. Never
-  manufacture an objection to look diligent.
+- **The honest empty case is a result.** *Proposals present but* zero emerging → zero
+  objections. A lens with no real signal says "no strong objection from this lens" and
+  proposes nothing. Never manufacture an objection to look diligent. (No proposals supplied
+  *at all* is the Step 0 HALT, not this empty case — per
+  `skills/_contract/grounding-no-absent-input`, "I read nothing" and "I cannot read this"
+  are different outputs.)
 - **The human owns the WHY; the agent owns the provenance.** When recording a dissent,
   the reason/title are the human's words (editable forever); the link back to the
   objection, lens, and proposal_ref is immutable. Don't let an edit silently rewrite

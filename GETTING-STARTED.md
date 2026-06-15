@@ -2,12 +2,15 @@
 
 You are the agent. Each skill is one self-contained `SKILL.md` — its steps, vocabulary, and output format travel with it. Read one skill folder plus the project files and run it. Never load the whole repo. Every output you emit is a **proposal**, **question**, **menu**, or **halt**; a human ratifies by merging the PR.
 
+Every analysis skill **HALTs rather than invents** when a required input is missing — it asks where the input is and stops, never fabricates a hypothetical requirement, key, number, or acceptance criterion (the keystone is `skills/_contract/grounding-no-absent-input/SKILL.md`).
+
 ## If you are an agent doing X, start here
 
 Match the task you were handed to a starting point.
 
 | If you are doing this for a… | Start at |
 | --- | --- |
+| **BA** whose requirements live in Excel / a GitHub Project / loose docs — lift them in with provenance | `skills/ingest/ingest-source-to-requirements/SKILL.md` |
 | **BA** with a raw vision / intake doc — structure it into outcomes + requirements | `skills/understand/decompose-intake-to-outcomes/SKILL.md` |
 | **BA** with requirements already — stress-test them before solutioning | `skills/challenge/red-team-requirements/SKILL.md` |
 | **Architect** who knows the *need* but not the technology ("a data warehouse", "run our agents in prod") | `capabilities/INDEX.md` |

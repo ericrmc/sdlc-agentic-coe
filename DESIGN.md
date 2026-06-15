@@ -55,10 +55,11 @@ closed set, or a pattern carrying an agent-set `approval_status`, fails the chec
 
 ---
 
-## 3. The six categories
+## 3. The seven categories
 
 | Category | Purpose | Skills |
 |---|---|---|
+| **ingest** | Read an external source into staged requirements: fingerprint each row, propose on first read, diff on re-read. | ingest-source-to-requirements · stage-and-fingerprint · reingest-delta |
 | **understand** | Structure a raw intake into outcomes, derived requirements, NFR coverage. | decompose-intake-to-outcomes · classify-requirements · nfr-coverage-check |
 | **challenge** | Adversarially pressure-test a requirement set. | red-team-requirements · surface-risks-and-assumptions · enumerate-roadblocks · necessity-check |
 | **architect** | Choose a solution shape and author the design. | recommend-component-patterns · surface-solution-options · propagate-pattern-nfrs · validate-solution-vs-requirements · surface-open-decisions · synthesise-solution-architecture · reconcile-design-vs-requirements · import-external-design · reconcile-as-built |
@@ -66,9 +67,9 @@ closed set, or a pattern carrying an agent-set `approval_status`, fails the chec
 | **deliver** | Plan the delivery lifecycle and hand off the build. | describe-phases-releases-waves · help-implement-a-wave · triage-backlog-and-defer · scope-reconcile-check · scaffold-then-handoff · testing-brief-scaffold · design-studio-brief-scaffold · comparator-grounded-estimate |
 | **library** | Author and curate the reusable assets; see the portfolio. | author-component-pattern · author-capability · pattern-library-curate · portfolio-phase-health · advisory-governance-checklist |
 
-`skills/MAP.md` shows these as a category table and an end-to-end flow (understand → challenge → architect →
-panel → deliver, with library as a side-store and capabilities as the requirements→components bridge): a map,
-not a track. Conventions live in `skills/_contract/` (target-rule-output-kinds · propose-ratify-rhythm ·
+`skills/MAP.md` shows these as a category table and an end-to-end flow (ingest → understand → challenge →
+architect → panel → deliver, with library as a side-store and capabilities as the requirements→components
+bridge): a map, not a track. Conventions live in `skills/_contract/` (target-rule-output-kinds · propose-ratify-rhythm ·
 explore-one-area-at-a-time · parallel-agents).
 
 ---

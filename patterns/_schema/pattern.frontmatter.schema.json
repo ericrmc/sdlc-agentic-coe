@@ -27,7 +27,7 @@
     },
     "name": {
       "type": "string",
-      "description": "Human-readable pattern name, e.g. 'Three-tier web app on managed Postgres'.",
+      "description": "Human-readable pattern name, e.g. 'Web app on managed Postgres'.",
       "minLength": 3,
       "maxLength": 120
     },
@@ -199,7 +199,7 @@
           },
           "acceptance_criterion": {
             "type": "string",
-            "description": "The testable 'done', e.g. 'All inter-tier connections present a cert chain to TLS>=1.2; verified by scan'. Carried verbatim into the downstream requirement on adopt.",
+            "description": "The testable 'done', e.g. 'All connections between tiers present a cert chain to TLS>=1.2; verified by scan'. Copied unchanged into the downstream requirement on adopt.",
             "minLength": 5,
             "maxLength": 400
           },

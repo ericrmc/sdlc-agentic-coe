@@ -4,7 +4,7 @@ description: Author one capability as a markdown file with CI-validated YAML fro
 one_liner: Name a need and its proven-or-candidate fulfilments as a library file.
 aliases: [add a capability, write a capability, name a need, requirements-to-components bridge, what fulfils this need, capability library entry, register a need, map a need to a pattern]
 when_to_use: Naming a recurring system need as a first-class capability — the bridge between a requirement and the component patterns that fulfil it. Use when a need keeps recurring and deserves a stable name, or to record candidate fulfilments that owe a spike before any pattern exists.
-output_kinds: [proposal]
+output_kinds: [proposal, halt]
 deterministic_fallback: Fill the capability frontmatter template + body skeleton from the stated need; leave the need_statement, aliases, and governance floor as one-line stubs for a human to flesh out.
 suggested_tier: frontier
 tier_reason: Synthesising a technology-free need, jargon-free aliases, and an honest candidate-vs-proven read with a measurable governance floor is high-stakes findability and honesty work.
@@ -60,20 +60,72 @@ Do **not** use this to:
 
 Gather these from the context handed to you, as markdown:
 
-1. **The need** — what a system needs and why, stated **technology-free** ("a system needs
-   to … so that …"). Name the problem, never the product.
-2. **Lay aliases** — at least two plain-language terms a non-expert would type for this need
-   ("data warehouse", "EDW", "reporting store"). These are the findability seed; they feed
-   `capabilities/INDEX.md`.
-3. **The fulfilments** — for each: the component, a `confidence` (`proven` or `candidate`),
-   and a one-line `note`. A proven fulfilment names a `pattern_key` and build `evidence`; a
-   candidate names a vendor in the note and lists the `open_questions` a spike must answer.
-4. **The governance floor** — the minimum, **measurable** governance bars any fulfilling
-   pattern must meet or honestly waive, each with a `kind` from the closed 11-value NFR enum,
-   a `statement`, and a testable `acceptance_criterion`.
+1. **The need** — *Required.* What a system needs and why, stated **technology-free** ("a
+   system needs to … so that …"). Name the problem, never the product. STEP 2 synthesises
+   the **entire** capability from it — the `need_statement`, the aliases, and the governance
+   floor all derive from the need — so without it there is nothing to author. *If
+   absent/unreadable/empty: HALT and ask what the recurring need is (per
+   `_shared/grounding.md`); never invent a need, a problem statement, or a fulfilment for a
+   need nobody stated.* Readable forms: a requirement or outcome it serves, a recurring request
+   across projects, a `library/author-component-pattern` hand-off naming the need a new pattern
+   fulfils, or a pasted description of the need.
+2. **Lay aliases** — *Optional (recommended).* At least two plain-language terms a non-expert
+   would type for this need ("data warehouse", "EDW", "reporting store"). These are the
+   findability seed; they feed `capabilities/INDEX.md`. *If absent: derive candidate aliases
+   from the need above and flag them for the human to confirm — never leave a single alias (one
+   is unfindable), and never invent a synonym the need does not support.*
+3. **The fulfilments** — *Optional.* For each: the component, a `confidence` (`proven` or
+   `candidate`), and a one-line `note`. A proven fulfilment names a `pattern_key` and build
+   `evidence`; a candidate names a vendor in the note and lists the `open_questions` a spike
+   must answer. *If absent: author an all-candidate (or fulfilment-less) capability that
+   honestly records the unmet need — never fabricate a fulfilment to look finished.*
+4. **The governance floor** — *Optional (recommended).* The minimum, **measurable** governance
+   bars any fulfilling pattern must meet or honestly waive, each with a `kind` from the closed
+   11-value NFR enum, a `statement`, and a testable `acceptance_criterion`. *If absent: draft
+   the floor from the need above; never assert a bar the need does not actually imply.*
 
 You need no database or network call. The capability is a plain markdown file; the schema
 validation runs in CI on the PR.
+
+## Grounding (quoted)
+
+This skill **synthesises the entire capability from one required input — the need** (STEP 2
+drafts the `need_statement`, the aliases, the fulfilment read, and the governance floor from
+it). So it carries the no-fabrication keystone — see
+`skills/_contract/grounding-no-absent-input`. The "be honest about the gap" /
+"never fabricate a proven fulfilment" / "an all-candidate capability is a valid record"
+discipline already woven through this skill is one **instance** of this contract: a capability
+authored for a need nobody stated is an invented claim, exactly what the rule forbids.
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
 
 ## Target rule (quoted)
 
@@ -165,6 +217,35 @@ The capability's `governance_nfrs` reuse this exact vocabulary so a fulfilling p
 `attached_nfrs` can be checked against the floor kind-for-kind. Do not invent a twelfth.
 
 ## The method — STEPS
+
+### STEP 0 — Locate / verify the required input (deterministic, pre-model)
+
+Before laying down any template, confirm the one required input — **the need** — is
+present as a file-level fact: absent / unreadable / empty. This is mechanical; it is
+**never** a judgement on "is this need worth a capability" (that is the human's call,
+and a verdict the rule forbids a halt from carrying).
+
+- **The need is absent/unreadable/empty** → emit the clean HALT below and stop. There
+  is nothing to synthesise a capability from, and a capability authored for a need
+  nobody stated is an invented claim — the exact failure this contract exists to stop.
+- **The need is present but the fulfilments / aliases / floor are missing** → do not
+  halt; author an honest all-candidate (or fulfilment-less) capability and derive the
+  optional fields from the need, flagging anything thin for the human. (See the Inputs
+  notes above.)
+- **The need is present** → proceed to STEP 1.
+
+```
+HALT — required input missing.
+
+I can't author a capability without the need it names, and I won't invent a problem,
+an alias, or a fulfilment for a need nobody stated. Tell me what the recurring need is
+and I'll capture it as a candidate capability — with a diff to review; nothing is added
+to the library until you accept it.
+
+I can read any of: a requirement or outcome it serves · a recurring request across
+projects · a pattern hand-off naming the need it fulfils · the need pasted directly
+here. Which one, and where?
+```
 
 ### STEP 1 (DETERMINISTIC) — Lay down the frontmatter template + body skeleton
 
@@ -293,6 +374,10 @@ governance floor) or `approval_status` advance, in a commit the CODEOWNER owns. 
 `candidate`.** The review flow is in `CONTRIBUTING.md`.
 
 ## Output format
+
+This skill emits one of two kinds. When the need is missing it emits the **`halt`** from
+STEP 0 (name the missing input, offer the readable forms, stop — never a verdict on whether
+the need is worth a capability). When the need is present it emits its `proposal`:
 
 You write **one file** at `capabilities/<domain>/<filename-slug>.md`, plus the matching index
 rows. The capability files under `capabilities/data/` and `capabilities/runtime/` are the

@@ -4,7 +4,7 @@ description: On adopting a pattern, place each attached NFR against the business
 one_liner: Trace an adopted pattern's NFRs onto the outcomes they serve.
 aliases: [propagate NFRs, inherit quality requirements, attach pattern requirements, carry over non-functional requirements, map NFRs to outcomes, pattern quality bar, derive NFRs from a pattern]
 when_to_use: a pattern was just adopted and its governed NFRs must flow into the project requirements
-output_kinds: [proposal]
+output_kinds: [proposal, halt]
 deterministic_fallback: emit each NFR verbatim as a pattern-level derived requirement
 suggested_tier: mid
 neighbours: After architect/surface-solution-options picks a pattern. Before architect/validate-solution-vs-requirements checks coverage.
@@ -47,16 +47,61 @@ have already been governed; its only job is to place and trace them.
 
 The user supplies three things as markdown / context:
 
-1. **The adopted pattern** — its `name` and its `attached_nfrs` list. Each NFR is a short
-   line, optionally with a `kind` (e.g. `security`, `performance`, `reliability`,
-   `accessibility`). Give them a stable **1-based index** in the order listed.
-2. **The accepted business outcomes** — each with a **stable `req_key`** (e.g. `BO-1`,
-   `BO-2`) and its outcome text. These `req_key`s are the **only valid parents**.
-3. *(optional)* The project's `REQUIREMENTS.md` so the folded-in lines slot in cleanly.
+1. **The adopted pattern** — *Required.* Its `name` and its `attached_nfrs` list. Each NFR is
+   a short line, optionally with a `kind` (e.g. `security`, `performance`, `reliability`,
+   `accessibility`). Give them a stable **1-based index** in the order listed. *If the pattern
+   is absent/unreadable: HALT and ask which adopted pattern to propagate from (per
+   `_shared/grounding.md`); never invent a pattern name or an NFR to propagate. A pattern that
+   is present but has **no** `attached_nfrs` is **not** a halt — there is simply nothing to
+   propagate; say so and stop.*
+2. **The accepted business outcomes** — *Optional.* Each with a **stable `req_key`** (e.g.
+   `BO-1`, `BO-2`) and its outcome text. These `req_key`s are the **only valid parents**. *If
+   absent: every NFR comes back **pattern-level** (`parent_key: null`) — that is correct, not
+   a failure, and never an invented parent.*
+3. **The project's `REQUIREMENTS.md`** — *Optional.* So the folded-in lines slot in cleanly.
+   *If absent: emit the proposed lines standalone for the human to place.*
 
 If the pattern has no `attached_nfrs`, there is nothing to propagate — say so and stop.
 If there are no accepted outcomes yet, every NFR comes back **pattern-level**
 (`parent_key: null`); that is correct, not a failure.
+
+## Grounding (quoted)
+
+This skill reads a pattern's NFRs and writes derived NF requirements traced to outcomes, so it
+carries the no-fabrication keystone — see `skills/_contract/grounding-no-absent-input`. The
+existing "NEVER invent a `req_key`" / "never fabricates a parent" / "no orphan-by-fabrication"
+discipline is one **instance** of this contract: an absent required input HALTs, and a missing
+optional parent honestly becomes pattern-level rather than an invented link.
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
 
 ## The method (THE method — preserve this exactly)
 
@@ -77,6 +122,23 @@ That is the entire decision: *which parent, or pattern-level* — placement only
 about the NFR's content is load-bearing and untouchable.
 
 ### Steps to run it
+
+0. **Locate / verify the required input first (deterministic, pre-model).** Confirm the
+   **adopted pattern** is present as a file-level fact (absent / unreadable). If it is absent,
+   emit the clean HALT below and stop — never invent a pattern or an NFR to propagate. (A
+   pattern present with an empty `attached_nfrs` is not a halt; there is simply nothing to
+   propagate — say so and stop.)
+
+   ```
+   HALT — required input missing.
+
+   I can't propagate a pattern's NFRs without the adopted pattern, and I won't invent NFRs.
+   Tell me which pattern was adopted (its name + attached_nfrs) and I'll place each NFR
+   against the outcome it serves — nothing is assumed until then.
+
+   I can read any of: the pattern's markdown file · a paste of its name + attached_nfrs.
+   Which one, and where?
+   ```
 
 1. **List the NFRs with their indices.** Number them 1..N in the order the pattern lists
    them. This index is the contract — it must survive to the output unchanged.

@@ -4,7 +4,7 @@ description: Replay every requirement against the chosen solution's enforced con
 one_liner: Replay requirements against a solution's constraints; surface the friction.
 aliases: [solution validation, fit check, trade-off check, requirement coverage, constraint check, does the design meet the requirements, gap analysis]
 when_to_use: a solution shape is chosen and must be validated back against the requirements
-output_kinds: [question, proposal]
+output_kinds: [question, proposal, halt]
 deterministic_fallback: the constraint-replay table (requirement x enforced constraint)
 suggested_tier: frontier
 neighbours: after architect/propagate-pattern-nfrs (which flows pattern NFRs into requirements); before architect/surface-open-decisions (which collects the contested calls). Constraints come from architect/recommend-component-patterns; the mirror over-reach check is challenge/necessity-check.
@@ -66,8 +66,11 @@ on, not a verdict.
 
 Provide, as markdown or plain context:
 
-1. **The chosen solution's enforced constraints** — from the adopted pattern (its
-   `pattern_constraint` rows) or the narrowed shape. Each constraint needs:
+1. **The chosen solution's enforced constraints** — *Required.* From the adopted pattern (its
+   `pattern_constraint` rows) or the narrowed shape. *If absent/unreadable/empty: HALT and ask
+   for the chosen solution's enforced constraints (per `_shared/grounding.md`); never invent a
+   constraint, a `degrades_capability` hint, or an `enforced` level — a replay against
+   fabricated constraints is a fabricated verdict.* Each constraint needs:
    - a stable key (e.g. `CON-ASYNC-WRITES-ONLY`),
    - a one-line `statement` ("All writes are async via the event bus; no synchronous DB writes"),
    - `enforced`: **`hard`** (cannot be waived) or **`soft`** (waiver = a recorded compromise),
@@ -80,7 +83,7 @@ Provide, as markdown or plain context:
    CON-CACHE-TTL-60S      | soft | degrades: real-time      | Read path is cached with a 60s TTL; reads may lag writes by up to 60s.
    ```
 
-2. **The requirement set** — the live derived requirements, each with:
+2. **The requirement set** — *Required.* The live derived requirements, each with:
    - a stable, cite-able `req_key` (e.g. `REQ-022`),
    - its `text`,
    - its `capability_tags` — what the requirement *needs* (`instant-write`, `cross-region`,
@@ -88,6 +91,11 @@ Provide, as markdown or plain context:
    - its `derives_from` chain: the `BO-<n>` business outcome (and `text`) it serves, and the
      `fulfils_capability` (e.g. `CAP-CUSTOMER-SELF-SERVICE`) above that. **This is what each
      compromise walks up to.**
+
+   *If the requirement set is absent/unreadable/empty: HALT and ask where the derived
+   requirements live (per `_shared/grounding.md`); never invent a `req_key` or a requirement to
+   replay. There is nothing to validate with no requirements.* Readable forms: a markdown file,
+   an xlsx/csv path, a GitHub Project owner+number, a docs folder, or a pasted block.
 
    ```
    REQ-022 | needs: instant-write | "Confirmation shown the instant a change is saved"
@@ -98,14 +106,77 @@ Provide, as markdown or plain context:
            | fulfils_capability CAP-RESILIENCE
    ```
 
-If there are no `req_key`s, say so and emit the deterministic replay table with empty keys —
-do not invent ids.
+If the requirements are present but individual `req_key`s are missing, say so and emit the
+deterministic replay table with empty keys — do not invent ids. (An entirely absent
+requirement set HALTs per STEP 0, rather than producing an empty table — see
+`skills/_contract/grounding-no-absent-input`.)
+
+## Grounding (quoted)
+
+This skill reads requirements, their capability tags, and their `derives_from` chain, so it
+carries the no-fabrication keystone — see `skills/_contract/grounding-no-absent-input`. The
+existing "do not invent ids" discipline, and the "compute the flag; never emit it as a
+verdict" rule, are instances of this contract: an absent required input is a HALT, never an
+invented requirement or constraint.
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
 
 ## The method (STEPS)
 
 The base is **deterministic** (the replay table); the model step only **phrases** the
 computed compromises as grounded questions. Keep that separation — it is what keeps the flag
 honest.
+
+### Step 0 — Locate / verify the required inputs (deterministic, pre-model)
+
+Before building the replay table, confirm both Required inputs are present as a file-level
+fact: the **chosen solution's enforced constraints** (one replay axis) and the **requirement
+set** (the other). This is mechanical — absent / unreadable / empty — never a judgement on
+"is the solution far enough along to validate."
+
+- **Enforced constraints absent/unreadable/empty** → emit the clean HALT below and stop.
+- **Requirement set absent/unreadable/empty** → HALT and ask where the derived requirements
+  live.
+
+```
+HALT — required input missing.
+
+I can't replay requirements against a solution without both the requirements and the
+solution's enforced constraints, and I won't invent either — a replay against fabricated
+inputs is a fabricated verdict. Point me at the missing side and I'll build the replay
+table — nothing is assumed until then.
+
+I can read any of: a markdown file · an xlsx/csv path · a GitHub Project (owner + number)
+· a docs folder · the rows pasted directly here. Which one, and where?
+```
 
 ### Step 1 — DETERMINISTIC STEP: build the requirement × enforced-constraint replay table
 

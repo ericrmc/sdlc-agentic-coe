@@ -4,7 +4,7 @@ description: Produce a comparator-anchored effort estimate — point value + low
 one_liner: Size effort against confirmed past projects, never from guesswork.
 aliases: [effort estimate, project sizing, story points, person-day estimate, t-shirt sizing, how long will it take, delivery estimate, cost estimate]
 when_to_use: sizing effort for phase/release planning when a comparator dataset is available
-output_kinds: [proposal]
+output_kinds: [proposal, halt]
 deterministic_fallback: the mean-of-confirmed-actuals +/- range method
 suggested_tier: mid
 neighbours: |
@@ -63,22 +63,95 @@ grounded estimate — that is the whole point.
 
 Supply, as markdown / context:
 
-1. **The thing being estimated** — a `title` and a `description` of the phase,
-   release, or scope of work. Enough detail to judge similarity to past work.
-2. **Confirmed comparators** — the rows from the seeded comparators dataset,
-   each carrying at minimum: an `id` (integer, cited verbatim), a `name`, and an
-   `actual_effort_days` (the known historical actual). Optionally a short
-   similarity/notes field. See `references/comparators.template.csv` for the
+1. **The thing being estimated** — *Required.* A `title` and a `description` of
+   the phase, release, or scope of work — enough detail to judge similarity to
+   past work. If absent/unreadable/empty: HALT and ask what is being estimated
+   (per `_shared/grounding.md`); never invent a phase, a release, or a scope to
+   size. Readable forms: a markdown file, a pasted block, or a GitHub Project
+   owner+number.
+2. **Confirmed comparators** — *Optional.* The rows from the seeded comparators
+   dataset, each carrying at minimum: an `id` (integer, cited verbatim), a
+   `name`, and an `actual_effort_days` (the known historical actual). Optionally a
+   short similarity/notes field. See `references/comparators.template.csv` for the
    schema. **Only confirmed rows count** — a comparator without a human-confirmed
-   actual is not evidence.
+   actual is not evidence. If absent/empty: proceed and return the
+   **ungrounded-placeholder** result (an explicit null estimate with an empty
+   basis) — never a fabricated number. This is the one case where an absent
+   *optional* input proceeds honestly rather than halting.
 
-If the comparators list is empty or absent, the skill still runs — it returns the
-ungrounded-placeholder result.
+The two absences are different outputs, and the distinction is load-bearing: an
+absent **thing-to-estimate** is a missing *Required* input — HALT and ask. An
+absent **comparators dataset** is a missing *Optional* input — proceed to the
+honest placeholder. Do not collapse them.
+
+This skill reads project inputs (the thing being estimated) and grounds a number
+in cited evidence, so it follows the GROUNDING contract — an absent **Required**
+input HALTs and asks, and is never invented. See
+`skills/_contract/grounding-no-absent-input`.
+
+## Grounding (quoted)
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
 
 ## The method (numbered steps)
 
 The base is deterministic; the model step refines it but never replaces the
 evidentiary anchor.
+
+### Step 0 — Locate / verify the thing being estimated (deterministic, pre-model)
+
+Confirm the one **Required** input — the thing being estimated (a `title` +
+`description`) — is present as a file-level fact, before any anchor math. Absent,
+unreadable, or empty → emit the clean halt below and **stop**. (An absent
+*comparators* dataset does NOT halt — it routes to the ungrounded placeholder in
+Step 2.)
+
+```markdown
+HALT — required input missing.
+
+I can't size effort without knowing what is being estimated, and I won't invent a
+phase or scope to size. Tell me what to estimate and I'll pick up from there.
+
+I can read any of these:
+  • a markdown file path
+  • a GitHub Project (owner + project number)
+  • the phase / release / scope pasted directly into the chat
+
+Which one, and where? (Nothing is sized until you point me at the thing — and even
+then, with no confirmed comparators the result is an honest ungrounded placeholder,
+never a fabricated number.)
+```
+
+The halt names the missing input and stops; it carries no estimate, no range, no
+confidence, and no verdict. With the thing-to-estimate present, proceed to Step 1.
 
 ### Step 1 — Gather confirmed comparators
 
@@ -282,7 +355,10 @@ comparators dataset to produce a grounded estimate.
 
 - **Never fabricate a number.** No comparators → ungrounded placeholder with an
   empty basis. A made-up point value stamped with confidence is the exact
-  failure this skill exists to prevent.
+  failure this skill exists to prevent. This is this skill's instance of the
+  library GROUNDING rule (`skills/_contract/grounding-no-absent-input`): an
+  absent input is named honestly (here, an explicit null placeholder), never
+  invented.
 - **Cite only what you relied on, verbatim.** `basis_comparator_ids` lists ids
   drawn exactly from the supplied list — never an id not present, never a
   comparator not actually used to anchor.

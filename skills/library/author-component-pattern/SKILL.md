@@ -4,7 +4,7 @@ description: Author one reusable component pattern as a markdown file with CI-va
 one_liner: Capture one proven solution shape as a library pattern file.
 aliases: [save a reusable design, write a pattern, document an architecture, add to the pattern library, capture what worked, reference architecture, golden path template, promote a solution]
 when_to_use: Capturing a reusable solution shape as a pattern, or promoting an explored solution into the library. Use after a project has chosen a solution worth reusing — not to evaluate or recommend an existing one.
-output_kinds: [proposal]
+output_kinds: [proposal, halt]
 deterministic_fallback: Fill the pattern frontmatter template + body skeleton from the chosen solution; leave summary/trade-offs as one-line stubs for a human to flesh out.
 suggested_tier: frontier
 tier_reason: Capturing a load-bearing reusable claim with measurable NFRs and an honest cost demands careful synthesis and judgement.
@@ -63,22 +63,72 @@ Do **not** use this to:
 
 Gather these from the context handed to you, as markdown:
 
-1. **The chosen solution** — what was built (or proven): the deployment topology,
-   the data placement, the components, and *why this shape over the alternatives*.
-   This is the raw material for the `summary` and the trade-offs.
-2. **The category** — one of `deployment | integration | data` (the closed enum that
-   matches the `patterns/` folder names).
-3. **The quality bars it must always meet** — the NFRs, each with a `kind` from the
-   **closed 11-value enum** (see `nfrs/nfr-kinds.md`), a `statement`, and a
-   testable `acceptance_criterion`. If a quality bar has no way to be verified, it
-   is a wish, not an NFR — make it measurable or drop it.
-4. **The evidence it was built** — links/artefacts (a repo, a PR, a runbook, a
-   design doc, a deployed-service URL). Required only once the status is promoted
-   past `candidate`; record what you are given and leave the slot honest if there is
-   none yet.
+1. **The chosen solution** — *Required.* What was built (or proven): the deployment
+   topology, the data placement, the components, and *why this shape over the
+   alternatives*. This is the raw material for the `summary` and the trade-offs —
+   STEP 2 synthesises the **entire** pattern from it, so without it there is nothing
+   to capture. *If absent/unreadable/empty: HALT and ask where the built/proven
+   solution is described (per `_shared/grounding.md`); never invent a topology, a
+   data placement, or a trade-off the team never built.* Readable forms: a design
+   doc or ADR, a repo/PR, a runbook, an `architect/surface-solution-options`
+   output, or a pasted description of what was built and why.
+2. **The category** — *Required.* One of `deployment | integration | data` (the closed
+   enum that matches the `patterns/` folder names). *If absent: surface it as a
+   `question` — the category is a closed three-way choice the human can make in one
+   line; never guess it from the prose.*
+3. **The quality bars it must always meet** — *Optional (recommended).* The NFRs, each
+   with a `kind` from the **closed 11-value enum** (see `nfrs/nfr-kinds.md`), a
+   `statement`, and a testable `acceptance_criterion`. If a quality bar has no way to
+   be verified, it is a wish, not an NFR — make it measurable or drop it. *If absent:
+   draft the NFRs only from the chosen solution above; never assert a quality bar the
+   built shape does not actually carry.*
+4. **The evidence it was built** — *Optional at `candidate`.* Links/artefacts (a repo,
+   a PR, a runbook, a design doc, a deployed-service URL). Required only once the
+   status is promoted past `candidate`; record what you are given and leave the slot
+   honest if there is none yet — never fabricate a link.
 
 No database or network call is needed. The pattern is a plain markdown file in a git
 repo; the schema validation runs in CI on the PR.
+
+## Grounding (quoted)
+
+This skill **synthesises the entire pattern from one required input — the chosen
+solution** (STEP 2 drafts the summary, the NFRs, and the trade-offs from it). So it
+carries the no-fabrication keystone — see `skills/_contract/grounding-no-absent-input`.
+The "no built artefact ⇒ no pattern" / "no evidence, no promotion" / "do not fabricate
+links" discipline already woven through this skill is one **instance** of this contract:
+a pattern with no proven solution behind it is an invented claim, exactly what the rule
+forbids.
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
 
 ## The frontmatter — the full v1 field set
 
@@ -163,6 +213,35 @@ honesty. `patterns/README.md` lists the full library state, including needs that
 planned but not yet authored.
 
 ## The method — STEPS
+
+### STEP 0 — Locate / verify the required input (deterministic, pre-model)
+
+Before laying down any template, confirm the one required input — **the chosen
+solution** (what was built or proven) — is present as a file-level fact: absent /
+unreadable / empty. This is mechanical; it is **never** a judgement on "is this
+solution good enough to promote" (that is the human's call, and a verdict the rule
+forbids a halt from carrying).
+
+- **The chosen solution is absent/unreadable/empty** → emit the clean HALT below and
+  stop. There is nothing to synthesise a pattern from, and a pattern minted with no
+  built artefact behind it is an invented claim — the exact failure this contract
+  exists to stop.
+- **The category is missing but the solution is present** → do not halt; surface the
+  category as a one-line `question` (it is a closed three-way choice), then proceed.
+- **The chosen solution is present** → proceed to STEP 1.
+
+```
+HALT — required input missing.
+
+I can't author a component pattern without the solution it captures, and I won't
+invent a topology, a data placement, or a trade-off the team never built. Point me at
+the built (or proven) solution and I'll capture it as a candidate pattern — with a diff
+to review; nothing is added to the library until you accept it.
+
+I can read any of: a design doc / ADR · a repo or PR · a runbook · an
+`architect/surface-solution-options` output · the solution pasted directly here.
+Which one, and where?
+```
 
 ### STEP 1 (DETERMINISTIC) — Lay down the frontmatter template + body skeleton
 
@@ -294,6 +373,10 @@ Only at that human merge does the status climb past `candidate` — a CODEOWNER 
 CODEOWNERS map are in `CONTRIBUTING.md`.
 
 ## Output format
+
+This skill emits one of two kinds. When the chosen solution is missing it emits the
+**`halt`** from STEP 0 (name the missing input, offer the readable forms, stop — never
+a verdict on the solution). When the solution is present it emits its `proposal`:
 
 You write **one file** at `patterns/<category>/<filename-slug>.md` (e.g.
 `patterns/deployment/containerised-web-managed-postgres.md`). Concrete, ready-to-use

@@ -4,7 +4,7 @@ description: Per phase, enumerate-and-cite constraints that rule out specific op
 one_liner: Cite the constraints that rule out specific design or decision options.
 aliases: [blockers, constraints, showstoppers, dealbreakers, what rules this out, hard limits, deal breakers, off the table]
 when_to_use: design or decisions phase, to surface what the evidence forbids before a choice is made
-output_kinds: [question]
+output_kinds: [question, halt]
 deterministic_fallback: the per-phase constraint prompts + the cited_evidence format
 suggested_tier: mid
 neighbours: |
@@ -48,14 +48,73 @@ Do **not** use this step to:
 
 The user supplies, as markdown or pasted context:
 
-1. **Project title + description** — enough to know what is being built and for whom.
-2. **The phase** — `design` or `decisions`.
-3. **The evidence pool to cite from** — whatever is real and available: ratified requirement ids, governance/red-team evidence items, design-review findings (with severity), named NFR targets (e.g. RPO/RTO), a residency or data-boundary requirement, named doc sections. The richer and more specifically-identified this pool, the stronger the citations.
-4. **(On re-run) the prior roadblock register** — so prior human dispositions and dismissal-memory carry forward.
+1. **Project title + description** — *Required.* Enough to know what is being built and for whom. If absent/unreadable/empty: HALT and ask where it is (per `_shared/grounding.md`); never invent a project to reason over. Readable forms: a markdown file, an xlsx/csv path, a GitHub Project owner+number, a docs folder, or a pasted block.
+2. **The phase** — *Required.* `design` or `decisions` — it selects the constraint scaffold (Step 1). If absent: HALT and ask which phase (per `_shared/grounding.md`); never guess the phase, because the wrong scaffold enumerates the wrong constraints.
+3. **The evidence pool to cite from** — *Required.* Whatever is real and available: ratified requirement ids, governance/red-team evidence items, design-review findings (with severity), named NFR targets (e.g. RPO/RTO), a residency or data-boundary requirement, named doc sections. If absent/unreadable/empty: HALT and ask where the evidence lives (per `_shared/grounding.md`); never invent a citation. The richer and more specifically-identified this pool, the stronger the citations. (A *thin-but-present* pool is not absent — proceed and lean on `unverified — needs spike:`; see below.)
+4. **The prior roadblock register** — *Optional* (re-run only). If absent: this is a first run — proceed with an empty prior set. When present, prior human dispositions and dismissal-memory carry forward (Step 6).
 
-If the evidence pool is thin, say so in the output and lean on `unverified — needs spike:` rather than inventing a citation.
+A *thin* evidence pool (present but sparse) is **not** an absent input: proceed, say so in the output, and lean on `unverified — needs spike:` rather than inventing a citation. An **absent** evidence pool (none supplied at all) HALTs — "I read nothing" and "the evidence is thin" are different outputs; see the grounding rule.
+
+This skill folds its no-fabrication discipline into one contract: see `skills/_contract/grounding-no-absent-input` — an absent required input HALTs and asks, never an invented hypothetical; the "do not invent a citation" rule in Step 3 is an instance of it, not a private restatement.
+
+## Grounding (quoted)
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
 
 ## The method (numbered steps)
+
+### Step 0 — Locate and verify the required inputs (DETERMINISTIC, pre-model)
+
+Before any reasoning, check the three required inputs as file-level facts: a project title + description, a phase (`design` or `decisions`), and an evidence pool. Any one **absent, unreadable, or empty** → emit the clean halt below and **stop**. This is mechanical, never a judgement on whether the material "looks like enough"; a *thin-but-present* evidence pool is not absent and does not halt.
+
+```
+HALT — required input missing.
+
+I can't enumerate roadblocks without the project material and the evidence to cite
+from, and I won't invent either. Tell me where they live and I'll pick up from there.
+
+I'm missing: <name each absent input — e.g. the evidence pool / the phase>.
+
+I can read any of these:
+  • a markdown file
+  • an xlsx / csv file path
+  • a GitHub Project (owner + project number)
+  • a docs folder (markdown / text)
+  • the material pasted directly into the chat
+
+Which one, and where? (And which phase — design or decisions? Once you point me at it,
+I'll enumerate + cite the roadblocks — nothing is assumed or invented until then.)
+```
+
+When some required inputs are present and others are not, name exactly what is missing and ask — never run on the partial set, never back-fill the gap with a plausible-looking constraint. The halt copies the canonical exemplar in `skills/_contract/grounding-no-absent-input`; it names what is missing and asks where it is, and carries **no** finding, severity, or disposition.
 
 ### Step 1 — Pick the phase scaffold (DETERMINISTIC)
 

@@ -4,7 +4,7 @@ description: Plan and govern a system change/cutover as the six ordered wave_kin
 one_liner: Plan a migration cutover as six governed waves with back-out and go/no-go.
 aliases: [migration plan, cutover plan, rollout plan, runbook, switchover, system upgrade, go-live plan, data migration]
 when_to_use: planning a migration or cutover during the delivery stage
-output_kinds: [proposal, question]
+output_kinds: [proposal, question, halt]
 deterministic_fallback: the six-wave skeleton with back-out + go/no-go slots
 suggested_tier: frontier
 tier_reason: migration/cutover sequencing shapes a human commitment under risk and demands strong reasoning.
@@ -46,24 +46,74 @@ system), say so and skip to a plain build sequence instead.
 
 Supplied as markdown or context:
 
-1. **The current (as-built):** a description of the system running today — what
-   it is, where its data lives, what depends on it. If greenfield, record
-   "greenfield — no as-built recorded" and the schema/data/decommission waves
-   shrink accordingly.
-2. **The target (design sections):** the solution-design sections that describe
-   the desired end state. Section keys to trace against include
+1. **The current (as-built):** *Required.* A description of the system running
+   today — what it is, where its data lives, what depends on it. **Greenfield is a
+   stated value, not an absence:** if there is genuinely no system to migrate
+   *from*, record "greenfield — no as-built recorded" and the schema/data/
+   decommission waves shrink accordingly. The halt is for an *unstated* current
+   state, not a stated-greenfield one — if it is unknown whether a system exists
+   to cut over from, HALT and ask (per `_shared/grounding.md`); never invent a
+   source system, a table, or a dependency.
+2. **The target (design sections):** *Required.* The solution-design sections that
+   describe the desired end state. Section keys to trace against include
    `application_architecture`, `key_decisions`, `requirements_acceptance`, and
    the rest of the design. A wave traces a real section when one exists, else it
-   traces nothing (an honest null — "no section behind this yet").
-3. **The delta (open gaps):** the open gaps between current and designed, if
-   known. These become the "what still has to move" list.
-4. **Strategy + constraints (optional):** the cutover strategy (e.g. big-bang,
+   traces nothing (an honest null — "no section behind this yet"). If
+   absent/unreadable/empty (zero sections): HALT and ask where the design is (per
+   `_shared/grounding.md`); never invent a section key to make a wave look
+   grounded — there is no *target* to cut over *to* with no design at all.
+   Readable forms: a markdown file, a docs folder, a GitHub Project owner+number,
+   or a pasted block.
+3. **The delta (open gaps):** *Optional.* The open gaps between current and
+   designed, if known. These become the "what still has to move" list. If absent:
+   proceed and surface the gap as a `question`; never invent a gap.
+4. **Strategy + constraints:** *Optional.* The cutover strategy (e.g. big-bang,
    parallel-run, phased), known downtime windows, the source-system name, true
-   ordering constraints, and any alternatives already ruled out ("why-not").
+   ordering constraints, and any alternatives already ruled out ("why-not"). If
+   absent: leave each as an explicit slot / null and raise a `question`.
 
 The human knows more about the **source-system name**, the **true ordering
 dependencies**, and the **real downtime budget**. Leave those as explicit slots
 for the human to fill rather than inventing them.
+
+This skill reads the as-built and the design sections to plan a cutover, so it
+follows the GROUNDING contract — an absent **Required** input (an *unstated*
+current state, or no design at all) HALTs and asks; the **Optional** inputs
+degrade to explicit nulls / questions and are never invented. A stated-greenfield
+current state is a value, not an absence. See
+`skills/_contract/grounding-no-absent-input`.
+
+## Grounding (quoted)
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
 
 ## The six ordered wave_kinds
 
@@ -117,6 +167,39 @@ Each of the six waves must carry, with no exceptions:
 - **A rationale:** one line on why this wave exists in the sequence.
 
 ## The method (numbered steps)
+
+### Step 0 — Locate / verify the required inputs (deterministic, pre-model)
+
+Before framing anything, confirm the two **Required** inputs as a file-level fact:
+the **current (as-built)** state and the **target (design sections)**. A *design
+set that is absent, unreadable, or empty* (zero sections), or a *current state
+that is unstated* (it is unknown whether a system exists to migrate from — as
+distinct from a stated "greenfield — no as-built"), → emit the clean halt below
+and **stop**. This is mechanical, computed before the model reasons; it is never a
+judgement on feasibility.
+
+```markdown
+HALT — required input missing.
+
+I can't plan a cutover without both ends of it, and I won't invent either. I'm
+missing: <the target design sections | a stated current/as-built state | both>.
+Tell me where it lives and I'll pick up from there.
+
+I can read any of these:
+  • a markdown file path
+  • a docs folder (markdown / text)
+  • a GitHub Project (owner + project number)
+  • the design / as-built pasted directly into the chat
+
+Which one, and where? (If there is genuinely no system to migrate from, say
+"greenfield — no as-built" and I'll shrink the schema/data/decommission waves —
+that is a value, not a missing input. Nothing is assumed until you point me at the
+design.)
+```
+
+The halt names the missing input and stops; it carries no wave, no traced section,
+and no feasibility verdict. With both Required inputs present (or a stated
+greenfield current), proceed to Step 1.
 
 ### Step 1 — Frame current -> target -> delta (model)
 
@@ -281,7 +364,10 @@ genuinely empty, render the honest empty-state line (`_no open as-built gaps_`,
   its slot.
 - **Honest null beats a fabricated trace.** When no design section backs a wave,
   trace `null`. A null is a signal ("flag: no design here yet"), not a failure to
-  fill in.
+  fill in. (This skill's instance of the library GROUNDING rule —
+  `skills/_contract/grounding-no-absent-input`: a missing section is a null, never
+  invented; a missing Required *input* — no design at all, or an unstated current
+  state — halts per Step 0.)
 - **The source-system name, the true dependencies, and the downtime budget are
   the human's.** Leave `moves_from_ref` as a slot, `depends_on_wave_seq` and
   `downtime_minutes` as `null`, and raise a `question` rather than guessing.

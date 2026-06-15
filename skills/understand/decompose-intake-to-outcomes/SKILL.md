@@ -4,7 +4,7 @@ description: From free-text business intake derive 3-6 business outcomes (benefi
 one_liner: Turn raw intake text into traceable outcomes and requirements.
 aliases: [requirements gathering, requirements elicitation, business analysis, break down a vision, scope a project, write user stories from a brief, structure an intake doc, derive requirements]
 when_to_use: a new project's intake / vision text needs structuring into outcomes and requirements
-output_kinds: [proposal]
+output_kinds: [proposal, question, halt]
 deterministic_fallback: an empty outcomes->requirements skeleton with the quality-bar checklist
 suggested_tier: frontier
 neighbours:
@@ -36,8 +36,11 @@ it."
 
 This skill produces **markdown a human ratifies by merging a PR**. The output is
 a *proposal* — advisory by design. Every output of this skill is one of four
-kinds: a **proposal**, a **question**, a **menu**, or a **halt**. This skill
-emits a proposal.
+kinds: a **proposal**, a **question**, a **menu**, or a **halt**. On the happy
+path it emits a **proposal**; when its one Required input (the intake text) is
+absent it emits a **halt** that asks where the intake is (STEP 0); when only an
+Optional input is missing it proceeds and notes the gap as a **question**. It
+never invents intake it was not given.
 
 ## When to use
 
@@ -51,21 +54,97 @@ apply instead.
 
 ## Inputs
 
-The user supplies, as markdown or plain text:
+The user supplies, as markdown or plain text. Each row is marked **Required** or
+**Optional**; a Required input that is absent/unreadable/empty HALTs (see
+[Grounding (quoted)](#grounding-quoted) and STEP 0).
 
-| Input | Required | What it is |
+| Input | Required? | What it is |
 |---|---|---|
-| **Intake / vision text** | yes | The free-text description of what the business wants. The raw material. |
-| **Project title** | optional | A short label. If absent, derive one from the first sentence (or first ~60 chars) of the intake. |
-| **Business case** | optional | Why this is worth doing — the value or driver. |
-| **Context / constraints** | optional | Light-touch grounding: known limits, environment, stakeholders. **Not** solution detail. |
+| **Intake / vision text** | **Required.** **If absent/unreadable/empty: HALT and ask where it is** (per `_shared/grounding.md`); never invent intake, outcomes, or requirements. Readable forms: a markdown/text file, an xlsx/csv path, a GitHub Project owner+number, a docs folder, or a pasted block. | The free-text description of what the business wants. The raw material — the one thing this skill cannot run without. |
+| **Project title** | *Optional.* If absent: derive one from the first sentence (or first ~60 chars) of the intake; never invent an unrelated name. | A short label. |
+| **Business case** | *Optional.* If absent: proceed and note the gap as a `question`; never invent a driver. | Why this is worth doing — the value or driver. |
+| **Context / constraints** | *Optional.* If absent: proceed; never pad with invented limits. | Light-touch grounding: known limits, environment, stakeholders. **Not** solution detail. |
 
 Stay grounded in what is supplied. **Do not invent scope the text does not
-imply.** If the intake is thin, produce fewer outcomes — do not pad.
+imply.** If the intake is thin, produce fewer outcomes — do not pad. This skill
+names its required input and grounds every outcome and requirement in supplied
+text; it follows the no-fabrication contract
+`skills/_contract/grounding-no-absent-input`. The "do not invent scope" /
+"grounded-in-intake" rules throughout this skill are an instance of that
+contract, not a separate rule.
+
+## Grounding (quoted)
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
 
 ## The method (numbered steps)
 
 Two output flavours, one quality bar.
+
+### STEP 0 — locate the intake (deterministic, pre-model; the halt path)
+
+Before choosing a flavour, confirm the one Required input — the **intake / vision text** — is
+present. This is a file-level fact computed *before* the model reasons:
+
+- **absent** — no intake/vision text, file, or paste was supplied;
+- **unreadable** — it was supplied but cannot be parsed/opened in a usable form;
+- **empty** — it opens but contains no usable description.
+
+Any of those three → emit the clean HALT below and **stop**. Do not decompose a hypothetical
+project, do not infer scope from a bare project name, and do not return an empty skeleton as if
+the intake had been read (the empty skeleton in [Deterministic fallback](#deterministic-fallback)
+is for the *no-model* case, **not** the *no-intake* case). Copy the exemplar shape from
+`skills/_contract/grounding-no-absent-input`:
+
+```markdown
+HALT — required input missing.
+
+I can't decompose a project into outcomes without the intake it describes, and I won't invent
+one. Tell me where the vision / business intake lives and I'll structure it from there.
+
+I can read any of these:
+  • a markdown / text file of intake or vision
+  • an xlsx / csv file path
+  • a GitHub Project (owner + project number)
+  • a docs folder
+  • the intake pasted directly into the chat
+
+Which one, and where? (No outcome or requirement is created until you point me at the intake.)
+```
+
+This halt is a `question`, never a verdict: it names the missing input and the readable
+formats, and stops — no "this looks too thin to be worth doing," no assumed scope. The Optional
+inputs (title, business case, context) never halt: an absent Optional input proceeds honestly
+(derive a title, note the gap as a `question`), per the grounding rule above. With the intake
+present, proceed to Step 1.
 
 ### Step 1 — Choose a flavour
 

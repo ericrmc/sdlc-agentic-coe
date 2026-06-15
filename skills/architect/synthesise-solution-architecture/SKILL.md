@@ -2,7 +2,7 @@
 name: synthesise-solution-architecture
 description: Read the codebase plus the project's outcomes/requirements/decisions and author a solution-architecture doc as the fixed frozen-8 sections; assemble the graph slice once, ground only in it, preserve keys verbatim, each fact in exactly one section. Use when authoring the durable solution design once a direction is locked in.
 when_to_use: authoring the durable solution design once a direction is locked in
-output_kinds: [proposal]
+output_kinds: [proposal, halt]
 deterministic_fallback: the frozen-8 section skeleton with an honest 'nothing recorded yet' per empty section
 one_liner: Author the durable solution-design doc as eight fixed sections.
 aliases: [solution design document, architecture document, design doc, write up the design, solution architecture, design write-up, architecture spec, document the design]
@@ -39,13 +39,68 @@ Do **not** use it to explore options or to decide direction (that is earlier wor
 
 The user (or the orchestrator) supplies a **project-graph slice** — the assembled facts for the project. Read whatever of the codebase is relevant to ground the architecture, plus these recorded rows:
 
-- **Project framing** — title, description / intake text, and any vision / business-case / context grounding.
-- **Outcomes** — accepted business outcomes (with their `req_key`, status, and value label), plus any deferred / still-being-settled outcomes.
-- **Requirements** — derived requirements threaded to their outcome, each with `req_key`, type (functional / NF), and its acceptance criteria. NF requirements are called out separately.
-- **Pattern** — the adopted solution pattern (name, summary, deployment topology, data placement) and its attached NFRs; plus any pattern override (chosen alternative + reason) and the recommendation's rationale.
-- **Decisions** — the ratified, genuinely-contested calls (question, choice, rationale).
-- **Estimate** — sized effort (point + low/high range + confidence + basis) and the comparator rows cited as evidence — or honest absence.
-- **Open items** — orphaned requirements, deferred outcomes, the pattern override, open roadblocks, open requirement challenges, recorded space-expansions, and live risks & assumptions.
+- **Project framing + recorded rows (outcomes / requirements)** — *Required.* The title,
+  description / intake text, any vision / business-case / context grounding, the accepted
+  business outcomes (with their `req_key`, status, value label), and the derived requirements
+  threaded to their outcome (each with `req_key`, type, acceptance criteria). NF requirements
+  are called out separately. *If the project framing **and** the outcomes/requirements are all
+  absent/unreadable/empty: HALT and ask where the project material lives (per
+  `_shared/grounding.md`); never invent an outcome, a `req_key`, a requirement, or an
+  acceptance criterion to fill a section.* Readable forms: a markdown file, an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block.
+- **Codebase** — *Optional.* Read whatever of it grounds the architecture sections. *If absent
+  (e.g. a greenfield design before any code exists): proceed and ground the architecture in the
+  recorded rows alone; never invent components, files, or a topology the material does not
+  support.*
+- **Pattern** — *Optional.* The adopted solution pattern (name, summary, deployment topology, data placement) and its attached NFRs; plus any pattern override (chosen alternative + reason) and the recommendation's rationale. *If absent: the application-shape and NFR sections say so plainly; never invent a pattern.*
+- **Decisions** — *Optional.* The ratified, genuinely-contested calls (question, choice, rationale). *If absent: the decisions section carries its honest empty line.*
+- **Estimate** — *Optional.* Sized effort (point + low/high range + confidence + basis) and the comparator rows cited as evidence — or honest absence. *If absent: the estimate section says no estimate was produced; never invent a number or a comparator.*
+- **Open items** — *Optional.* Orphaned requirements, deferred outcomes, the pattern override, open roadblocks, open requirement challenges, recorded space-expansions, and live risks & assumptions. *If absent: the open-questions section is honestly empty.*
+
+> **Thin-but-present material is the deterministic skeleton, NOT a halt.** A sparse project
+> with framing + a couple of outcomes but no pattern, no decisions, and no estimate yields a
+> complete eight-section document whose empty sections say "nothing recorded yet" (Step 2).
+> What HALTs is an **entirely absent** required set — no framing *and* no
+> outcomes/requirements — because there is then nothing to synthesise and the only way to fill
+> the document would be to invent it.
+
+## Grounding (quoted)
+
+This skill reads the codebase plus the project's outcomes, requirements, decisions, and
+acceptance criteria, so it carries the no-fabrication keystone — see
+`skills/_contract/grounding-no-absent-input`. The existing "ground every claim in the provided
+material; add no facts of your own; thin material is stated plainly, never padded" discipline
+is one **instance** of this contract.
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
 
 If a slice is not pre-assembled, **assemble it once** at the start (see Step 1). Assembling it per-section is the anti-pattern that leaks facts across boundaries.
 
@@ -71,6 +126,25 @@ Note the **single-home rule made concrete**: the adopted pattern's identity, top
 ## The method
 
 This is the contract for authoring. Honour every clause.
+
+0. **Locate / verify the required input first (deterministic, pre-model).** Before assembling
+   anything, confirm the Required set is present as a file-level fact: the **project framing**
+   and/or the **outcomes / requirements**. This is mechanical — absent / unreadable / empty —
+   never a judgement on "is there enough recorded to write a design." If the framing *and* the
+   outcomes/requirements are all absent, emit the clean HALT below and stop. (Thin-but-present
+   material is **not** a halt — it is the skeleton path of step 2.)
+
+   ```
+   HALT — required input missing.
+
+   I can't synthesise a solution design without the project's framing and its
+   outcomes / requirements, and I won't invent them to fill the sections. Point me at the
+   project material and I'll author the eight sections grounded only in it — nothing is
+   assumed until then.
+
+   I can read any of: a markdown file · an xlsx/csv path · a GitHub Project (owner + number)
+   · a docs folder · the rows pasted directly here. Which one, and where?
+   ```
 
 1. **Assemble the project-graph slice ONCE.** Read the project and reshape it into a single assembled context up front — outcomes grouped, children grouped under their parent, acceptance criteria grouped per requirement, the settled pattern with its attached NFRs, ratified decisions, the estimate, comparators, orphans, open roadblocks / challenges, space-expansions, and live register items. Read whatever of the codebase grounds the architecture *now*, not section by section. One read per source, plain data, no re-reads mid-author. One assembly, then route slices of it to sections.
 

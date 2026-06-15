@@ -4,7 +4,7 @@ description: Assess a requirement set against six canonical NFR categories in fi
 one_liner: Check a requirement set for gaps across six canonical NFR categories.
 aliases: [nfr coverage, non-functional requirements check, quality attribute gaps, missing nfrs, nfr gap analysis, performance security availability check, non-functional coverage]
 when_to_use: checking a requirement set for non-functional coverage gaps
-output_kinds: [proposal, question]
+output_kinds: [proposal, question, halt]
 deterministic_fallback: the six-category checklist with one-line definitions
 suggested_tier: mid
 neighbours: |
@@ -48,12 +48,17 @@ fix.
 
 ## Inputs
 
-The user supplies, as markdown or plain context:
+The user supplies, as markdown or plain context. Each row is marked **Required** or
+**Optional**; a Required input that is absent/unreadable/empty HALTs (see
+[Grounding (quoted)](#grounding-quoted) and STEP 0).
 
-- **Project title** and a short **project context** (what the system is, who uses it,
-  any known regional/regulatory constraints).
-- The **requirement set** — the live proposed/accepted requirements. Each row should
-  carry its `REQ-<n>` key (or a bare integer index that maps to one) and its text.
+- **Requirement set** — *Required.* The live proposed/accepted requirements. Each row should
+  carry its `REQ-<n>` key (or a bare integer index that maps to one) and its text. **If
+  absent/unreadable/empty: HALT and ask where the requirement set is** (per
+  `_shared/grounding.md`); never invent requirements and never return a hollow checklist as if
+  a set had been read (an empty `addressed: false` table with no real keys reads downstream as
+  "this project covers no NFRs," a silent-proceed failure). Readable forms: a markdown file, an
+  xlsx/csv path, a GitHub Project owner+number, a docs folder, or rows pasted into the chat.
   Example:
 
   ```
@@ -63,12 +68,91 @@ The user supplies, as markdown or plain context:
   REQ-18  The system shall support 50 concurrent interactive users.
   ```
 
-Cite only keys that actually appear in the supplied set. If none are given, say so
-and emit the deterministic checklist (below) with empty `requirement_ids`. The
-machine-readable block may keep bare integer ids as a stable internal index; the
-citation key a human reads is always `REQ-<n>`.
+- **Project title** and **project context** — *Optional.* What the system is, who uses it, any
+  known regional/regulatory constraints. If absent: proceed and tune the gap-fill text generically
+  (note the missing context as a `question`); never invent a project domain to make the gap-fills
+  look specific.
+
+Cite only keys that actually appear in the supplied set. The machine-readable block may keep
+bare integer ids as a stable internal index; the citation key a human reads is always `REQ-<n>`.
+This skill names its required input and grounds every cited key in the supplied set; it follows
+the no-fabrication contract `skills/_contract/grounding-no-absent-input`. The "cite only real
+keys / never invent" rules throughout are an instance of that contract, not a separate rule.
+
+> Note the distinction from the [deterministic fallback](#step-4--deterministic-step-render-the-six-category-table):
+> the six-row table with empty `requirement_ids` is the *no-model* fallback **when a real
+> requirement set is present** but cannot be reasoned over. It is **not** the answer to an
+> *absent* set — an absent Required input HALTs (STEP 0), it does not render a hollow table.
+
+## Grounding (quoted)
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
 
 ## The method (STEPS)
+
+### STEP 0 — locate the requirement set (deterministic, pre-model; the halt path)
+
+Before assessing coverage, confirm the one Required input — the **requirement set** — is
+present. This is a file-level fact computed *before* the model reasons:
+
+- **absent** — no requirement set/file/paste was supplied;
+- **unreadable** — it was supplied but cannot be parsed/opened in a usable form;
+- **empty** — it opens but contains zero requirement rows.
+
+Any of those three → emit the clean HALT below and **stop**. Do **not** render the six-category
+table with empty `requirement_ids` as the answer to an absent set — that hollow table reads
+downstream as "this project covers no NFRs" (a silent-proceed failure), and "I read nothing"
+must differ from "I cannot read this." Copy the exemplar shape from
+`skills/_contract/grounding-no-absent-input`:
+
+```markdown
+HALT — required input missing.
+
+I can't check NFR coverage without the requirement set to assess, and I won't invent one. Tell
+me where the requirements live and I'll assess all six categories against the real rows.
+
+I can read any of these:
+  • a markdown file of requirements
+  • an xlsx / csv file path
+  • a GitHub Project (owner + project number)
+  • a docs folder
+  • the rows pasted directly into the chat
+
+Which one, and where? (No coverage call is made until you point me at the requirement set.)
+```
+
+This halt is a `question`, never a verdict: it names the missing input and the readable
+formats, and stops — it carries no "this looks under-specified" finding. Project title/context
+are Optional and never halt: if absent, proceed and tune the gap-fills generically, per the
+grounding rule above. With the requirement set present, proceed to Step 1.
 
 ### Step 1 — Fix the six categories, in this exact order
 

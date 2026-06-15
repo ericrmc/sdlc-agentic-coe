@@ -4,7 +4,7 @@ description: Turn a raw backlog into structured traced sized prioritised items �
 one_liner: Park a raw backlog as traced, sized, prioritised items.
 aliases: [backlog triage, defer features, park a request, scope creep check, size a backlog, prioritise backlog, won't-do list, future work parking]
 when_to_use: triaging a raw backlog into parked items with honest sizing and traceability
-output_kinds: [proposal, menu]
+output_kinds: [proposal, menu, halt]
 deterministic_fallback: the park/size/prioritise table + the promote->add-delta rule
 suggested_tier: mid
 neighbours:
@@ -43,16 +43,70 @@ Use it *after* business outcomes are agreed (you need outcomes to trace against)
 
 The user supplies, as markdown or pasted context:
 
-1. **Candidate backlog items** — the raw list. One per line or bullet is fine; a title plus an optional sentence of description each is ideal.
-2. **Accepted outcomes** — the agreed business outcomes, each with a stable key (e.g. `BO-3`, `BO-1`). These are the **only** things an item may trace to. May be sparse; that is normal and expected — a sparse outcome set means more honest nulls.
-3. **Effort reference** *(optional but strongly preferred)* — comparable past projects whose *actual* effort is known, so you can size honestly. May be sparse. With no reference at all, sizes are `null` (unsizable), not guessed.
-4. **Decline memory** *(optional)* — items already declined, with the evidence they were declined against. Used so you do not re-propose them.
+1. **Candidate backlog items** — *Required.* The raw list. One per line or bullet is fine; a title plus an optional sentence of description each is ideal. If absent/unreadable/empty: HALT and ask where the backlog is (per `_shared/grounding.md`); never invent a candidate item to triage. Readable forms: a markdown file, an xlsx/csv path, a GitHub Project owner+number, a docs folder, or a pasted block.
+2. **Accepted outcomes** — *Required.* The agreed business outcomes, each with a stable key (e.g. `BO-3`, `BO-1`). These are the **only** things an item may trace to. If absent/unreadable/empty: HALT and ask where they are (per `_shared/grounding.md`); never invent an outcome or a key — without an agreed outcome set, *every* trace is a guess and every item looks like scope creep, so the triage would be meaningless. Once present they **may be sparse** — that is normal and expected, and a sparse set just means more honest nulls (a present-but-sparse set is not an absent one; it does not halt).
+3. **Effort reference** — *Optional* (but strongly preferred). Comparable past projects whose *actual* effort is known, so you can size honestly. May be sparse. If absent: proceed but mark sizes as unsizable (`null`); never invent a number.
+4. **Decline memory** — *Optional.* Items already declined, with the evidence they were declined against. Used so you do not re-propose them. If absent: proceed (nothing is suppressed).
 
-If outcomes are missing, ask for them — without an agreed outcome set, *every* trace is a guess and every item looks like scope creep. If the effort reference is missing, proceed but mark sizes as unsizable (`null`) rather than inventing numbers.
+The change from prior phrasing is deliberate: a missing outcome set now **HALTs and asks** rather than continuing on a guessed trace — an absent Required input is named and stopped on, not patched. A *present-but-sparse* outcome set still proceeds (sparse ≠ absent). A missing effort reference is an Optional gap → unsizable nulls, not a halt.
+
+This skill reads a backlog and accepted outcomes to trace and size, so it follows the GROUNDING contract — an absent **Required** input HALTs and asks; the **Optional** inputs degrade to explicit nulls and are never invented. See `skills/_contract/grounding-no-absent-input`.
+
+## Grounding (quoted)
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
 
 ## The method (steps)
 
 The method has a **deterministic base** (a mechanical table anyone can reproduce) and an **LLM reasoning step** (judgement the table cannot do). Run the base first; use the LLM step to refine trace and rationale.
+
+### Step 0 — DETERMINISTIC: locate / verify the required inputs (pre-model)
+
+Before building the table, confirm the two **Required** inputs as a file-level fact: the **candidate backlog** and the **accepted outcomes**. Either one absent, unreadable, or empty → emit the clean halt below and **stop**. A present-but-sparse outcome set is *not* absent and does not halt — it proceeds to more honest nulls.
+
+```markdown
+HALT — required input missing.
+
+I can't triage a backlog without the things it traces to, and I won't invent them. I'm missing: <the candidate backlog | the accepted outcomes | both>. Tell me where it lives and I'll pick up from there.
+
+I can read any of these:
+  • an xlsx / csv file path
+  • a GitHub Project (owner + project number)
+  • a docs folder (markdown / text)
+  • the items / outcomes pasted directly into the chat
+
+Which one, and where? (With no agreed outcome set every trace is a guess and every item looks like scope creep, so nothing is sized or traced until you point me at both.)
+```
+
+The halt names the missing input and stops; it carries no parked item, no size, no priority, and no verdict. With both Required inputs present, proceed to Step 1.
 
 ### Step 1 — DETERMINISTIC: build the park/size/prioritise table
 
@@ -217,5 +271,5 @@ Return ONLY a JSON object of this shape, no prose, no markdown fence:
 - **Never block.** This is advisory. You produce a menu; the human parks, promotes, or declines. No approval step, no blocking. The only "enforcement" is a soft, annotating CI check that *informs* — it never stops anyone.
 - **Promotion carries the trace; it does not invent one.** Promoting an untraced item lands an `add` with no outcome, which gets flagged downstream. That is correct behaviour, not a bug — promotion is not a laundromat for missing traces.
 - **Decline is memory, not deletion.** Declined items stay on record with the evidence they were declined against. Re-proposing a declined item against unchanged evidence is the anti-pattern — it wastes the team's attention and erases the why-not. Only resurface when the evidence genuinely changes.
-- **Sparse inputs are normal.** Sparse outcomes → more honest nulls. No comparators → unsizable (`null`) sizes, not guesses. Don't paper over thin evidence with confident-looking fabrication.
+- **Sparse inputs are normal.** Sparse outcomes → more honest nulls. No comparators → unsizable (`null`) sizes, not guesses. Don't paper over thin evidence with confident-looking fabrication. (This skill's instance of the library GROUNDING rule — `skills/_contract/grounding-no-absent-input`: a *sparse* Required input proceeds to honest nulls, but an *absent* Required input — no backlog, or no outcomes at all — halts and asks per Step 0.)
 - **The human owns the source field.** Agent-suggested items are proposals; parking, promoting, and declining are human acts (`source = human`). Keep the line between "the agent proposed" and "the human decided" visible at all times.

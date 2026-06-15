@@ -4,7 +4,7 @@ description: When retrieval finds no approved match, populate 2-3 rival candidat
 one_liner: Lay rival solution shapes side by side when no pattern fits.
 aliases: [solution options, design alternatives, options analysis, trade study, candidate architectures, build vs buy, no pattern fits, explore the design space]
 when_to_use: Pattern retrieval came back honest-empty — no approved pattern fits the solution shape with enough confidence to adopt. Reach here only after recommend-component-patterns finds nothing, to open the space with rival shapes before anyone commits.
-output_kinds: [menu, question]
+output_kinds: [menu, question, halt]
 deterministic_fallback: the side-by-side candidate columns skeleton with a mandatory 'do nothing' column
 suggested_tier: frontier
 neighbours: |
@@ -78,15 +78,54 @@ The user supplies, as markdown or plain text:
 
 | Input | Required | What it is |
 |---|---|---|
-| **Ratified outcomes + derived requirements** | yes | The project's `BO-N` outcomes and `REQ-N` requirements (each carrying `derives_from: BO-N` for the outcome it serves). This is what each candidate must serve and what you trace back to. |
-| **The honest-empty signal** | yes | Confirmation that pattern retrieval found no adoptable approved pattern — ideally the near-misses it *did* surface and why each fell short, so candidates can deliberately diverge from them. |
-| **NFRs / constraints** | optional | Any attached NFRs already in play, plus hard constraints (data residency, runtime, latency targets). These bound the space and seed roadblocks. |
-| **Known roadblocks register** | optional | Any existing roadblock output for the project. Exploration commonly *adds* to it; start from what's already known. |
+| **Ratified outcomes + derived requirements** | **Required** | The project's `BO-N` outcomes and `REQ-N` requirements (each carrying `derives_from: BO-N` for the outcome it serves). This is what each candidate must serve and what you trace back to. *If absent/unreadable/empty: HALT and ask where the ratified outcomes + requirements live (per `_shared/grounding.md`); never invent an outcome or `REQ-N` to justify a shape.* |
+| **The honest-empty signal** | **Required** | Confirmation that pattern retrieval found no adoptable approved pattern — ideally the near-misses it *did* surface and why each fell short, so candidates can deliberately diverge from them. *If absent: HALT and ask whether `recommend-component-patterns` actually returned honest-empty (per `_shared/grounding.md`) — exploration is strictly the no-fit fallback; never assume the library was empty. If a pattern in fact fits, go back and adopt it.* |
+| **NFRs / constraints** | optional | Any attached NFRs already in play, plus hard constraints (data residency, runtime, latency targets). These bound the space and seed roadblocks. *If absent: proceed; never invent a constraint.* |
+| **Known roadblocks register** | optional | Any existing roadblock output for the project. Exploration commonly *adds* to it; start from what's already known. *If absent: start a fresh roadblock list; never invent a prior one.* |
 | **Space-expansion notes** | optional | Human corrections to a constraint the model was pretrained to assume — *"this runtime can run background tasks."* These **oblige re-proposal** (see Step 6). |
 
 Stay grounded in the outcomes. **A candidate exists to serve named `BO-N`
 outcomes** — if a shape doesn't trace to outcomes, it is a daydream, not a
 candidate. Do not invent requirements the project never stated to justify a shape.
+(This is the no-fabrication keystone applied to outcomes — see
+`skills/_contract/grounding-no-absent-input`.)
+
+## Grounding (quoted)
+
+This skill reasons over ratified outcomes, derived requirements, and constraints, so it
+carries the no-fabrication keystone — see `skills/_contract/grounding-no-absent-input`. The
+existing "stay grounded in the outcomes; do not invent requirements to justify a shape"
+discipline is one **instance** of this contract.
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
 
 ## The method (numbered steps)
 
@@ -94,6 +133,29 @@ The base is deterministic (the columns skeleton); one step requires a model (the
 even-handed population of rival shapes). The structure is mechanical and falls
 back cleanly; the reasoning is the only place a model is needed, and it is bounded
 by hard "no winner" rules.
+
+### Step 0 — Locate / verify the required inputs (deterministic, pre-model)
+
+Before exploring, confirm both Required inputs are present as a file-level fact: the
+**ratified outcomes + derived requirements** (what every candidate must serve) and the
+**honest-empty signal** (the reason exploration is happening at all). This is mechanical —
+absent / unreadable / empty — never a judgement on "is the space novel enough."
+
+- **Outcomes + requirements absent/unreadable/empty** → emit the clean HALT below and stop.
+- **Honest-empty signal absent** → HALT and ask whether `recommend-component-patterns` really
+  returned no adoptable pattern. Never assume the library was empty; if a pattern fits, go
+  back and adopt it.
+
+```
+HALT — required input missing.
+
+I can't open the solution space without the ratified outcomes + requirements every candidate
+must serve, and I won't invent them. Point me at the outcomes / requirements and I'll lay
+out rival shapes side by side — nothing is assumed until then.
+
+I can read any of: a markdown file · an xlsx/csv path · a GitHub Project (owner + number)
+· a docs folder · the rows pasted directly here. Which one, and where?
+```
 
 ### Step 1 — Confirm you are actually here (honest-empty check, advisory)
 

@@ -4,7 +4,7 @@ description: Merge an externally-authored design (any markdown structure) onto t
 one_liner: Merge an externally-authored design onto the fixed canonical sections.
 aliases: [import design, merge external design, land a design doc, integrate a design, consultant design handoff, map design to sections, adopt external architecture]
 when_to_use: a specialist authored a design elsewhere (another IDE, team, or agent) and it must land on the canonical frozen-8 sections without losing fidelity or scope
-output_kinds: [proposal]
+output_kinds: [proposal, halt]
 deterministic_fallback: heading-split + section title/keyword matching onto the frozen-8
 suggested_tier: frontier
 neighbours: |
@@ -51,15 +51,87 @@ Target only these eight `section_key` values. Never invent a section.
 
 You supply:
 
-1. **The incoming design bundle** — one or more markdown files, any headings. If multiple files, keep per-file provenance (fence each file with an invisible marker so the source survives, e.g. `<!-- design-import-file: <filename> -->` on its own line before each file's content).
-2. **The current canonical sections** — the existing `body_md` for each of the frozen-8 keys (empty string if a section has nothing yet). This is what you merge *into*.
-3. **The project requirements** (optional but recommended) — a list of `req_key` + short text, so you can thread traceability references inline where the design plainly addresses a requirement.
+1. **The incoming design bundle** — *Required.* One or more markdown files, any headings. If
+   multiple files, keep per-file provenance (fence each file with an invisible marker so the
+   source survives, e.g. `<!-- design-import-file: <filename> -->` on its own line before each
+   file's content). *If absent/unreadable/empty: HALT and ask where the external design lives
+   (per `_shared/grounding.md`); never invent design prose to merge.* Readable forms: a
+   markdown file, several markdown files, a docs folder, or a pasted block.
+2. **The current canonical sections** — *Required.* The existing `body_md` for each of the
+   frozen-8 keys (empty string if a section has nothing yet). This is what you merge *into*.
+   *If the current sections are absent/unreadable: HALT and ask where they are (per
+   `_shared/grounding.md`); a merge target is not optional. An all-empty-but-present set is
+   **not** a halt — a first import onto empty sections is a normal, valid merge.*
+3. **The project requirements** — *Optional (recommended).* A list of `req_key` + short text,
+   so you can thread traceability references inline where the design plainly addresses a
+   requirement. *If absent: proceed without inline `req_key` threading; never invent a
+   `req_key` or append a requirements list the author never wrote.*
+
+## Grounding (quoted)
+
+This skill reads and writes design sections and threads requirement keys, so it carries the
+no-fabrication keystone — see `skills/_contract/grounding-no-absent-input`. The existing
+"never invent scope / never invent a section / never force-fit" discipline throughout this
+skill is one **instance** of this contract.
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
 
 ## The method
 
 The method has a **deterministic base** and a **model merge step**. Run the deterministic step first so a defensible routing always exists even if the model step is skipped or unavailable; then run the model step to do the real preserve-and-integrate merge. Always end with a diff for a human.
 
 > **Multi-agent option (advisory).** This step deepens with independent parallel agents: launch one sub-agent per candidate section, at most 4 at a time, each a separate sub-agent. A failed sub-agent returns nothing and is never fatal — the deterministic base stands; merge what succeeded. (Claude Code: use the Task tool / subagents. Other tools: launch parallel model calls; or a matrix-strategy CI job.) Never required — it adds coverage and cuts single-pass bias. See `skills/_contract/parallel-agents`.
+
+### Step 0 — Locate / verify the required inputs (deterministic, pre-model)
+
+Before concatenating anything, confirm both Required inputs are present as a file-level fact:
+the **incoming design bundle** (what is imported) and the **current canonical sections** (what
+it merges into). This is mechanical — absent / unreadable / empty — never a judgement on "is
+the design good enough to import."
+
+- **Incoming design bundle absent/unreadable/empty** → emit the clean HALT below and stop.
+- **Current canonical sections absent/unreadable** → HALT and ask where they are. (An
+  all-empty-but-present set of sections is **not** a halt — a first import onto empty sections
+  is a normal merge.)
+
+```
+HALT — required input missing.
+
+I can't import an external design without the design itself, and I won't invent the prose to
+merge. Point me at the external design and I'll map and merge it onto the canonical sections,
+with a diff to review — nothing is adopted until you accept that diff.
+
+I can read any of: a markdown file · several markdown files · a docs folder · the design
+pasted directly here. Which one, and where?
+```
 
 ### Step 1 — Concatenate and fence the bundle (deterministic)
 

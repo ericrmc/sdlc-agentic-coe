@@ -4,7 +4,7 @@ description: Prefill cited evidence against four advisory review lenses (pattern
 one_liner: Cited evidence against four advisory review lenses, human reads only the delta.
 aliases: [governance checklist, technical review checkpoint, design sign-off, advisory review, compliance lens, pre-handoff review, evidence checklist]
 when_to_use: a governance/technical-review checkpoint, framed as advisory lenses not required dispositions
-output_kinds: [proposal, question]
+output_kinds: [proposal, question, halt]
 deterministic_fallback: the four-lens evidence-prefill checklist
 suggested_tier: mid
 tier_reason: one structured evidence-prefill pass over given facts; no adversarial weighing
@@ -63,21 +63,79 @@ a roadblock and let the work fail validation against it. This skill only ever ad
 
 The user supplies whatever project context they have as markdown / notes. The richer the
 context, the better the evidence prefill, but every lens degrades safely to "no evidence
-found — defer". Useful inputs:
+found — defer". Each row is marked Required or Optional; the *if-absent* notes cite the
+grounding contract (`skills/_contract/grounding-no-absent-input`, rule in
+`skills/_shared/grounding.md`).
 
-- **The settled solution shape / pattern** and its attached NFRs (drives `pattern_compliance`).
-- **Decisions** that are settled — data placement, auth method, encryption, integration
-  (drives `security`).
-- **Non-functional requirements** and any design findings against them — response time,
-  availability, residency, RPO/RTO (drives `nfr`).
-- **The completeness facts** — requirements accepted vs open, comparators confirmed, pattern
-  adopted, decisions settled, estimate accepted (drives `approval`).
-- **The previous checklist** (the last clean snapshot), if one exists — so this run can
-  compute the **delta since last clean**. If there is no prior snapshot, the whole checklist
-  is the delta (first review).
-- **A dismissal log** (optional) — lenses/cues the human already dismissed, and the evidence
-  fingerprint they dismissed against, so a dismissed cue does not re-nag until its evidence
-  changes.
+- **The project context to review** — *Required (at least one of the four lens feeds below).*
+  The lenses cite real project facts; an empty context has nothing to ground a review record
+  against, so a review with **no** input for **any** lens HALTs and asks for the context
+  (per `_shared/grounding.md`) — it never invents a solution, decision, NFR, requirement, or
+  completeness fact to populate a lens. The four lens feeds are:
+  - **The settled solution shape / pattern** and its attached NFRs (drives `pattern_compliance`).
+  - **Decisions** that are settled — data placement, auth method, encryption, integration
+    (drives `security`).
+  - **Non-functional requirements** and any design findings against them — response time,
+    availability, residency, RPO/RTO (drives `nfr`).
+  - **The completeness facts** — requirements accepted vs open, comparators confirmed, pattern
+    adopted, decisions settled, estimate accepted (drives `approval`).
+  A *partial* context is the normal case, not a halt: when **some** lens feeds are present and
+  others are not, the present lenses are prefilled from real evidence and each absent lens is
+  rendered honestly as "no evidence found — deferred" (never padded with an invented fact).
+  Only a context with **zero** evidence for **every** lens halts.
+- **The previous checklist** (the last clean snapshot) — *Optional.* If absent: proceed and
+  treat the whole checklist as the delta (first review); never invent a prior snapshot.
+- **A dismissal log** — *Optional.* If absent: proceed with nothing suppressed; never invent
+  a dismissal the human did not make.
+
+Readable forms for the project context: a markdown file, an xlsx/csv path, a GitHub Project
+owner+number, a docs folder, or a block pasted into the chat.
+
+---
+
+## Grounding (quoted)
+
+This skill reasons over project inputs (NFRs, decisions, the settled solution, requirement
+status), so it obeys the no-fabrication keystone — `skills/_contract/grounding-no-absent-input`.
+An absent *required* input HALTs and asks; an absent *optional* input proceeds honestly. The
+quoted rule below travels in this skill's own bytes (drift-pinned by the `check-shared-stub-drift`
+Action).
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
+
+> **Read this skill's halt narrowly.** The lens-level "no evidence found — defer" default is the
+> *optional*-input path: a context that is present but thin still produces an honest review record.
+> The halt fires only on the *required* input — a context with **zero** evidence for **every**
+> lens, where there is nothing to review and a record would be pure invention. Degrade per lens;
+> halt only when there is no project context at all.
 
 ---
 
@@ -85,6 +143,36 @@ found — defer". Useful inputs:
 
 The base is deterministic; exactly one step is LLM reasoning: a deterministic four-lens
 prefill skeleton plus the agent's evidence-prefill.
+
+### Step 0 — Verify there is something to review (deterministic, pre-model)
+
+Before any prefill, check input presence as a file-level fact. If there is project context for
+**at least one** lens feed (a settled solution / pattern + NFRs, settled decisions, NFRs +
+design findings, or completeness facts), proceed to Step 1. If there is **no** readable evidence
+for **any** lens — the context is absent, unreadable, or empty — emit the clean HALT below and
+stop. Do **not** manufacture a lens feed to "have something to review"; a review record grounded
+in nothing is exactly the laundering this skill exists to prevent.
+
+```markdown
+HALT — required input missing.
+
+I can't run **advisory-governance-checklist** without the project context the lenses cite, and
+I won't invent one. There is no solution shape, decision, NFR, or completeness fact for me to
+ground a single lens against — so any record I produced would be fabricated.
+
+Point me at the context and I'll prefill the lenses from real evidence. I can read any of these:
+  • a markdown file or docs folder (the solution shape, decisions, NFRs, design findings)
+  • an xlsx / csv file path
+  • a GitHub Project (owner + project number)
+  • the facts pasted directly into the chat
+
+Which one, and where? (Nothing is assumed until you point me at it. A partial context is fine —
+present lenses are prefilled, absent lenses are deferred honestly; only a wholly empty context
+stops here.)
+```
+
+This is a `halt`, never a verdict — it names the missing input and asks where it is. It carries
+no "this looks unready / out of scope" disposition; that is a JUDGMENT the human owns.
 
 ### Step 1 — Assemble the advisory inputs (deterministic)
 
@@ -222,3 +310,9 @@ governance-lite checklist trustworthy. Strip them and you have a rubber stamp.
   missing or under-performing *person*. Never assess a reviewer.
 - **Light by default.** If in doubt, advise and defer. This skill's job is to make sure
   nothing important went unlooked-at — not to stop the work.
+- **Halt on a wholly empty context; defer on a thin one.** Per the grounding contract
+  (`skills/_contract/grounding-no-absent-input`), the *required* input is "context for at
+  least one lens"; absent that, Step 0 HALTs and asks rather than inventing a lens feed. The
+  *optional* per-lens evidence degrades to "no evidence found — deferred". Never collapse the
+  two: a present-but-thin context is a deferred lens, not a halt; a wholly absent context is a
+  halt, not a checklist of invented facts.

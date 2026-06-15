@@ -4,7 +4,7 @@ description: Read project context plus the approved pattern library files and re
 one_liner: Match project needs to proven library patterns, or honestly none.
 aliases: [pick a pattern, reuse architecture, find a proven design, what has worked before, off-the-shelf solution, recommend a tech stack, match requirements to components, reference architecture lookup]
 when_to_use: Choosing a solution shape. The fastest route to a governed design is adopting an already-approved pattern — so before architecting anything custom, check what has already been built and validated.
-output_kinds: [proposal, menu]
+output_kinds: [proposal, menu, halt]
 deterministic_fallback: Read the pattern files directly and match on category / topology / data_placement keywords; present the candidates, recommend none if nothing fits.
 suggested_tier: frontier
 tier_reason: Capability resolution plus proven-vs-candidate judgement is high-stakes and shapes a human design commitment.
@@ -59,26 +59,99 @@ flow — not minted here on the fly.
 
 The user supplies (as markdown / context):
 
-1. **Project context** — title, description, and the relevant downstream
-   artefacts: derived requirements, attached NFRs, and any stated deployment
-   topology and data-placement constraints (e.g. "in-region only", "on-prem
-   mandated by client contract", "PII must not leave the regional boundary").
-2. **The pattern library** — the files under `patterns/`. The LLM reads these
-   `.md` files **directly**; each has YAML frontmatter (`pattern_key`, `name`,
-   `category`, `intent`, `deployment_topology`, `data_placement`,
+1. **Project context** — *Required.* Title, description, and the relevant
+   downstream artefacts: derived requirements, attached NFRs, and any stated
+   deployment topology and data-placement constraints (e.g. "in-region only",
+   "on-prem mandated by client contract", "PII must not leave the regional
+   boundary"). *If absent/unreadable/empty: HALT and ask where it is (per
+   `_shared/grounding.md`); never invent a requirement, NFR, or constraint to
+   match against.* Readable forms: a markdown file, an xlsx/csv path, a GitHub
+   Project owner+number, a docs folder, or a pasted block.
+2. **The pattern library** — *Required.* The files under `patterns/`. The LLM
+   reads these `.md` files **directly**; each has YAML frontmatter (`pattern_key`,
+   `name`, `category`, `intent`, `deployment_topology`, `data_placement`,
    `approval_status`, `attached_nfrs`, `valid_from`, `validity_check_months`,
    `sunset_at`, `evidence`, etc. — see `patterns/_schema/pattern.frontmatter.schema.json`)
    and a body (Summary, When to use / when NOT to, Attached NFRs, Trade-offs).
-3. **The capability index** — `capabilities/INDEX.md`, an alias-keyed lookup that
-   resolves a plain-language need (e.g. "data warehouse", "run our agents in
-   prod") to a canonical capability and its fulfilment state.
+   *If `patterns/` is absent/unreadable: HALT and ask where the library is (per
+   `_shared/grounding.md`); never invent a `pattern_key`. An empty-but-readable
+   `patterns/` is **not** a halt — it is the honest-empty route (STEP 4): nothing
+   to recommend, route to exploration.*
+3. **The capability index** — *Optional.* `capabilities/INDEX.md`, an alias-keyed
+   lookup that resolves a plain-language need (e.g. "data warehouse", "run our
+   agents in prod") to a canonical capability and its fulfilment state. *If
+   absent: proceed against the raw pattern library (STEP 1); the index is a fast
+   path, not a gate — never invent a `CAP-` key to stand in for it.*
 
 No database, vector index, or network call is needed. The pattern files are the
 library.
 
+## Grounding (quoted)
+
+This skill reads or writes a requirement, so it carries the no-fabrication keystone —
+see the contract `skills/_contract/grounding-no-absent-input`. The "never invent a
+`pattern_key`" rule throughout this skill (it appears in the description, STEP 1, STEP 2,
+and the anti-patterns) is one **instance** of this contract, not a separate rule.
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
+
 ## The method — STEPS
 
-### STEP 0 (DETERMINISTIC) — Resolve the need to a capability
+### STEP 0 (DETERMINISTIC) — Locate / verify the required inputs (pre-model)
+
+Before any reasoning, confirm the two Required inputs are present as a file-level fact:
+the **project context** (something to match against) and the **pattern library**
+(`patterns/`, the set of legal `pattern_key`s). This is mechanical — absent / unreadable /
+empty — never a model judgement on "is this enough to work with."
+
+- **Project context absent/unreadable/empty** → emit the clean HALT below and stop.
+- **`patterns/` absent/unreadable** → HALT and ask where the library lives.
+- **`patterns/` present but empty** (zero pattern files) → this is **not** a halt; it is
+  the honest-empty route — go straight to STEP 4 and route to exploration.
+
+```
+HALT — required input missing.
+
+I can't recommend patterns without the project context to match against, and I won't
+invent requirements or constraints to stand in for it. Tell me where the project's
+outcomes / requirements / NFRs / topology + data-placement constraints live and I'll
+read them and recommend genuine fits — nothing is assumed until then.
+
+I can read any of: a markdown file · an xlsx/csv path · a GitHub Project (owner + number)
+· a docs folder · the rows pasted directly here. Which one, and where?
+```
+
+With both Required inputs present, proceed to resolve the need to a capability.
+
+### STEP 0a (DETERMINISTIC) — Resolve the need to a capability
 
 Before scanning patterns, resolve what the project actually needs into a named
 capability. Read `capabilities/INDEX.md` and match the project's stated need
@@ -178,7 +251,7 @@ actually being made.
 
 ### STEP 4 — Honest empty routes to exploration
 
-If, after STEP 2 (or already at STEP 0 for an OPEN capability), **nothing
+If, after STEP 2 (or already at STEP 0a for an OPEN capability), **nothing
 genuinely fits**, do not pad the list to look productive. Recommend **none**, say
 plainly why the library does not cover this project's shape, and route to
 **`architect/surface-solution-options`** — explore the solution space, then
@@ -277,6 +350,8 @@ PR-reviewed contribution flow so the next project can reuse it.
   under `patterns/`. The deterministic STEP 1 exists precisely so the set of
   legal keys is fixed before reasoning. Wanting to recommend something that isn't
   in the library is the honest-empty signal (STEP 4), not licence to make one up.
+  This is the no-fabrication keystone applied to pattern keys — see
+  `skills/_contract/grounding-no-absent-input`.
 - **Don't oversell.** Every recommendation states its trade-off or caveat. A
   recommendation with no caveat is usually one not thought hard enough about —
   surface the cost, the assumption, or the gap.

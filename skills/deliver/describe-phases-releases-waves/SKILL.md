@@ -4,7 +4,7 @@ description: Lay out a project's life past 'built' — UAT-gated maturity phases
 one_liner: Plan a project's maturity phases and traced release stream.
 aliases: [release planning, delivery phases, rollout plan, release notes, roadmap phases, change log, MVP to production, scope creep check]
 when_to_use: planning a project's delivery lifecycle and release stream past the prototype
-output_kinds: [proposal, menu]
+output_kinds: [proposal, menu, halt]
 deterministic_fallback: the four-phase ladder + the change_kind release-notes grouping
 suggested_tier: frontier
 neighbours: Comes after architect/reconcile-as-built (the design is settled against reality). Comes before deliver/help-implement-a-wave (planning one wave's cutover).
@@ -53,19 +53,88 @@ nothing to trace to is all creep.
 
 Paste or point the skill at:
 
-1. **The accepted outcomes** — each with a stable key (e.g. `BO-2`, `REQ-7`) and one line of text. These
-   are the *only* things a change may trace to. May be sparse — that is fine and honest.
-2. **The backlog** — a pasted list of desired changes / tickets / one-liners. One item per line. (A direct
-   Jira/GitHub ingest is a future seam; today the list is pasted.)
-3. **Optionally, the current phase** — which maturity milestone this release belongs to, if any.
-4. **Optionally, acceptance criteria** per outcome — for the UAT checklist projection.
+1. **The accepted outcomes** — *Required.* Each with a stable key (e.g. `BO-2`, `REQ-7`) and one line of
+   text. These are the *only* things a change may trace to. If absent/unreadable/empty: HALT and ask where
+   they are (per `_shared/grounding.md`); never invent an outcome or a key. A backlog with nothing to trace
+   to is all creep — run the requirements/outcomes skills first. May be sparse once present — that is fine
+   and honest. Readable forms: a markdown file, an xlsx/csv path, a GitHub Project owner+number, a docs
+   folder, or a pasted block.
+2. **The backlog** — *Required.* A pasted list of desired changes / tickets / one-liners, one item per line.
+   If absent/unreadable/empty: HALT and ask where it is (per `_shared/grounding.md`); never invent backlog
+   items. (A direct Jira/GitHub ingest is a future seam; today the list is pasted.)
+3. **Current phase** — *Optional.* Which maturity milestone this release belongs to, if any. If absent:
+   proceed and surface it as a `question`; never assume a phase.
+4. **Acceptance criteria per outcome** — *Optional.* For the UAT checklist projection. If absent: render the
+   honest empty-state line, never an invented criterion.
 
 No codebase or design doc is needed. This skill works entirely off keys, outcome text, and the backlog.
+
+This skill reads/writes requirements and outcomes, so it follows the GROUNDING contract — an absent
+**Required** input HALTs and asks; it is never invented or silently proceeded over. See
+`skills/_contract/grounding-no-absent-input`.
+
+## Grounding (quoted)
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
 
 ## The method as numbered STEPS
 
 The method has a **deterministic base** (Steps 1, 4, 6 — runnable with no model at all) and **one model
 reasoning step** (Step 5 — the classify-and-trace judgement). Preserve both.
+
+### STEP 0 — Locate / verify the required inputs (DETERMINISTIC, pre-model)
+
+Before any phase or release is laid out, confirm the two Required inputs are present as a file-level fact —
+**accepted outcomes** and **the backlog** — computed *before the model reasons*. Either one absent,
+unreadable, or empty (zero keys / zero items of any recognised scheme) → emit the clean halt below and
+**stop**. This is mechanical, never a model judgement on "is this enough to plan with."
+
+```markdown
+HALT — required input missing.
+
+I can't lay out phases and releases without the things a change traces to, and I won't invent them. I'm
+missing: <the accepted outcomes | the backlog | both>. Tell me where it lives and I'll pick up from there.
+
+I can read any of these:
+  • an xlsx / csv file path
+  • a GitHub Project (owner + project number)
+  • a docs folder (markdown / text)
+  • the rows pasted directly into the chat
+
+Which one, and where? (A release with nothing to trace to is all scope creep — nothing is assumed until
+you point me at the outcomes.)
+```
+
+The halt names the missing input and stops; it carries no phase, no release, no traced delta, and no
+verdict. With both Required inputs present, proceed to STEP 1.
 
 ### STEP 1 — Lay out the four-phase ladder (DETERMINISTIC)
 
@@ -223,7 +292,9 @@ give auditors self-serve evidence without raising a ticket.
 ## Notes / anti-patterns
 
 - **Do not invent a trace.** A forced weak match is worse than an honest null. The null is a feature: it is
-  how scope creep becomes visible. Suppressing it defeats the whole method.
+  how scope creep becomes visible. Suppressing it defeats the whole method. (This is this skill's instance of
+  the library GROUNDING rule — `skills/_contract/grounding-no-absent-input`: a missing trace is named as a
+  null, never invented; a missing Required *input* halts, per STEP 0.)
 - **Do not delete.** `remove` is a retirement pointer; `change` supersedes with a new version. History is
   always preserved — "what was this before REL-3?" must stay answerable.
 - **One outcome per delta.** If an item genuinely serves two outcomes, it is probably two items. Forcing

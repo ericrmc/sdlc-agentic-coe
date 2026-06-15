@@ -4,7 +4,7 @@ description: Light advisory pass over a proposed release/change delta surfacing 
 one_liner: Surface scope-drift questions over a proposed release delta.
 aliases: [scope drift check, release sanity check, scope creep finder, untraced change check, requirement traceability check, pre-release review, scope assurance]
 when_to_use: sanity-checking a proposed release for scope drift before it lands
-output_kinds: [question]
+output_kinds: [question, halt]
 deterministic_fallback: the three deterministic checks over the delta
 suggested_tier: mid
 neighbours: Comes after deliver/triage-backlog-and-defer (a promoted item becomes a release delta). Comes before deliver/scaffold-then-handoff (handing the settled scope to a build).
@@ -34,21 +34,57 @@ Do **not** use this as a merge barrier, an approval requirement, or a release st
 
 The user supplies the proposed release delta plus enough project context to trace it. In any markdown/structured form:
 
-1. **The change list** — one row per requirement delta in the release. Each row has:
+1. **The change list** — *Required.* One row per requirement delta in the release. Each row has:
    - `change_kind`: `add` | `change` | `remove`
    - `req_key`: the requirement being added/changed/removed (e.g. `REQ-014`)
    - `derives_from` (the *trace edge*): the outcome `req_key` this change serves, or **empty/null** if it traces to nothing. A null trace is a deliberate scope-creep signal, not a mistake to auto-fix.
    - `rationale` (optional): why the change is proposed.
 
-2. **The outcomes** — the project's business outcomes, each with a `req_key` and short text.
+   If absent/unreadable/empty: HALT and ask where the delta is (per `_shared/grounding.md`); never invent a change or a `req_key`. There is no release to reconcile when there is no delta — "I read nothing" is not the same as "there were no drift questions." Readable forms: a markdown file, an xlsx/csv path, a GitHub Project owner+number, or a pasted block.
 
-3. **The current requirement set** — live requirements with their `req_key`, the outcome each `derives_from`, and whether each is already retired (so a `remove` can be tested against its surviving siblings).
+2. **The outcomes** — *Optional.* The project's business outcomes, each with a `req_key` and short text. If absent: run what you can (scope-creep on null traces is still computable) and say plainly that outcome-coverage checks were skipped; never invent an outcome to trace to.
 
-4. **The current design sections** — the section bodies of the live solution design (titles + body text is enough). Used only as a literal-token corpus: "does outcome `BO-3` appear anywhere in the current design text?"
+3. **The current requirement set** — *Optional.* Live requirements with their `req_key`, the outcome each `derives_from`, and whether each is already retired (so a `remove` can be tested against its surviving siblings). If absent: skip check 2 and say so; never invent a sibling requirement.
 
-5. **Dismissal memory** (optional) — a list of previously-dismissed questions, each keyed by `(check_kind, req_key, section_key, message)`. Any question matching a remembered key is suppressed so it does not nag again.
+4. **The current design sections** — *Optional.* The section bodies of the live solution design (titles + body text is enough). Used only as a literal-token corpus: "does outcome `BO-3` appear anywhere in the current design text?" If absent: skip check 3 and say so; never invent a section.
 
-If sections or outcomes are missing, run what you can and say what was skipped — never fail the pass.
+5. **Dismissal memory** — *Optional.* A list of previously-dismissed questions, each keyed by `(check_kind, req_key, section_key, message)`. Any question matching a remembered key is suppressed so it does not nag again.
+
+If outcomes, requirements, or sections are missing, run what you can and say what was skipped — never fail the pass. The **change list** is the one exception: with no delta there is nothing to reconcile, so its absence HALTs and asks rather than returning a misleading clean pass.
+
+This skill reads requirements, outcomes, and design over a release delta, so it follows the GROUNDING contract — the absent **Required** input (the delta) HALTs and asks; the **Optional** inputs degrade honestly and are never invented. See `skills/_contract/grounding-no-absent-input`.
+
+## Grounding (quoted)
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
 
 ## The three checks
 
@@ -79,6 +115,26 @@ Collect the outcomes this release *touches* — every outcome named by some chan
 This is the one check the optional model step can widen (see below), because literal-token matching misses outcomes that the design *describes* without naming by key.
 
 ## The method (steps)
+
+### Step 0 — Locate / verify the delta (deterministic, pre-model)
+
+Before anything is parsed, confirm the one **Required** input — the change list — is present as a file-level fact. Absent, unreadable, or empty (zero rows) → emit the clean halt below and **stop**. Do not return a clean pass: with no delta there is nothing to reconcile, and a silent-empty would read downstream as "the release had no drift," which is false.
+
+```markdown
+HALT — required input missing.
+
+I can't reconcile a release for scope drift without the change list (the delta), and I won't invent one. Tell me where the proposed release lives and I'll pick up from there.
+
+I can read any of these:
+  • an xlsx / csv file path
+  • a GitHub Project (owner + project number)
+  • a docs folder (markdown / text)
+  • the change rows pasted directly into the chat
+
+Which one, and where? (Nothing is checked until you point me at the delta; an absent outcome/requirement/design set just narrows which of the three checks can run, but the delta itself is the input there is no pass without.)
+```
+
+The halt names the missing input and stops; it carries no question, no finding, and no verdict. With the change list present, proceed to the deterministic base below.
 
 ### Deterministic base (do this first; it is mostly mechanical)
 
@@ -140,4 +196,4 @@ No scope-drift questions. Every add/change traces to an outcome, no removal stra
 - **Check 3 is literal-token first.** Run the deterministic key-match before the model widening, and let the model only soften, never harden. An outcome described-but-not-keyed is a *weaker* finding, not a stronger one.
 - **Dismissal memory is keyed on stable handles + message**, not on free-text rationale. Editing a change's rationale must not resurrect a dismissed question; dismissing a question about one requirement must not silence a different drift on the same requirement.
 - **Touched-only for check 3.** Do not run breaks-outcome over every outcome in the project — only the outcomes this release's delta actually touches. Whole-project outcome coverage is a different (design-time) pass, not this release-scope one.
-- **Degrade, don't fail.** Missing sections, missing outcomes, or no model available all reduce coverage — say what you skipped and return what you have. This pass never errors out.
+- **Degrade, don't fail.** Missing sections, missing outcomes, or no model available all reduce coverage — say what you skipped and return what you have. This pass never errors out. (This skill's instance of the library GROUNDING rule — `skills/_contract/grounding-no-absent-input`: the Optional inputs degrade honestly, but the one Required input — the change list / delta — halts and asks per Step 0, because there is no release to reconcile without it.)

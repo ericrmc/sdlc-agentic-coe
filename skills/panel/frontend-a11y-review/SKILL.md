@@ -4,7 +4,7 @@ description: Review a front-end, component tree, or design draft and return a11y
 one_liner: Accessibility-review a UI against WCAG 2.2 AA, citing fixed criteria.
 aliases: [accessibility review, a11y audit, WCAG check, screen reader review, keyboard accessibility, contrast check, ADA review, inclusive design review]
 when_to_use: a design review needs an accessibility lens (a named WCAG/a11y review)
-output_kinds: [proposal, question]
+output_kinds: [proposal, question, halt]
 deterministic_fallback: the WCAG 2.2 AA success-criterion ref list as a manual audit checklist
 suggested_tier: frontier
 neighbours: |
@@ -49,19 +49,67 @@ LLM review finds *candidates*, it does not prove conformance. Say so.
 
 ## Inputs
 
-The user supplies any one (or a mix) of:
+**At least one surface under review is *Required*** — any one (or a mix) of the
+first three rows below. *If absent/unreadable/empty:* when **none** of a design
+draft, a component tree, or a rendered surface is supplied, there is nothing to
+audit — HALT and ask which UI to review (per `skills/_shared/grounding.md` /
+`skills/_contract/grounding-no-absent-input`); never invent markup, components, or
+a screen to flag a11y issues against. See step 0.
 
-- **A design draft** — the markdown/prose of the screen or flow under review.
-- **A component tree** — JSX/HTML/template source, or a description of the component
-  hierarchy and its states.
-- **A rendered surface** — a screenshot, a DOM dump, an axe/Lighthouse export, or a
-  description of what renders, plus the relevant markup if available.
-- **Context (optional but useful)** — the project title, who the users are, any
-  assistive-tech the audience is known to use, the design system / token set in play.
+- **A design draft** — *Required (one of three).* The markdown/prose of the screen
+  or flow under review.
+- **A component tree** — *Required (one of three).* JSX/HTML/template source, or a
+  description of the component hierarchy and its states.
+- **A rendered surface** — *Required (one of three).* A screenshot, a DOM dump, an
+  axe/Lighthouse export, or a description of what renders, plus the relevant markup
+  if available.
+- **Context** — *Optional* (useful) — the project title, who the users are, any
+  assistive-tech the audience is known to use, the design system / token set in
+  play. *If absent:* proceed; review the surface on its own terms — never invent an
+  audience or a token set to cite.
 
-If you are handed only a screenshot, review what is visibly checkable (contrast,
-focus order if shown, target size, text scaling) and **mark the rest as
-not-assessable-from-this-input** rather than guessing.
+If you are handed only a screenshot, that **is** a valid surface (do not halt):
+review what is visibly checkable (contrast, focus order if shown, target size, text
+scaling) and **mark the rest as not-assessable-from-this-input** as `info` rather
+than guessing. Partial-but-present is named honestly, never patched (per the
+contract). The halt is reserved for *no surface at all*.
+
+## Grounding (quoted)
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
+
+Per `skills/_contract/grounding-no-absent-input`: a missing surface HALTs; a partial
+surface (a screenshot alone) proceeds and marks the unassessable criteria as `info`.
+Both are the contract's honesty rule — name the gap, never fabricate markup to fill
+it.
 
 ## The method
 
@@ -69,6 +117,30 @@ The deterministic base is the **fixed reference list** in
 `references/wcag-2.2-aa-refs.md`. It does double duty: it is the closed set of refs you
 are allowed to cite, AND it is a runnable manual audit checklist. The model step is the
 review itself. Both are advisory.
+
+0. **Verify a surface is present (deterministic — the grounding halt).** Before loading the
+   ref list, confirm at least one surface (a design draft, a component tree, or a rendered
+   surface) was actually supplied — a file-level fact (absent / unreadable / empty) computed
+   **before** any model reasoning, never a judgement on whether it "looks reviewable". If
+   **none** is present, emit the clean HALT below and **stop** — do not invent markup or a
+   screen to audit. A halt is a question, never a verdict.
+
+   ```markdown
+   HALT — required input missing.
+
+   I can't run an accessibility review without a UI to review, and I won't invent markup
+   to flag. Tell me where the surface is and I'll audit it against WCAG 2.2 AA.
+
+   I can read any of these:
+     • a design draft / wireframe of the screen or flow (markdown or prose)
+     • a component tree (JSX / HTML / template source) or a description of the hierarchy
+     • a rendered surface — a screenshot, a DOM dump, or an axe / Lighthouse export
+
+   Where is the UI? (No findings are produced until you point me at a real surface.)
+   ```
+
+   A screenshot **alone** is a valid surface — proceed and mark the unassessable criteria as
+   `info` (step 4); the halt is only for *no surface at all*. If a surface is present, continue.
 
 1. **Load the fixed ref list (deterministic).** Read
    `references/wcag-2.2-aa-refs.md`. Every entry is a WCAG 2.2 Level AA success
@@ -181,9 +253,10 @@ messages, drop missing refs.
   of WCAG failures are machine-detectable; the rest need human judgement and real AT
   testing. Never claim "WCAG AA conformant". Claim "reviewed against WCAG 2.2 AA; these
   are candidate findings".
-- **Don't review what isn't there.** Stay within the supplied material. If the input is
-  a screenshot, say which criteria you could not assess and emit them as `info`, rather
-  than hallucinating markup.
+- **Don't review what isn't there.** Stay within the supplied material — the
+  no-fabrication rule of `skills/_contract/grounding-no-absent-input` applied to a present
+  surface. If the input is a screenshot, say which criteria you could not assess and emit
+  them as `info`, rather than hallucinating markup. No surface at all is the step-0 HALT.
 - **Severity is impact, not pedantry.** Rank by who is blocked and how badly, not by the
   criterion's number or "how much it bugs you".
 - **Keep the finding shape aligned with the design review.** This skill shares the

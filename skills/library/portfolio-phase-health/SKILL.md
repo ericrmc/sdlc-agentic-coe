@@ -2,7 +2,7 @@
 name: portfolio-phase-health
 description: Compute a per-project advisory RAG health verdict at phase granularity, derived-on-read (no persisted score) — worst-of over a transparent named checklist with reasons naming every failing check; advisory facts ride alongside but don't drive v1; never a per-person/throughput metric; degrades safely. Use when producing the phase-level portfolio view for the org GitHub Project.
 when_to_use: producing the phase-level portfolio view for the org GitHub Project
-output_kinds: [proposal]
+output_kinds: [proposal, halt]
 deterministic_fallback: the worst-of checklist computation with reasons[]
 one_liner: Derived-on-read advisory RAG health per project phase.
 aliases: [project health, portfolio dashboard, RAG status, red amber green, project rollup, delivery health, portfolio view, traffic-light status]
@@ -46,18 +46,28 @@ explicit anti-pattern (see Notes).
 
 ## Inputs
 
-You (or the calling Action) supply, per project:
+You (or the calling Action) supply, per project. Each row is marked Required or Optional; the
+*if-absent* notes cite the grounding contract (`skills/_contract/grounding-no-absent-input`,
+rule in `skills/_shared/grounding.md`).
 
-1. **Project handle** — the downstream project's own GitHub Project (each downstream delivery gets
-   its OWN GitHub Project; this portfolio view rolls them up at PHASE level, never down to individual
-   requirements).
-2. **Phase** — the project's current delivery-lifecycle phase, one of
-   **`prototype` / `mvp` / `pilot` / `production`** (the axis below). Typically a single-select field
-   or label on the project card.
-3. **Advisory signals** — the same signals the `advisory-governance-checklist` skill reads, surfaced
-   as machine-readable facts on the project (issue labels, a `health-inputs.json` checked into the
-   project repo, or Action step outputs). Each is OPTIONAL; a missing signal degrades to its safe
-   default and is never treated as a failure.
+1. **Project handle** — *Required.* The downstream project's own GitHub Project (each downstream
+   delivery gets its OWN GitHub Project; this portfolio view rolls them up at PHASE level, never
+   down to individual requirements). If **no project is named at all** — the handle is absent,
+   unreadable, or empty — HALT and ask which project(s) to roll up (per `_shared/grounding.md`);
+   never invent a project name or fabricate a verdict for a project that was not supplied.
+   Readable forms: a GitHub Project owner+number, an org/project list, or the handle pasted in.
+   (Note the asymmetry below: a project you *were* pointed at but **cannot read** is reported with
+   safe defaults, not halted — "degrade, never crash". The halt is only for "you named no project
+   at all", where there is nothing to roll up and a verdict would be invented.)
+2. **Phase** — *Optional (defaults to `prototype`).* The project's current delivery-lifecycle
+   phase, one of **`prototype` / `mvp` / `pilot` / `production`** (the axis below); typically a
+   single-select field or label on the project card. If absent: default to `prototype` (the most
+   conservative phase — it gates off the shipping-stage checks); never invent a later phase.
+3. **Advisory signals** — *Optional.* The same signals the `advisory-governance-checklist` skill
+   reads, surfaced as machine-readable facts on the project (issue labels, a `health-inputs.json`
+   checked into the project repo, or Action step outputs). Each is OPTIONAL; a missing signal
+   degrades to its safe default (per the table below) and is never treated as a failure, and a
+   default is never padded with an invented count.
 
 Concretely the v1 checklist consumes:
 
@@ -79,7 +89,82 @@ And these **advisory facts** (surfaced, never scored — see Step 4):
 | `has_pii` | any item labelled `data:pii` or `data:special-category` | `false` |
 | `has_automated_decision` | any item labelled `ai:automated-decision` | `false` |
 
+## Grounding (quoted)
+
+This skill reasons over a project's live inputs (its GitHub Project items, phase, and advisory
+signals), so it obeys the no-fabrication keystone — `skills/_contract/grounding-no-absent-input`.
+The **project handle is the one required input**: name no project and there is nothing to roll up,
+so the skill HALTs and asks rather than inventing a verdict. Every *other* input is optional and
+degrades to a documented safe default — that degrade is **not** a halt (see the asymmetry note in
+Inputs). The quoted rule below travels in this skill's own bytes (drift-pinned by the
+`check-shared-stub-drift` Action).
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
+
+> **The grounding asymmetry that makes this skill's halt narrow.** "Name no project" (the required
+> input is absent) HALTs — there is nothing to compute and a verdict would be invented. "A named
+> project I cannot read cleanly" does **not** halt — it is reported with safe defaults per Step 2's
+> degrade-never-crash guard, because the project *was* supplied. The portfolio view never crashes
+> over one malformed project; it crashes over being told to roll up *nothing at all*.
+
+---
+
 ## The method (numbered steps)
+
+### Step 0 — Verify a project was named (deterministic, pre-model)
+
+Before resolving any phase or signal, check the **project handle** as a file-level fact. If at
+least one project handle was supplied, proceed to Step 1 (and let Step 2 degrade-not-crash on any
+project you cannot read cleanly). If **no** project was named at all — the handle is absent,
+unreadable, or empty — emit the clean HALT below and stop. Do **not** invent a project name, and
+never compute a RAG colour for a project that was never supplied — there is nothing to roll up.
+
+```markdown
+HALT — required input missing.
+
+I can't run **portfolio-phase-health** without a project to roll up, and I won't invent one.
+No project handle was supplied, so there is nothing to compute a verdict against.
+
+Tell me which project(s) to include and I'll roll up each one's live signals. I can read:
+  • a GitHub Project (owner + project number)
+  • an org / project list to enumerate
+  • the project handle(s) pasted directly into the chat
+
+Which project(s)? (Nothing is assumed until you name one. Once a project is named, I report it
+even if some of its signals are unreadable — those degrade to safe defaults, they don't stop me.)
+```
+
+This is a `halt`, never a verdict — it names the missing input (the project handle) and asks for
+it. It carries no health colour, no "this looks red", no disposition; those are computed only once
+a real project is supplied.
 
 ### Step 1 — Resolve the phase axis (delivery lifecycle)
 
@@ -243,6 +328,11 @@ Default ordering for a practice lead: **red, then amber, then green** (needs-att
   before pilot. The phase index exists precisely so early-lifecycle projects aren't penalised for
   not yet having shipping-stage artefacts.
 - **Stay advisory.** No Action should `exit 1` on a red verdict. This skill informs; it does not block.
+- **Halt on "no project named"; degrade on "project unreadable".** Per the grounding contract
+  (`skills/_contract/grounding-no-absent-input`), the *required* input is the project handle —
+  absent it, Step 0 HALTs and asks rather than inventing a verdict. Every other input is optional
+  and degrades to a safe default (Step 2). Keep the two distinct: never crash over one malformed
+  project (degrade it), and never invent a verdict when **no** project was supplied (halt).
 
 See `references/rag-checklist.md` for the exact named checklist, the phase-gate rules, and the
 worst-of resolution table.

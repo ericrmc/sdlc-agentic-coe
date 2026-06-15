@@ -4,7 +4,7 @@ description: Cluster a panel transcript by node and signal and emit four proposa
 one_liner: Cluster a deliberation transcript into four proposal categories.
 aliases: [summarise panel, panel synthesis, deliberation summary, debate roundup, review wrap-up, consolidate findings, distil discussion, decision menu from debate]
 when_to_use: closing a panel (foldable into convene-a-panel) or synthesising any deliberation transcript
-output_kinds: [proposal, menu]
+output_kinds: [proposal, menu, halt]
 deterministic_fallback: the four-category clustering skeleton
 suggested_tier: mid
 neighbours: usually follows panel/convene-a-panel (which produced the transcript); usually precedes panel/red-team-and-dissent (which records durable dissent from any split this surfaces).
@@ -45,19 +45,80 @@ proposal the transcript does not support.
 
 The user supplies, as markdown or structured text:
 
-- **The panel contributions** — for each: the voice (and its side, affirmative or adversarial), the
-  question it answered, a one-line `stance_summary`, the argument body, and a `signal` from this closed set:
-  `proposes_requirement`, `flags_gap`, `proposes_alternative`, `raises_risk`, `concurs`, `objects`. If the
-  source transcript has no signal tags, infer one per contribution from its stance before clustering.
-- **The node each contribution touched** — the outcome, requirement, section, challenge, or constraint it
-  cited (its `surfaced_from`). This is the clustering key alongside the signal.
-- **(optional) The questions and the panel cast** — so the synthesis can name which lens went silent and
-  call that out as the honest empty case.
+- **The panel contributions** — *Required.* For each: the voice (and its side, affirmative or adversarial),
+  the question it answered, a one-line `stance_summary`, the argument body, and a `signal` from this closed
+  set: `proposes_requirement`, `flags_gap`, `proposes_alternative`, `raises_risk`, `concurs`, `objects`. If
+  the source transcript has no signal tags, infer one per contribution from its stance before clustering.
+  *If absent/unreadable/empty:* HALT and ask for the transcript (per `skills/_shared/grounding.md` /
+  `skills/_contract/grounding-no-absent-input`); never invent contributions, signals, or a posture to
+  synthesise. See STEP 0.
+- **The node each contribution touched** — *Required.* The outcome, requirement, section, challenge, or
+  constraint it cited (its `surfaced_from`). This is the clustering key alongside the signal. *If absent on a
+  contribution:* that contribution cannot be clustered to a proposal — name it as ungrounded and drop it,
+  never back-fill a plausible node.
+- **The questions and the panel cast** — *Optional.* So the synthesis can name which lens went silent and
+  call that out as the honest empty case. *If absent:* proceed and omit the per-lens silence note; surface
+  the gap as a `question`, never invent a cast.
 
 You do not need a running system. A markdown transcript with stance + signal + cited node per contribution
 is enough.
 
+## Grounding (quoted)
+
+<!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
+
+**GROUNDING RULE — name the required inputs; an absent required input HALTs and asks, never assumes.**
+
+A skill **names its required inputs** up front (its Inputs section marks each row Required or
+Optional). Then:
+
+- **A required input that is absent, unreadable, or empty becomes a `halt`.** The halt asks
+  the user *where the input is*, offering the formats ingestion can read (an xlsx/csv path, a
+  GitHub Project owner+number, a docs folder, or a pasted block). It then **stops and waits.**
+  It never assumes, invents, or reasons over a hypothetical — no invented id, key, number, NFR,
+  requirement, acceptance criterion, file path, or source row.
+- **Partial input is named, not patched.** When some required inputs are present and others are
+  not, the skill **names exactly what is missing and asks for it** — it never silently proceeds
+  on the part it has, and it never back-fills the gap with a plausible-looking guess.
+- **An absent *optional* input proceeds honestly.** It is surfaced as a `question` or recorded
+  as an explicit null — never padded with invented content to look complete.
+
+**"I read nothing" and "I cannot read this" are different outputs.** An unreadable or
+unsupported source HALTs (it asks for a readable form); it never returns an empty result, because
+a silent-empty reads downstream as "the source had nothing in it" — a silent-proceed failure.
+
+**A halt is a question, never a verdict.** A halt names the missing input and asks where it is.
+It never smuggles a finding, an assumption, or a disposition for a human to rubber-stamp — no
+"I halt because this is infeasible / too risky / out of scope." Those are JUDGMENTs the human
+owns. The halt carries only: *what is required, what is missing, and the formats it can be read
+from.*
+
+<!-- END grounding -->
+
+Per `skills/_contract/grounding-no-absent-input`: a missing transcript is the one absence that must HALT, not be improvised. The synthesis's whole value is fidelity to a real transcript — an "honest empty case" means *a lens in a real transcript had no signal*, never *there was no transcript at all*. Those are different outputs (the contract's "I read nothing" vs "I cannot read this").
+
 ## The method (a deterministic base plus a model step)
+
+### STEP 0 — Verify the transcript is present (the grounding halt)
+
+Before clustering, confirm a transcript was actually supplied — a file-level fact (absent / unreadable / empty), computed **before** any model reasoning, never a judgement on whether the transcript "looks rich enough". If there are **zero** contributions to read, emit the clean HALT below and **stop**. Do not synthesise from memory, do not invent a posture, do not manufacture a single proposal. A halt is a question, never a verdict.
+
+```markdown
+HALT — required input missing.
+
+I can't synthesise a panel without the transcript it folds, and I won't invent contributions
+to cluster. Point me at the deliberation and I'll cluster it into the four proposal categories.
+
+I can read any of these:
+  • a markdown panel transcript (per-contribution: voice, question, stance, body, signal, cited node)
+  • the structured output of panel/convene-a-panel
+  • a pasted set of review comments tagged by stance + signal
+
+Where is the transcript? (Nothing is clustered or proposed until you point me at it.)
+```
+
+If the transcript is present, proceed to STEP 1. (A transcript that is present but where every lens
+`concurs` is **not** a halt — that is the honest empty case, handled in STEP 1.)
 
 ### STEP 1 — Cluster the transcript by node + signal (deterministic base)
 

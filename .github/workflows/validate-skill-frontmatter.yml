@@ -365,7 +365,44 @@ jobs:
           # Advisory only.
           exit 0
 
-      # (4) New-frontmatter-fields presence check (advisory). The revision adds
+      # (4) Grounding-contract lint (advisory). The no-fabrication keystone:
+      #     a skill that declares a REQUIRED input should quote the grounding stub
+      #     (skills/_shared/grounding.md), and a skill that declares `halt` in
+      #     output_kinds must actually wire a halt path in its body. This linter
+      #     checks those TWO documentation-level facts and is honest in its own
+      #     header that it CANNOT catch runtime fabrication (a model inventing an
+      #     input mid-run) — only the stub citation and the halt wiring. Run
+      #     WITHOUT --strict so WARN/NOTE never fail the step; this phase WILL warn
+      #     about analysis skills not yet updated to cite the stub, which is
+      #     expected and never blocks a merge.
+      - name: Lint skill grounding (stub citation + halt wiring)
+        id: grounding
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          set +e
+          OUT="$(python3 skills/_scripts/lint_skill_grounding.py 2>&1)"
+          CODE=$?
+          set -e
+          printf '%s\n' "$OUT"
+          {
+            echo "## Grounding-contract lint (advisory)"
+            echo ""
+            echo "Checks that a Required-input skill cites \`skills/_shared/grounding.md\`"
+            echo "and that a \`halt\`-declaring skill wires a halt path. It does NOT catch"
+            echo "runtime fabrication — that is behaviour no static check can see."
+            echo ""
+            echo '```'
+            printf '%s\n' "$OUT"
+            echo '```'
+            echo "_Advisory — WARN/NOTE only. Skills not yet updated to cite the stub"
+            echo "will warn this phase; that is expected and never blocks a merge._"
+          } >> "$GITHUB_STEP_SUMMARY"
+          # Advisory only: the linter already exits 0 without --strict, but make the
+          # step's non-blocking posture explicit and robust.
+          exit 0
+
+      # (5) New-frontmatter-fields presence check (advisory). The revision adds
       #     two cold-reader fields to each SKILL.md: one_liner (a plain purpose
       #     line) and suggested_tier (the provider-agnostic model-tier hint,
       #     frontier|mid|light). This step lists any SKILL.md missing either —
