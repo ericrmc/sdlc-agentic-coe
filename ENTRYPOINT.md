@@ -16,5 +16,6 @@ Both are self-contained `SKILL.md` files — read the one that fits and run it.
 - [`GETTING-STARTED.md`](GETTING-STARTED.md) — the persona table ("if you are an agent doing X, start here") and a fast end-to-end pass.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — how to add a skill, pattern, or capability.
 - [`RATIONALE.md`](RATIONALE.md) — **why** the architecture holds its shape. Read the matching section before any structural change so you do not break a load-bearing decision by accident.
+- [`ADR.md`](ADR.md) — the canonical, status-tracked decision log: one atomic record per decision (ADR-NNNN), each Accepted or Superseded. RATIONALE.md cites these; this is the single source of truth for what was decided and whether it still holds.
 
 More entry points may be added over time; this file names only the ones that exist.

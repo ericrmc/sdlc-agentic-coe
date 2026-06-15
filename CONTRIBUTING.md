@@ -13,6 +13,11 @@ then [skills/MAP.md](skills/MAP.md) and [capabilities/INDEX.md](capabilities/IND
 > records *why* each load-bearing decision was made, the alternatives and dissent, and
 > **what breaks if you change it** — so you do not dissolve a load-bearing property by
 > accident. Its §6 guard table maps a tempting change to the invariant it touches.
+>
+> The canonical per-decision record lives in [ADR.md](ADR.md), an immutable numbered
+> log (ADR-0001..N) that RATIONALE.md cites. **A new architectural decision adds the
+> next ADR-NNNN; reversing one supersedes it (`Status: Superseded by ADR-NNNN`) — you
+> never edit or delete an accepted record.**
 
 ## The rules that hold everywhere
 

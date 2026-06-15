@@ -8,15 +8,24 @@ You are the agent (or the human directing one) about to make a change here. **Re
 the section that touches your change before you make it.** A line that looks like a
 one-liner — rename a folder, add an output kind, make a check blocking, set a status
 on a pattern — can quietly dissolve the one property that lets an advisory library
-be safe without gates. The decisions below record what each property is, *why* it
-exists, what was considered instead, where a maintainer disagreed with a panel, and
-**what breaks if you change it**.
+be safe without gates.
 
-This document obeys the same no-fabrication rule as the library: every "why" below is
-evidenced in a file, a commit (`git log`), or the maintainers' design-deliberation notes
-(referenced below as "the design doc" — an internal artefact held with the maintainers,
-not shipped in this repo). Where a rationale is **not recorded anywhere**, it says so —
-"rationale not recorded — confirm with maintainers" — rather than inventing one.
+**The canonical, atomic, status-tracked record of *why* each decision was made lives in
+[`ADR.md`](ADR.md)** — the numbered log of immutable records `ADR-0001..N` (one owner per
+decision; the library forbids two sources of truth for the same fact). This document does
+not restate those whys; it **indexes** them. Its unique value is the cross-cutting
+synthesis the ADRs do not carry: the load-bearing **invariants** (§2), the **lessons /
+near-misses** (§4), the **honest limitations** (§5), and the **guard table** (§6) that maps
+a tempting change to the property it would dissolve. Each invariant and decision-record row
+cites the ADR that owns its rationale — read the ADR for the full *why*, *alternatives*, and
+*dissent*; read this doc for *what it touches and what breaks*.
+
+This document obeys the same no-fabrication rule as the library: every "why" below (and in
+`ADR.md`) is evidenced in a file, a commit (`git log`), or the maintainers'
+design-deliberation notes (referenced below as "the design doc" — an internal artefact held
+with the maintainers, not shipped in this repo). Where a rationale is **not recorded
+anywhere**, it says so — "rationale not recorded — confirm with maintainers" — rather than
+inventing one.
 
 ---
 
@@ -50,20 +59,26 @@ of files runs anywhere a file can be read.
 ### How to use this doc
 
 1. About to make a structural change? Jump to **§6 "Before you make a major change"**
-   first — it maps the tempting change to the invariant it touches.
-2. Then read the matching **invariant (§2)** or **decision record (§3)**.
+   first — it maps the tempting change to the invariant it touches and the `ADR-NNNN`
+   that owns its rationale.
+2. Then read the matching **invariant (§2)** or **decision-record index row (§3)**, and
+   follow its `ADR-NNNN` citation into [`ADR.md`](ADR.md) for the full why / alternatives /
+   dissent.
 3. If your change weakens an invariant, that is not necessarily forbidden — but it
-   *is* a deep change. Open it as a proposal, name the invariant in the PR, and let a
-   human rule.
+   *is* a deep change. Open it as a proposal, name the invariant **and its ADR** in the PR,
+   and let a human rule.
 
 ---
 
 ## 2. The load-bearing invariants
 
-These are the few rules that must not be broken without deep understanding. They are
-listed once in `DESIGN.md` §2; the *why* is expanded here.
+These are the few rules that must not be broken without deep understanding — the
+cross-cutting synthesis that is this doc's unique value. They are listed once in
+`DESIGN.md` §2; each is owned by an ADR (cited in its heading) where the full why /
+alternatives / dissent live. What follows here is the synthesis: how the invariants
+reinforce each other and what breaks if one is weakened.
 
-### 2.1 The TARGET RULE — four output kinds, never a verdict
+### 2.1 The TARGET RULE — four output kinds, never a verdict (ADR-0001)
 
 **What it is.** Every agent output is exactly one of four kinds — `proposal` |
 `question` | `menu` | `halt` — and **never** a status, verdict, colour, ranking,
@@ -81,14 +96,14 @@ guess as a human ruling, and cannot let a cheap model's confidence leak out as
 authority. The advisory guarantee lives in the **type** of the output — checkable at
 author-time and PR-time — so the library can automate aggressively *without* a
 blocking mechanism.
-(`SKILL.md` lines 56–62 "Why an advisory library is safe without a blocking
-mechanism".)
+(`skills/_contract/target-rule-output-kinds/SKILL.md` — "Why an advisory library is safe
+without a blocking mechanism".)
 
 **Alternatives considered.** Enforcement/approval gates that block a downstream
 project until a check passes (the prior tool's model) — rejected as heavyweight. A
 fifth `recommendation` kind — explicitly rejected as "the most seductive smuggler", a
 verdict in disguise; the legal move is an un-ranked `menu` plus cited proposal facts
-(`SKILL.md` line 104).
+(`skills/_contract/target-rule-output-kinds/SKILL.md`).
 
 **What breaks if you change it.** Add any output kind that can self-approve (a
 verdict / score / RAG colour) and the *entire* rationale for being gate-free
@@ -96,7 +111,7 @@ collapses — an agent mistake would then flow into the design as authoritative 
 the exact failure the rule dissolves. The library would then *need* a blocking
 mechanism to stay safe.
 
-### 2.2 Propose → ratify — the agent never ratifies its own work
+### 2.2 Propose → ratify — the agent never ratifies its own work (ADR-0002)
 
 **What it is.** One and only one ratification act: a **human merging the PR**. The
 agent opens the PR; it never merges its own work, writes a "ratified" status, or
@@ -124,7 +139,7 @@ any persisted status that must flip before work proceeds reintroduces a blocking
 and breaks the advisory-by-construction guarantee — these are the named anti-patterns
 "the self-merging agent" and "the smuggled block".
 
-### 2.3 Advisory, not gated — one structural human gate only
+### 2.3 Advisory, not gated — one structural human gate only (ADR-0003)
 
 **What it is.** Every GitHub Action is advisory: it comments and may fail a check to
 prompt a human, but **never blocks a merge**. `CODEOWNERS` is the **only** structural
@@ -155,7 +170,7 @@ patterns/capabilities removes the one place a human ratifies a reusable asset wi
 evidence and validity dates — an agent-proposed pattern could then enter the shared
 library unratified.
 
-### 2.4 Grounding / no fabrication — an absent required input HALTs
+### 2.4 Grounding / no fabrication — an absent required input HALTs (ADR-0004)
 
 **What it is.** A skill names its **required** inputs; an absent/unreadable/empty
 required input becomes a typed `halt` that asks where the input is (offering the
@@ -186,7 +201,7 @@ safeguard; "claiming otherwise would be false confidence about the safeguard its
 both this rule *and* the TARGET RULE. Declaring `halt` in `output_kinds` without a
 real halt-path step in the body is the exact gap the lint warns on.
 
-### 2.5 Deterministic base + a one-line model step — never fatal
+### 2.5 Deterministic base + a one-line model step — never fatal (ADR-0005)
 
 **What it is.** Every skill carries a **deterministic, no-LLM base**
 (checklist/regex/template/skeleton) plus a one-line model swap that only ever *deepens*
@@ -217,7 +232,7 @@ field claiming a no-LLM path the body doesn't implement) makes the field a false
 contract and breaks portability into no-key/CI/offline environments. Naming a concrete
 model or vendor breaks the "runs in any harness" portability and the one-word swap.
 
-### 2.6 Trace via fields, never in the key — and projections, not persistence
+### 2.6 Trace via fields, never in the key — and projections, not persistence (ADR-0006, ADR-0007)
 
 **What it is.** Parentage and every relationship live in **fields** on the artefact
 (`derives_from`, `fulfils_capability`, `fulfilled_by`, `supersedes`/`superseded_by`,
@@ -227,7 +242,7 @@ schema. Separately: rollups, RAG verdicts, release notes, and pattern-maturity t
 are **recomputed on read or in an Action**, never stored as a field that can rot;
 staleness is answered by `git diff` / `git blame`.
 (`skills/_shared/req-key-conventions.md`; `skills/_shared/trace-edge.md`;
-`DESIGN.md` §2 invariants 4–5.)
+`DESIGN.md` §2.)
 
 **Why.** The citation survives being copied, diffed, PR-reviewed, and grepped; a
 foreign key does not survive leaving its database. This is what keeps the edge portable
@@ -250,7 +265,7 @@ safety property and breaks portability (the edge stops working with grep / a pla
 prompt). Storing a RAG colour or score reintroduces a verdict (forbidden by the TARGET
 RULE) *and* a value that can silently rot.
 
-### 2.7 Anti-fatigue — delta-since-last-green, no throughput metric
+### 2.7 Anti-fatigue — delta-since-last-green, no throughput metric (ADR-0008)
 
 **What it is.** A re-run reviews only what *changed since last green*; an untouched item is
 deferred, not re-surfaced. A dismissed cue (`dismissal-memory`) re-arms **only on changed
@@ -274,21 +289,24 @@ verdict) — "a check optimised for throughput is worse than none".
 
 ---
 
-## 3. Decision records
+## 3. Decision records — index over the ADRs
 
-Grouped by area. Each: the decision, why, alternatives, any dissent / road-not-taken,
-and what breaks.
+This section is a **navigable index**, not a second narration. The full why /
+alternatives / dissent for each decision lives in the cited `ADR-NNNN` in
+[`ADR.md`](ADR.md); each row here carries only a one-line gloss, the ADR citation, and the
+**what-breaks-if-changed** pointer (the practical reason to read the ADR before touching
+it). Grouped by area.
 
 ### 3.1 Folder structure & navigation
 
-| Decision | Why | What breaks if changed |
+| Decision | One-line gloss → ADR | What breaks if changed |
 |---|---|---|
-| **Looser *named* categories** (`ingest` / `understand` / `challenge` / `architect` / `panel` / `deliver` / `library` / `meta`), **not** a numbered scheme. | A developer rarely runs the whole method in one go and must find a skill *on its own*; names describe purpose so an agent finds a skill by intent. Numbers imposed a false fixed sequence the library rejects — "a map, not a track" (`MAP.md` View 2). Restructure recorded in commit `5877839` ("Looser categories (numbers dropped)"). | Renaming/re-numbering a category breaks every hardcoded part path in `skills/_scripts/bundles.yml` + `concat_skills.py` (the concat Action's `--check` fails and committed bundles go stale), every cross-link in `MAP.md`/`GETTING-STARTED.md`/`README.md`/`ENTRYPOINT.md`, and the named-as-purpose contract. The lint itself tolerates a rename (`category_dirs()` discovers dirs dynamically) — so the break is in human navigation + bundle paths, not lint legality. |
-| **Underscore-prefixed machinery folders**: `_contract/`, `_shared/`, `_scripts/`. | Separates authoring machinery from the runnable product. `_contract/` = human-readable spec per convention; `_shared/` = the byte-stable quotable block skills paste in (what the drift check pins); `_scripts/` = the validators/concatenators Actions run (`DESIGN.md` §1, §5). | Renaming `_shared/`/`_contract/` breaks the drift-guard wiring (`check-shared-stub-drift` auto-discovers stubs via `SHARED_DIR.glob('*.md')`); renaming `_scripts/` breaks every Action step. Dropping the underscore makes the dir read as a runnable category and pollutes the map. |
-| **`capabilities/` and `patterns/` are TOP-LEVEL trees**, siblings of `skills/`. | A different *kind* of asset with a different governance model and lifecycle. The load-bearing reason is the gate: `CODEOWNERS` keys the one hard gate off the path prefixes `/patterns/**` and `/capabilities/**` (last-match-wins). Top-level paths make that gate addressable (`.github/CODEOWNERS`; `DESIGN.md` §1, §6–7). | Moving them under `skills/` (or renaming) breaks the hard gate — the `CODEOWNERS` lines no longer match, so the one structurally-required human review silently disappears and pattern/capability changes fall under the advisory `/skills/**` route. Also breaks path-triggered Actions and every `fulfils_capability:`/`fulfilled_by:` cite. |
-| **`generated/` bundles are committed; `portfolio-rollup.json` is gitignored.** | Committing the concatenated bundles lets an agent load **one** paste-able file (the Cursor/Codex wire-up in `GETTING-STARTED.md`). They are made non-noisy via `.gitattributes` (`linguist-generated -diff merge=ours`). `portfolio-rollup.json` is gitignored because it is a derived-on-read RAG projection (the projections-not-persistence invariant). (`.gitattributes`; `.gitignore`; `DESIGN.md` §4.) | Un-committing the bundles breaks the "paste one file" path for any agent that hasn't run the Action. Hand-editing `generated/` trips the concat `--check` (and `merge=ours` discards the edit on rebuild). Committing `portfolio-rollup.json` violates projections-not-persistence (a stored RAG score that rots). |
-| **Both `skills/MAP.md` (full index) AND a thin root `ENTRYPOINT.md`.** | Two reader needs at two altitudes: `ENTRYPOINT.md` is a deliberately-thin front door naming only the two `meta/` skills (use vs contribute) + three deep links; `MAP.md` is the exhaustive catalogue *and* the navigator's deterministic fallback ("it reads them, never replaces them"). (`ENTRYPOINT.md`; `MAP.md` lines 15, 17, 27; `DESIGN.md` §1.) | Delete `ENTRYPOINT.md` and the "Start here" links dangle + the two-doors-by-intent affordance is lost. Delete `MAP.md` and no skill breaks ("every skill stands alone") *but* the navigator loses its deterministic fallback and the project-seed block disappears. |
-| **A new top-level skill group is auto-legal** — adding `skills/ingest/` or `skills/meta/` needed no linter edit. | The scheme is intentionally **open**: `lint_map_links.category_dirs()` discovers first-level dirs under `skills/` dynamically (verified, `lint_map_links.py:106–116`). This is why `ingest` (`580e236`) and `meta` (`c5ac713`) slotted in without touching validators. | Hardcoding a category enum re-couples the open scheme to a linter edit. A new top-level dir that is *machinery* (not a category) must carry the underscore prefix or discovery treats it as a runnable category. |
+| **Looser *named* categories** (`ingest` / `understand` / `challenge` / `architect` / `panel` / `deliver` / `library` / `meta`), **not** a numbered scheme. | Names describe purpose so a skill is found by intent — "a map, not a track". See **ADR-0009**. | Renaming/re-numbering a category breaks every hardcoded part path in `skills/_scripts/bundles.yml` + `concat_skills.py` (the concat Action's `--check` fails and committed bundles go stale), every cross-link in `MAP.md`/`GETTING-STARTED.md`/`README.md`/`ENTRYPOINT.md`, and the named-as-purpose contract. The lint itself tolerates a rename (`category_dirs()` discovers dirs dynamically) — so the break is in human navigation + bundle paths, not lint legality. |
+| **Underscore-prefixed machinery folders**: `_contract/`, `_shared/`, `_scripts/`. | Separates authoring machinery from the runnable product. See **ADR-0010**. | Renaming `_shared/`/`_contract/` breaks the drift-guard wiring (`check-shared-stub-drift` auto-discovers stubs via `SHARED_DIR.glob('*.md')`); renaming `_scripts/` breaks every Action step. Dropping the underscore makes the dir read as a runnable category and pollutes the map. |
+| **`capabilities/` and `patterns/` are TOP-LEVEL trees**, siblings of `skills/`. | A different governance kind; top-level paths make the one `CODEOWNERS` gate path-addressable. See **ADR-0011**. | Moving them under `skills/` (or renaming) breaks the hard gate — the `CODEOWNERS` lines no longer match, so the one structurally-required human review silently disappears and pattern/capability changes fall under the advisory `/skills/**` route. Also breaks path-triggered Actions and every `fulfils_capability:`/`fulfilled_by:` cite. |
+| **`generated/` bundles are committed; `portfolio-rollup.json` is gitignored.** | Committed paste-one-file vs derived-on-read projection. See **ADR-0012**. | Un-committing the bundles breaks the "paste one file" path for any agent that hasn't run the Action. Hand-editing `generated/` trips the concat `--check` (and `merge=ours` discards the edit on rebuild). Committing `portfolio-rollup.json` violates projections-not-persistence (a stored RAG score that rots). |
+| **Both `skills/MAP.md` (full index) AND a thin root `ENTRYPOINT.md`.** | Two reader altitudes — thin front door + exhaustive map (the navigator's deterministic fallback). See **ADR-0013**. | Delete `ENTRYPOINT.md` and the "Start here" links dangle + the two-doors-by-intent affordance is lost. Delete `MAP.md` and no skill breaks ("every skill stands alone") *but* the navigator loses its deterministic fallback and the project-seed block disappears. |
+| **A new top-level skill group is auto-legal** — adding `skills/ingest/` or `skills/meta/` needed no linter edit. | The category scheme is open; first-level dirs are discovered dynamically. See **ADR-0014**. | Hardcoding a category enum re-couples the open scheme to a linter edit. A new top-level dir that is *machinery* (not a category) must carry the underscore prefix or discovery treats it as a runnable category. |
 
 **Dissent / honest cost (folders).** `DESIGN.md` §9 names "Large surface area" — the
 de-narrated, category-spread library has a real discovery cost, mitigated by the MAP
@@ -299,39 +317,35 @@ not recorded for those; confirm with maintainers.*
 
 ### 3.2 Pattern schema & lifecycle
 
-| Decision | Why | What breaks if changed |
+| Decision | One-line gloss → ADR | What breaks if changed |
 |---|---|---|
-| **`pattern_key` (`PAT-<UPPER-KEBAB>`) is the stable cite-able id, deliberately NOT required to equal the filename stem.** | The key is what every bundle, retrieval, and supersede reference cites, so it must survive renames; decoupling lets the file be renamed for legibility without orphaning a citation (`note_filename()` records the pairing as a note, never an error). (`patterns/_schema/pattern.frontmatter.schema.json`; `lint_pattern_frontmatter.py`.) | Tying the key to the filename makes every rename change the key and orphan every reference that cited it. Loosening the regex breaks downstream skills that parse the key shape. |
-| **`evidence[]` (proof it was BUILT) is REQUIRED once `approval_status` is `provisional` or `approved`** ("No evidence, no promotion"). | The library's value is fast-tracking reuse of shapes with a *real track record*; the gate protects credibility against a pattern minted from an imagined shape. (schema `allOf` conditional; `lint_pattern_frontmatter.check_conditional_rules`.) | Dropping the gate lets an unbuilt shape masquerade as blessed — downstream skills trust `provisional/approved` to mean "proven". Fabricating a link to fill the slot is explicitly forbidden ("leave it honestly empty"). |
-| **`approval_status` is a closed, HUMAN-ONLY enum**: `candidate → provisional → approved → deprecated`. An agent only ever writes `candidate`. | `approval_status` encodes human **trust**, not a machine-derivable fact — "a human PR review is what blesses a pattern". "Writing `approved` is the single most damaging thing this skill could do." (schema; `patterns/README.md`; `author-component-pattern/SKILL.md`.) | If an agent could set `provisional`/`approved`, an unreviewed shape masquerades as blessed and the one human gate is bypassed. |
-| **`maturity` and `adoption_count` are FORBIDDEN as authored input** (`{"not":{}}`) — COMPUTED from `adoptions/ledger.jsonl`. | "Maturity is arithmetic over the ledger." A pattern that calls itself battle-tested with zero adoptions is lying; computing it keeps "used in N engagements" honest and makes adopted-by-zero visible. The ledger even counts teams that *evaluated and chose otherwise* — non-adoption is signal. (`patterns/README.md`; `iter_ledger_records`.) | If authorable, a pattern self-declares "battle-tested" with no ledger behind it. The single shared ledger reader keeps the linter's never-delete invariant and the maturity tally consistent; bypassing it splits the two consumers' view of an adoption. |
-| **`superseded_by` is REQUIRED when `deprecated`; staleness (`validity_check_months`, `sunset_at`) warns, never blocks.** | "Deprecate, never orphan" — a deprecated pattern must name its successor so adopters are never dead-ended. Staleness is "a soft caveat, not a hard exclusion" (the advisory posture). The companion rule: a pattern with a ledger adoption is *deprecated, not deleted* (`check_delete_invariant`), so provenance survives. | Hard-blocking on stale/sunset turns the advisory library into an enforcement gate. Dropping the `deprecated ⇒ superseded_by` rule dead-ends adopters. |
-| **`attached_nfrs[]` each require `kind` + `statement` + `acceptance_criterion`** (`kind` from the closed 11-value NFR enum). | These are "the heart of the reuse payoff" — on adopt each becomes a derivable requirement downstream (via `propagate-pattern-nfrs`), with the `acceptance_criterion` copied unchanged. "An NFR with no way to verify it is a wish, not a bar." (schema; `lint_pattern_frontmatter.py`.) | Dropping the required `acceptance_criterion` lets unverifiable wishes propagate downstream as governed requirements. Opening the enum breaks downstream propagation/coverage skills that branch on the 11 values. |
-| **`reference_implementations[]` is additive-OPTIONAL and held strictly OUT of the promotion gate.** | It answers a *different* question from `evidence[]`: evidence = "was this BUILT?" (gates promotion); a reference implementation = "what do I start FROM?" (a forward "start here" pointer). The sharpest hazard flagged was **gate-bleed** — wiring a working IaC repo into promotion — so the field is advisory only. A reference impl that *is* a real build must ALSO be listed under `evidence[]` (`kind:repo`), promoting "through the existing door, zero new gate logic". (design doc §6/Q1; commit `c5ac713`.) | Moving it into `check_conditional_rules`/`PROMOTED_STATUSES` lets a pattern be promoted on a forward link with no proof it was built — the gate-bleed failure the design guards against. The advisory-only contract is asserted in schema + linter + skill so a future contributor sees it in all three. |
-| **The validator is deterministic, dependency-light** (PyYAML/jsonschema optional with a stdlib fallback) and **light/advisory about content**; it shares ONE ledger reader (`iter_ledger_records`) with the lifecycle workflow. | It must run on a bare runner with just `python3` ("ZERO mandatory third-party dependencies"), and it enforces only the structural contract — "it does not grade a pattern's quality"; content quality is the human reviewer's job. One shared reader keeps the never-delete invariant and the maturity tally reading the ledger identically. | Adding a hard dependency breaks the run-anywhere promise. Making the linter judge content turns advisory into a gate. Forking the ledger parsing splits the two consumers' view of an adoption. |
+| **`pattern_key` (`PAT-<UPPER-KEBAB>`) is the stable cite-able id, deliberately NOT required to equal the filename stem.** | A cite must survive a file rename, so the key is decoupled from the stem. See **ADR-0015**. | Tying the key to the filename makes every rename change the key and orphan every reference that cited it. Loosening the regex breaks downstream skills that parse the key shape. |
+| **`evidence[]` (proof it was BUILT) is REQUIRED once `approval_status` is `provisional` or `approved`** ("No evidence, no promotion"). | The reuse value is a real track record; the gate protects credibility. See **ADR-0016**. | Dropping the gate lets an unbuilt shape masquerade as blessed — downstream skills trust `provisional/approved` to mean "proven". Fabricating a link to fill the slot is explicitly forbidden ("leave it honestly empty"). |
+| **`approval_status` is a closed, HUMAN-ONLY enum**: `candidate → provisional → approved → deprecated`. An agent only ever writes `candidate`. | `approval_status` encodes human trust, not a machine-derivable fact. See **ADR-0017**. | If an agent could set `provisional`/`approved`, an unreviewed shape masquerades as blessed and the one human gate is bypassed. |
+| **`maturity` and `adoption_count` are FORBIDDEN as authored input** (`{"not":{}}`) — COMPUTED from `adoptions/ledger.jsonl`. | Maturity is arithmetic over the ledger — computing it keeps "used in N engagements" honest. See **ADR-0018**. | If authorable, a pattern self-declares "battle-tested" with no ledger behind it. The single shared ledger reader keeps the linter's never-delete invariant and the maturity tally consistent; bypassing it splits the two consumers' view of an adoption. |
+| **`superseded_by` is REQUIRED when `deprecated`; staleness (`validity_check_months`, `sunset_at`) warns, never blocks.** | "Deprecate, never orphan"; staleness is a soft caveat, not a hard exclusion. See **ADR-0019**. | Hard-blocking on stale/sunset turns the advisory library into an enforcement gate. Dropping the `deprecated ⇒ superseded_by` rule dead-ends adopters. |
+| **`attached_nfrs[]` each require `kind` + `statement` + `acceptance_criterion`** (`kind` from the closed 11-value NFR enum). | On adopt each becomes a derivable, verifiable requirement — "an NFR with no way to verify it is a wish". See **ADR-0020**. | Dropping the required `acceptance_criterion` lets unverifiable wishes propagate downstream as governed requirements. Opening the enum breaks downstream propagation/coverage skills that branch on the 11 values. |
+| **`reference_implementations[]` is additive-OPTIONAL and held strictly OUT of the promotion gate.** | A forward "start here" pointer, not proof-it-was-built; kept out to avoid gate-bleed. See **ADR-0021**. | Moving it into `check_conditional_rules`/`PROMOTED_STATUSES` lets a pattern be promoted on a forward link with no proof it was built — the gate-bleed failure the design guards against. The advisory-only contract is asserted in schema + linter + skill so a future contributor sees it in all three. |
+| **The validator is deterministic, dependency-light** (PyYAML/jsonschema optional with a stdlib fallback) and **light/advisory about content**; it shares ONE ledger reader (`iter_ledger_records`) with the lifecycle workflow. | Runs on a bare `python3`, enforces only the structural contract, one shared ledger reader. See **ADR-0022**. | Adding a hard dependency breaks the run-anywhere promise. Making the linter judge content turns advisory into a gate. Forking the ledger parsing splits the two consumers' view of an adoption. |
 
-**Dissent / road-not-taken (patterns).** The design doc proposed a **six-value**
-`reference_implementations[].kind` enum (`iac|app|notebook|scaffold|module|pipeline`)
-plus optional `repo_path`/`scaffold_cmd`/`last_verified`; the shipped schema **narrowed
-to four** (`iac|app|notebook|scaffold`) and dropped the extra `repo_path`/`scaffold_cmd`/
-`last_verified` fields. The shipped sub-shape is `{kind, url, provisions}` required plus an
-optional `notes` — where the CODEOWNER placeholder-URL caveat lives (the §4 near-miss). *The
-why of the narrowing is not recorded in any commit; confirm with maintainers.* The specific numeric
-bounds (`validity_check_months` default 12, min/max, length caps) are asserted, not
-derived from a recorded measurement.
+**Dissent / uncertain (patterns).** The shipped `reference_implementations` sub-shape
+(`{kind, url, provisions}` required + optional `notes`) narrowed the design doc's wider
+proposed enum/fields — see **ADR-0021** for the decision and the unrecorded-narrowing
+caveat. Separately, the specific numeric bounds (`validity_check_months` default 12,
+min/max, length caps) are asserted, not derived from a recorded measurement.
 
 ### 3.3 Capability schema & the requirements→components bridge
 
-| Decision | Why | What breaks if changed |
+| Decision | One-line gloss → ADR | What breaks if changed |
 |---|---|---|
-| **Capabilities are first-class** — a `.md` tree PR-reviewed like patterns, sitting **between** requirements and patterns as the named middle term. | The pattern library answers "what shape did we build"; nothing answered "what *need* does a system have, and is there a proven shape for it yet". The need outlives the component that fulfils it, so a reader who can name a need in plain language but not the technology has an entry point. Chain: outcome ← requirement (`fulfils_capability`) ← capability (`fulfilled_by`) ← pattern. (`capabilities/README.md`; commit `5877839`; `derive-capabilities/SKILL.md`.) | Removing the layer re-opens the gap `derive-capabilities` closed: `recommend-component-patterns` STEP 0 *assumes* the `fulfils_capability` tag exists but no skill emitted it. The need would no longer be a technology-free, rename-surviving anchor. |
-| **`capability_key` is `CAP-<UPPER-KEBAB>`, a distinct namespace.** | The citation target for every requirement that fulfils it and every pattern that back-references it — it must survive renames; parentage lives in fields, never the key. (schema; commit `1d55b80`.) | Renaming silently breaks every `fulfils_capability` cite, every pattern `fulfils` back-ref, and every INDEX row (key-citation, no foreign keys — nothing enforces integrity but lint + review). |
-| **Bidirectional edges with link discipline**: capability cites `fulfilled_by:` (REQUIRED, minItems 1); pattern MAY cite `fulfils:` back (optional); requirement gains `fulfils_capability:` — all by key-citation, no foreign keys. | Key-citation keeps the library portable (markdown in git), human-auditable (PR diff), dependency-free. `fulfilled_by` is mandatory because a capability *must* name how (or whether) it is fulfilled; the back-ref is optional reader-convenience. | Making the back-ref mandatory forces a pattern edit on every capability authoring; dropping `fulfilled_by` removes the capability→component edge. Real foreign keys break the portable-markdown property the whole library rests on. |
-| **The alias-searchable `INDEX.md` is the first entry point for a need-first reader** — each capability requires **≥2** unique lay-synonym aliases. | `capability_domain` is deliberately coarse; the **alias index, not the domain**, is how a non-expert finds a specific capability. "A capability with one alias is hard to find." (schema; `capability-domains.enum.txt`; `INDEX.md`.) | Dropping the ≥2 minimum or letting INDEX drift breaks findability *and* breaks `derive-capabilities`, whose legal `CAP-` key set IS the INDEX rows — a stale INDEX silently mis-routes MATCHED tags. `lint_capability_index` enforces the sync. |
-| **Proven-vs-candidate lives in `fulfilled_by[].confidence`** (`proven` requires `pattern_key` + `evidence`; `candidate` carries `open_questions` and may name only a vendor in `note`). | Mirrors the pattern "evidence-required-once-promoted" rule — honesty is *enforced structurally*, not promised. "Do not read a candidate as a recommendation." (schema `allOf`; `capabilities/README.md`.) | Removing the `allOf` coupling lets a "proven" fulfilment exist with no `pattern_key`/evidence. `recommend-component-patterns` relies on this — an OPEN (candidate-only) capability routes to honest-empty rather than minting a pattern. |
-| **No agent sets `confidence:proven` or advances `approval_status`** — promotion is a human PR. | Honours the propose-then-ratify, no-fabrication posture; the schema "only makes sure the reviewer has the fields they need". This is the one structural human review in an otherwise gate-free library. | If an agent could self-promote, a fabricated/unproven fulfilment presents as a recommendation with no human in the loop. |
-| **`governance_nfrs` (minItems 1)** carry the minimum measurable bar, with `kind` drawn from the **same closed 11-kind NFR vocabulary** the patterns use. | The floor is what a human measures a candidate's spike result against; sharing the vocabulary keeps capability and pattern NFRs comparable. "A floor a reviewer cannot check is a wish, not a bar." | Diverging the NFR enum from `patterns/_schema/nfr-kinds.enum.txt` breaks the shared comparison; dropping `acceptance_criterion` makes the floor uncheckable (a spike "passed" on vibes). |
-| **`derive-capabilities` (mid tier) emits two outputs**: MATCHED (`fulfils_capability` proposals resolving to a real INDEX row) and PROPOSED-NEW (an un-ranked menu of unnamed needs, each cited to its `req_key`, routed to `library/author-capability`). | It closes the one open edge. The legal `CAP-` set is the INDEX rows **fixed before reasoning**, so a MATCHED tag is always real and a PROPOSED-NEW need always cites a requirement *by construction* — making "never invent a capability not grounded in a requirement" **structural**, not a model promise. | If it invented `CAP-` keys or authored/promoted capabilities, the no-fabrication keystone and the human gate both break. If it didn't emit `fulfils_capability`, `recommend-component-patterns`' fast-path input disappears. |
+| **Capabilities are first-class** — a `.md` tree PR-reviewed like patterns, sitting **between** requirements and patterns as the named middle term. | The need (technology-free, rename-surviving) is the named middle term: outcome ← requirement ← capability ← pattern. See **ADR-0023**. | Removing the layer re-opens the gap `derive-capabilities` closed: `recommend-component-patterns` STEP 0 *assumes* the `fulfils_capability` tag exists but no skill emitted it. The need would no longer be a technology-free, rename-surviving anchor. |
+| **`capability_key` is `CAP-<UPPER-KEBAB>`, a distinct namespace.** | A distinct citation namespace; parentage in fields, never the key. See **ADR-0024**. | Renaming silently breaks every `fulfils_capability` cite, every pattern `fulfils` back-ref, and every INDEX row (key-citation, no foreign keys — nothing enforces integrity but lint + review). |
+| **Bidirectional edges with link discipline**: capability cites `fulfilled_by:` (REQUIRED, minItems 1); pattern MAY cite `fulfils:` back (optional); requirement gains `fulfils_capability:` — all by key-citation, no foreign keys. | `fulfilled_by` required (a capability must name how/whether it is fulfilled), back-ref optional; key-citation keeps it portable. See **ADR-0025**. | Making the back-ref mandatory forces a pattern edit on every capability authoring; dropping `fulfilled_by` removes the capability→component edge. Real foreign keys break the portable-markdown property the whole library rests on. |
+| **The alias-searchable `INDEX.md` is the first entry point for a need-first reader** — each capability requires **≥2** unique lay-synonym aliases. | The alias index, not the coarse domain, is how a non-expert finds a capability. See **ADR-0026**. | Dropping the ≥2 minimum or letting INDEX drift breaks findability *and* breaks `derive-capabilities`, whose legal `CAP-` key set IS the INDEX rows — a stale INDEX silently mis-routes MATCHED tags. `lint_capability_index` enforces the sync. |
+| **Proven-vs-candidate lives in `fulfilled_by[].confidence`** (`proven` requires `pattern_key` + `evidence`; `candidate` carries `open_questions` and may name only a vendor in `note`). | Honesty enforced structurally — "do not read a candidate as a recommendation". See **ADR-0027**. | Removing the `allOf` coupling lets a "proven" fulfilment exist with no `pattern_key`/evidence. `recommend-component-patterns` relies on this — an OPEN (candidate-only) capability routes to honest-empty rather than minting a pattern. |
+| **No agent sets `confidence:proven` or advances `approval_status`** — promotion is a human PR. | The one structural human review for capabilities; honours propose-then-ratify. See **ADR-0028**. | If an agent could self-promote, a fabricated/unproven fulfilment presents as a recommendation with no human in the loop. |
+| **`governance_nfrs` (minItems 1)** carry the minimum measurable bar, with `kind` drawn from the **same closed 11-kind NFR vocabulary** the patterns use. | The checkable floor a spike is measured against; shared NFR vocabulary keeps capability and pattern bars comparable. See **ADR-0029**. | Diverging the NFR enum from `patterns/_schema/nfr-kinds.enum.txt` breaks the shared comparison; dropping `acceptance_criterion` makes the floor uncheckable (a spike "passed" on vibes). |
+| **`derive-capabilities` (mid tier) emits two outputs**: MATCHED (`fulfils_capability` proposals resolving to a real INDEX row) and PROPOSED-NEW (an un-ranked menu of unnamed needs, each cited to its `req_key`, routed to `library/author-capability`). | Legal `CAP-` set fixed (the INDEX) before reasoning, so MATCHED is always real and PROPOSED-NEW always cites a requirement by construction. See **ADR-0030**. | If it invented `CAP-` keys or authored/promoted capabilities, the no-fabrication keystone and the human gate both break. If it didn't emit `fulfils_capability`, `recommend-component-patterns`' fast-path input disappears. |
 
 **Uncertain (capabilities).** The choice of the *six* `capability_domain` values
 (`data, compute, integration, runtime, experience, governance`) and the asymmetry
@@ -341,31 +355,22 @@ confirm with maintainers. Same for `validity_check_months` default 12.
 
 **Frozen solution-architecture sections (closed set).** The eight solution-architecture
 section keys in `skills/_shared/frozen-8-sections.md` are a closed, ordered set the
-architect skills do not invent, rename, reorder, add to, or drop. **Why frozen:** one
-source of truth, so the section a generator *emits*, a reconcile step *looks for*, and an
-importer *maps onto* are the same eight in the same order. **What breaks:** renaming or
+architect skills do not invent, rename, reorder, add to, or drop — one source of truth so
+the section a generator emits, a reconcile step looks for, and an importer maps onto are
+the same eight in the same order. See **ADR-0031**. **What breaks:** renaming or
 reordering a key silently desyncs `synthesise-solution-architecture`,
 `reconcile-design-vs-requirements`, and `import-external-design`.
-(`skills/_shared/frozen-8-sections.md`; `references/frozen-8-sections.md`.)
 
 ### 3.4 Accept-high / derive-low (the safety net under auto-derivation)
 
-**Decision.** Humans ratify only the few genuine commitments (business outcomes, the
-solution shape, contested calls); agents **derive and auto-apply** everything beneath,
-each derived item carrying a `derives_from` citation back to its accepted upstream node.
-(`propose-ratify-rhythm/SKILL.md` Step 2; `target-rule-output-kinds/SKILL.md` line 60
-"derive-from-accepted-upstream"; `DESIGN.md` §2 invariant 4.)
-
-**Why.** The human's attention is the scarce resource, spent only on load-bearing
-commitments. Derive-low is **safe, not a bypass**, because of the trace edge (§2.6): a
-derived row is structurally a proposal threaded to an *already-accepted* parent, so
-rejecting an upstream outcome *visibly orphans* its derived subtree (a reconcile step
-surfaces the dangling citations). That visible orphaning is what lets agents auto-derive
-without a per-item human check.
-
-**Alternatives.** A foreign-key edge — rejected (file-based library; the edge is a
-plain-text citation). Per-item human acceptance of every derived requirement — rejected
-as the fatigue failure the model exists to prevent.
+**Decision (gloss → ADR-0032).** Humans ratify only the few genuine commitments
+(business outcomes, the solution shape, contested calls); agents **derive and auto-apply**
+everything beneath, each derived item carrying a `derives_from` citation back to its
+accepted upstream node. The human's attention is the scarce resource; derive-low is **safe,
+not a bypass**, because of the trace edge (§2.6) — a derived row is a proposal threaded to
+an *already-accepted* parent, so rejecting an upstream outcome *visibly orphans* its derived
+subtree rather than silently cascading. See **ADR-0032** for the full why, the rejected
+foreign-key / per-item-acceptance alternatives, and the dissent.
 
 **What breaks if you change it.** Emitting a derived (LOW) artefact without a
 `derives_from` link, or threading it to an outcome never accepted ("orphan-blind
@@ -374,32 +379,22 @@ human commitment above it.
 
 ### 3.5 Canonical req-keys & trace-via-fields
 
-**Decision.** **One canonical scheme — exactly one prefix per kind**: `BO-<n>`
-(business outcome), `REQ-<n>` (requirement, functional *or* non-functional — F/NF is
-`classify` metadata, never in the key), `CAP-<SLUG>`, `PAT-<SLUG>`, `DEC-<n>`, and the
+**Decision (gloss → ADR-0033).** **One canonical scheme — exactly one prefix per kind**:
+`BO-<n>` (business outcome), `REQ-<n>` (requirement, functional *or* non-functional — F/NF
+is `classify` metadata, never in the key), `CAP-<SLUG>`, `PAT-<SLUG>`, `DEC-<n>`, and the
 optional child key `AC-<REQ>.<n>`. Parentage and every relationship live in **fields**
-(`derives_from` is the one trace edge). (`skills/_shared/req-key-conventions.md`; commit
-`1d55b80`.)
+(`derives_from` is the one trace edge). It replaced six incompatible live schemes that
+would otherwise break provenance, the absent-input halt precondition, and re-ingest de-dup.
+**ADR-0033 records the real panel-vs-maintainer dissent**: a design panel recommended the
+leaner "bless-the-existing-set + one normalisation rule" route to avoid touching six skills'
+worked examples; the maintainer **overrode** it for a single canonical scheme + full
+migration (`1d55b80`). Read ADR-0033 for the full why and both sides of that call.
 
-**Why.** Six incompatible schemes were live across the skills (`BO-/TR-`, `F-/NFR-`,
-`C-/O-/R-/P-/D-`, `OUT-/REQ-`, bare integers, `O-/R-`). The divergence "would have broken
-provenance, the absent-input halt precondition, and re-ingest de-dup": ingest can't stamp
-provenance to a stable key, a "HALT if no `O-*` keys" precondition fires spuriously on a
-valid `BO-*` project, and re-ingest de-dup keys off a number that renumbers across schemes.
-
-> **DISSENT — real, recorded.** A design panel **recommended the leaner route**: its
-> synthesis (design doc line 43) favoured a **"bless-the-existing-set + one normalisation
-> rule"** approach, *to avoid touching six skills' worked examples*. The
-> maintainer **overrode** this at build time and chose a single canonical scheme + full
-> migration (commit `1d55b80`) for long-term coherence — migrating every skill, worked
-> example, reference, and the trace-edge block. Record both: the lean route was the panel's
-> recommendation; the clean single scheme was the maintainer's call.
-
-**The one normalisation rule.** Read the key scheme **from the target file; never assume
-one** (kills a spurious halt — never argue a project out of its own valid keys). When a
-source uses another prefix, normalise on write **and preserve the source's own identifier
-verbatim as `source_ref`**, so a re-read de-dups on `source_ref`, not on a minted key that
-renumbers across schemes.
+**The one normalisation rule (operational, owned by ADR-0033).** Read the key scheme
+**from the target file; never assume one** (kills a spurious halt — never argue a project
+out of its own valid keys). When a source uses another prefix, normalise on write **and
+preserve the source's own identifier verbatim as `source_ref`**, so a re-read de-dups on
+`source_ref`, not on a minted key that renumbers across schemes.
 
 **`derives_from` is a citation, not a foreign key** — see §2.6. The RAID register's
 `R-`/`A-`/`T-` ids are a **separate namespace, deliberately untouched** by the migration
@@ -417,25 +412,13 @@ confirm with maintainers.
 
 ### 3.6 Grounding / no-fabrication contract
 
-Covered as invariant §2.4. The additional load-bearing decisions:
+Covered as invariant §2.4. The load-bearing decision that **`halt` is the fourth output
+kind**, carried by the grounding contract as the library's **first working halt exemplar**
+(absent / unreadable / empty all map to one question-shaped halt computed at STEP 0; a halt
+is a question never a verdict; applied additively, not as a gate), is owned by **ADR-0034** —
+read it for the full why, the marked-WRONG verdict counter-example, and the alternatives.
 
-- **`halt` is the fourth output kind**, and the grounding contract carries the library's
-  **first working halt exemplar**. `halt` was legal in the TARGET RULE but had zero
-  exemplar (verified: all skills used only proposal/question/menu). Halt-first skills
-  (ingest, navigator, feature intake) needed one reference shape so every halt looks the
-  same and none drift into smuggling a verdict.
-  (`grounding-no-absent-input/SKILL.md`; design doc line 30.)
-- **Absent / unreadable / empty all map to the same halt**, computed as a file-level fact
-  at STEP 0 before any model runs. The *empty* case matters most: a silent-empty reads
-  downstream as "the source had nothing in it" — a silent-proceed failure. "I read nothing"
-  and "I cannot read this" are deliberately different outputs.
-- **A halt is a question, never a verdict** — it carries only what is required, what is
-  missing, and the readable formats. The marked-WRONG counter-example invents
-  `REQ-1/REQ-2/REQ-3`, an uptime NFR, a "4–8 days" estimate, and "looks infeasible" —
-  "a halt that contains a finding is not a halt; it is a verdict with an apology attached".
-- **Applied additively, not as a gate** — mark Inputs Required/Optional, quote the block,
-  wire a STEP 0 halt path. "A halt is an advisory output kind: it stops this run and asks;
-  the human supplies the input and re-runs. Nothing downstream is blocked."
+The history and dissent below are this doc's synthesis, not duplicated in the ADR:
 
 **Sequencing decision (recorded history).** When five follow-ups were proposed
 (capability-derivation, feature-intake, navigator, ingestion, the pattern
@@ -451,19 +434,19 @@ input mid-run is a runtime behaviour no static lint catches".
 
 ### 3.7 Ingestion design
 
-| Decision | Why | What breaks if changed |
+| Decision | One-line gloss → ADR | What breaks if changed |
 |---|---|---|
-| **Split each ingest skill into a deterministic no-model read (locator + sha256) and a separate model map**; the `skills/ingest/_scripts/` readers are a non-authoritative, regenerable cache. | Keeping the read mechanical makes **lifted-vs-fabricated a structural fact**, not a model promise: a block carries a locator + sha256 of its own bytes, so a re-read proves the block unchanged and a minted requirement walks back to the exact span. The staged original is the source of truth. (`projection.py`; `_scripts/README.md` contract #1–2.) | If the reader becomes authoritative (or the read folds into the model step), the locator+sha256 can no longer prove a block unchanged, reingest-delta loses its deterministic diff floor, and AC provenance degrades from a structural fact to a model claim. |
-| **Readers SKIP-never-raise** — a content problem returns `status="skipped"` + a reason, never throws ("Skip, never raise; halt, never empty"). | The calling skill needs a single, swallow-proof signal it can turn into a HALT; an uncaught raise either crashes the run or collapses "I cannot read this" vs "I read nothing". | If a reader raises, the skill can't reliably distinguish unreadable from empty, and the HALT-not-empty discipline collapses into a silent-empty or a crash. |
-| **HALT-not-empty** — an unreadable OR readable-but-empty source HALTs; an empty requirement set is never a valid ingest output. | A silent-empty reads downstream as "the source had nothing in it" — the silent-proceed failure the grounding rule forbids. (The exact near-miss caught in review; see §4.) | A blank sheet / wrong tab / whitespace paste produces an empty-but-clean-looking requirement set that downstream skills treat as authoritative. |
-| **Preserve the source's own id verbatim as `source_ref`; de-dup/diff on `source_ref` (content hash), never the minted key.** | The minted key renumbers across the library's incompatible schemes, so de-duping on it silently forks one source into two or drops a real new version. `block_source_ref()` = locator + sha256(block text). The design doc (Q4b) records this as the fix for a hazard `stage-and-fingerprint` *claimed* but did not cover (its fingerprint was on the source ROW, not the emitted KEY). | Keying de-dup on the minted key reintroduces the duplicate-under-a-new-key hazard (forks) or drops a genuine new version, on any project using more than one scheme — which the design verifies is the live state. |
-| **GitHub Project: require a pinned, timestamped snapshot** (`gh project item-list --format json`), never a live board read. | A live board is as stale-prone as any export — a field rename silently remaps "acceptance", a column reorder shifts a locator. `ghproject.py` normalises gh's nondeterministic ordering so two pulls of an unchanged board hash identically; each item becomes its own one-row "sheet" so it rides the identical row-to-requirement path. | A live read makes the locator unstable: a rename/reorder silently remaps which cell an AC locator points at, so a lifted AC's provenance becomes a lie and reingest-delta diffs against a moving baseline. |
-| **SharePoint is export-only** — never live-fetch; HALT asking for a local export, stamp `origin` + `exported_at` (or unknown) + a soft staleness-unverified caveat. | A live fetch is an auth + stale-doc hazard (design doc F5). The caveat is a **soft** carry, never a hard exclusion — a stale-prone source still ingests but its staleness is *visible* downstream rather than laundered away. | A live fetch reintroduces the auth surface and lets a 6-month-old doc ingest as a clean requirement with no caveat. |
-| **Lift an acceptance criterion ONLY when a source locator backs it**; if absent, emit `Acceptance: — (absent in source; not synthesised)`. Never synthesise a GIVEN/WHEN/THEN. | Makes lifted-vs-fabricated a *grep-able* distinction. A synthesised AC is "the single most damaging fabrication this skill could make, because it reads downstream as a tested commitment". | Allowing synthesis makes a fabricated AC indistinguishable from a lifted one; downstream skills treat it as a real tested commitment and the grep-for-missing-locator check is defeated. |
-| **Delegate controlled-vocab metadata to `classify-requirements`; do NOT inline classify's enums.** | The byte-stable drift check guards MARKED PROSE BLOCKS (quoted stubs), **not enum lists** — inlining classify's closed sets where nothing pins them means they silently drift. "One owner, cited — never a private copy." (Design doc resolved Q4's open question in favour of delegate.) | Inlining creates an unguarded second copy; when classify changes its sets, the ingest copy drifts undetected and the two skills annotate the same requirement with divergent vocab. |
-| **`stage-and-fingerprint` vaults the bytes byte-untouched** (no re-encoding/trim); the vaulted copy is the source of record for every locator and diff. | Every locator and reingest-delta diff is relative to the vaulted original; mutating it on the way in silently invalidates every downstream locator and future diff. | Any normalisation shifts byte offsets, so existing locators point at the wrong span and reingest-delta diffs a cleaned copy against an uncleaned baseline. |
-| **Identity binding is PROPOSED via deterministic signals** (content_hash exact, `source_ref` identity), model only as a tie-breaker for a renamed file; a renamed-file overlap is a QUESTION, never an auto-bind. | A wrong auto-bind drops a real version (under-count) or forks one source into two (the duplicate hazard) — so the human ratifies the binding. The hash IS the de-dup; the model is a tie-breaker, not the method. | Auto-binding a renamed file silently routes a new version to a fresh ingest (forking under new keys) or collapses two distinct sources into one. |
-| **`reingest-delta` surfaces ONLY the delta** — never silently overwrites, never auto-deletes a removed row, treats a status flip as a scope QUESTION; unchanged rows carry forward untouched. | Re-reading and re-minting everything either duplicates the set under new keys or clobbers human edits made since the first ingest. A removed `source_ref` is a question (a source bug, not a decision). | Silent overwrite destroys human edits; auto-delete removes a requirement a source-side bug may have dropped; re-minting unchanged rows duplicates/renumbers the whole set. |
+| **Split each ingest skill into a deterministic no-model read (locator + sha256) and a separate model map**; the `skills/ingest/_scripts/` readers are a non-authoritative, regenerable cache. | A mechanical read makes lifted-vs-fabricated a structural fact; readers are a regenerable cache, not the source of truth. See **ADR-0035**. | If the reader becomes authoritative (or the read folds into the model step), the locator+sha256 can no longer prove a block unchanged, reingest-delta loses its deterministic diff floor, and AC provenance degrades from a structural fact to a model claim. |
+| **Readers SKIP-never-raise** — a content problem returns `status="skipped"` + a reason, never throws ("Skip, never raise; halt, never empty"). | A single swallow-proof signal the skill turns into a HALT. See **ADR-0036**. | If a reader raises, the skill can't reliably distinguish unreadable from empty, and the HALT-not-empty discipline collapses into a silent-empty or a crash. |
+| **HALT-not-empty** — an unreadable OR readable-but-empty source HALTs; an empty requirement set is never a valid ingest output. | A silent-empty reads downstream as "the source had nothing" — the silent-proceed failure grounding forbids. See **ADR-0037**. | A blank sheet / wrong tab / whitespace paste produces an empty-but-clean-looking requirement set that downstream skills treat as authoritative. |
+| **Preserve the source's own id verbatim as `source_ref`; de-dup/diff on `source_ref` (content hash), never the minted key.** | The minted key renumbers across schemes, so de-dup on it forks or drops a version; de-dup on the content hash. See **ADR-0038**. | Keying de-dup on the minted key reintroduces the duplicate-under-a-new-key hazard (forks) or drops a genuine new version, on any project using more than one scheme — which the design verifies is the live state. |
+| **GitHub Project: require a pinned, timestamped snapshot** (`gh project item-list --format json`), never a live board read. | A live board is stale-prone and shifts locators; a pinned snapshot hashes stably. See **ADR-0039**. | A live read makes the locator unstable: a rename/reorder silently remaps which cell an AC locator points at, so a lifted AC's provenance becomes a lie and reingest-delta diffs against a moving baseline. |
+| **SharePoint is export-only** — never live-fetch; HALT asking for a local export, stamp `origin` + `exported_at` (or unknown) + a soft staleness-unverified caveat. | A live fetch is an auth + stale-doc hazard; staleness rides as a soft, visible caveat. See **ADR-0040**. | A live fetch reintroduces the auth surface and lets a 6-month-old doc ingest as a clean requirement with no caveat. |
+| **Lift an acceptance criterion ONLY when a source locator backs it**; if absent, emit `Acceptance: — (absent in source; not synthesised)`. Never synthesise a GIVEN/WHEN/THEN. | Makes lifted-vs-fabricated a grep-able distinction; a synthesised AC reads downstream as a tested commitment. See **ADR-0041**. | Allowing synthesis makes a fabricated AC indistinguishable from a lifted one; downstream skills treat it as a real tested commitment and the grep-for-missing-locator check is defeated. |
+| **Delegate controlled-vocab metadata to `classify-requirements`; do NOT inline classify's enums.** | "One owner, cited" — the drift check guards quoted prose blocks, not enum lists. See **ADR-0042**. | Inlining creates an unguarded second copy; when classify changes its sets, the ingest copy drifts undetected and the two skills annotate the same requirement with divergent vocab. |
+| **`stage-and-fingerprint` vaults the bytes byte-untouched** (no re-encoding/trim); the vaulted copy is the source of record for every locator and diff. | The vaulted original is the baseline for every locator and diff; mutating it invalidates them. See **ADR-0043**. | Any normalisation shifts byte offsets, so existing locators point at the wrong span and reingest-delta diffs a cleaned copy against an uncleaned baseline. |
+| **Identity binding is PROPOSED via deterministic signals** (content_hash exact, `source_ref` identity), model only as a tie-breaker for a renamed file; a renamed-file overlap is a QUESTION, never an auto-bind. | The hash is the de-dup, the model only a tie-breaker; a renamed-file overlap is a question, never an auto-bind. See **ADR-0044**. | Auto-binding a renamed file silently routes a new version to a fresh ingest (forking under new keys) or collapses two distinct sources into one. |
+| **`reingest-delta` surfaces ONLY the delta** — never silently overwrites, never auto-deletes a removed row, treats a status flip as a scope QUESTION; unchanged rows carry forward untouched. | Re-minting everything duplicates or clobbers human edits; a removed `source_ref` is a question, not a decision. See **ADR-0045**. | Silent overwrite destroys human edits; auto-delete removes a requirement a source-side bug may have dropped; re-minting unchanged rows duplicates/renumbers the whole set. |
 
 **Reuse boundary (recorded).** The deterministic readers are a degradable **fallback** —
 the `_scripts` package drops into any cloned repo (stdlib only) and degrades to "paste the
@@ -481,22 +464,19 @@ implemented consistently but their rationale is **not recorded** — confirm wit
 Covered as invariant §2.3 (advisory, not gated; `CODEOWNERS` the one gate). Two
 mechanical decisions to know before touching the Actions:
 
-- **`check-shared-stub-drift` guards in-repo quoted copies only.** Each skill *quotes* the
-  canonical `_shared` block (TARGET RULE, GROUNDING RULE, TRACE EDGE, req-key conventions)
-  verbatim between `BEGIN/END` markers; the Action diffs each copy against the canonical
-  file and fails if a byte drifts. **Why quote, not import:** this is markdown meant to run
-  in *any* file-reading workflow — there is no read-time import, and a skill referencing a
-  rule it does not contain ships broken when copied out alone. The trade is named in
-  `DESIGN.md` §9: "Duplication is the price of zero-dependency portability… a skill copied
-  out loses that [drift] guard." **Edit the canonical `_shared/*.md` first, then re-quote
-  into every skill in the same PR — never edit a quoted copy in place.**
-- **Multi-agent fan-out is an advisory option, capped at ≤4 concurrent.** One independent
-  model call per persona/section/objection/candidate, for the ~10 reasoning-heavy skills; a
-  failed call returns `None` and is never fatal — merge what succeeded. The cap is a
-  mechanical rate-limiter / legibility guard so the human's review channel doesn't flood —
-  *the specific number 4 is asserted, not derived from a recorded measurement*. Frameworks
-  (LangGraph / agent SDK) were rejected: "one interface, one stub, one capped fan-out."
-  (`parallel-agents/SKILL.md`; `DESIGN.md` §5.)
+- **`check-shared-stub-drift` guards in-repo quoted copies only** (gloss → **ADR-0046**).
+  Each skill *quotes* the canonical `_shared` block verbatim between `BEGIN/END` markers and
+  the Action diffs each copy against the canonical file — quote-not-import because there is
+  no read-time import in markdown that must run in any file-reading workflow; see ADR-0046
+  for the full why and the named duplication trade. **Operational rule:** edit the canonical
+  `_shared/*.md` first, then re-quote into every skill in the same PR — never edit a quoted
+  copy in place.
+- **Multi-agent fan-out is an advisory option, capped at ≤4 concurrent** (gloss →
+  **ADR-0047**). One independent model call per persona/section/objection/candidate for the
+  ~10 reasoning-heavy skills; a failed call returns `None` and is never fatal. The cap is a
+  legibility guard — *the specific number 4 is asserted, not derived from a recorded
+  measurement* — and an orchestration framework was rejected ("one interface, one stub, one
+  capped fan-out"). See ADR-0047.
 
 ---
 
@@ -561,34 +541,40 @@ If you are about to do something in the left column, read the invariant and sect
 right columns **first**. These are the changes most likely to dissolve a load-bearing
 property by accident.
 
-| Tempting change | Invariant it touches | Read first |
+| Tempting change | Invariant it touches | Read first (§ + ADR) |
 |---|---|---|
-| Rename or re-number the skill folders | Named-as-purpose categories; bundle paths; map links | §3.1 |
-| Move `patterns/` or `capabilities/` under `skills/`, or rename them | The one structural gate (`CODEOWNERS` path-keyed) | §2.3, §3.1 |
-| Add a fifth output kind / let an agent emit a verdict, score, or RAG colour | TARGET RULE (§2.1) — the keystone | §2.1 |
-| Make an Action blocking (or remove the `CODEOWNERS` gate) | Advisory-not-gated (§2.3) | §2.3, §3.8 |
-| Let an agent merge its own PR, or persist a "ratified" status | Propose → ratify (§2.2) | §2.2 |
-| Author a pattern/capability as pre-approved (`provisional`/`approved`/`proven`) | Human-only lifecycle; evidence-before-promotion | §2.3, §3.2, §3.3 |
-| Author `maturity` / `adoption_count` by hand | Code computes, models do not | §3.2 |
-| Change or revert the canonical key scheme | One canonical scheme (panel dissent recorded) | §3.5 |
-| Put parentage *in* a key (e.g. `TR-<outcome>.<n>`) | Trace via fields, never in the key (§2.6) | §2.6, §3.5 |
-| Switch `derives_from` / fulfilment edges to foreign keys | Portable citation; orphaning safety net | §2.6, §3.4 |
-| Remove or edit a quoted `_shared` block in place | Quote-not-import; drift guard | §3.8 |
-| Make a skill's first step "ask the model" (no deterministic floor) | Deterministic base + model step (§2.5) | §2.5 |
-| Name a concrete model/vendor in a skill | Provider-agnostic seam | §2.5 |
-| Let an ingest read return empty on an unreadable/empty source | HALT-not-empty; grounding (§2.4) | §2.4, §3.7 |
-| De-dup ingest on the minted key instead of `source_ref` | Duplicate-under-a-new-key hazard | §3.5, §3.7 |
-| Synthesise an acceptance criterion with no source locator | Lifted-vs-fabricated structural distinction | §3.7 |
-| Wire a "start here" reference implementation into the promotion gate | Gate-bleed; evidence is the only promotion door | §3.2 |
-| Add a live SharePoint / live-board connector | Export-only; auth + stale-doc risk | §3.7, §5 |
+| Rename or re-number the skill folders | Named-as-purpose categories; bundle paths; map links | §3.1 · ADR-0009, ADR-0014 |
+| Move `patterns/` or `capabilities/` under `skills/`, or rename them | The one structural gate (`CODEOWNERS` path-keyed) | §2.3, §3.1 · ADR-0003, ADR-0011 |
+| Add a fifth output kind / let an agent emit a verdict, score, or RAG colour | TARGET RULE (§2.1) — the keystone | §2.1 · ADR-0001 |
+| Make an Action blocking (or remove the `CODEOWNERS` gate) | Advisory-not-gated (§2.3) | §2.3, §3.8 · ADR-0003 |
+| Let an agent merge its own PR, or persist a "ratified" status | Propose → ratify (§2.2) | §2.2 · ADR-0002 |
+| Author a pattern/capability as pre-approved (`provisional`/`approved`/`proven`) | Human-only lifecycle; evidence-before-promotion | §2.3, §3.2, §3.3 · ADR-0016, ADR-0017, ADR-0027, ADR-0028 |
+| Author `maturity` / `adoption_count` by hand | Code computes, models do not | §3.2 · ADR-0018 |
+| Change or revert the canonical key scheme | One canonical scheme (panel dissent recorded) | §3.5 · ADR-0033 |
+| Put parentage *in* a key (e.g. `TR-<outcome>.<n>`) | Trace via fields, never in the key (§2.6) | §2.6, §3.5 · ADR-0006, ADR-0033 |
+| Switch `derives_from` / fulfilment edges to foreign keys | Portable citation; orphaning safety net | §2.6, §3.4 · ADR-0006, ADR-0032 |
+| Remove or edit a quoted `_shared` block in place | Quote-not-import; drift guard | §3.8 · ADR-0046 |
+| Make a skill's first step "ask the model" (no deterministic floor) | Deterministic base + model step (§2.5) | §2.5 · ADR-0005 |
+| Name a concrete model/vendor in a skill | Provider-agnostic seam | §2.5 · ADR-0005 |
+| Let an ingest read return empty on an unreadable/empty source | HALT-not-empty; grounding (§2.4) | §2.4, §3.7 · ADR-0004, ADR-0037 |
+| De-dup ingest on the minted key instead of `source_ref` | Duplicate-under-a-new-key hazard | §3.5, §3.7 · ADR-0038 |
+| Synthesise an acceptance criterion with no source locator | Lifted-vs-fabricated structural distinction | §3.7 · ADR-0041 |
+| Wire a "start here" reference implementation into the promotion gate | Gate-bleed; evidence is the only promotion door | §3.2 · ADR-0021 |
+| Add a live SharePoint / live-board connector | Export-only; auth + stale-doc risk | §3.7, §5 · ADR-0039, ADR-0040 |
 | Do a mass edit (de-narration, rename, vocab change) | Every-file-class ownership; adversarial grep pass | §4 |
-| Present a static lint as a fabrication guarantee | Honest reach of the grounding lint | §2.4, §5 |
+| Present a static lint as a fabrication guarantee | Honest reach of the grounding lint | §2.4, §5 · ADR-0004, ADR-0034 |
 
 ---
 
-*Evidence base: `README.md`, `DESIGN.md` (§1–9), `CONTRIBUTING.md`, `.github/CODEOWNERS`,
-`.gitattributes`, the `skills/_shared/*.md` canonical stubs, `skills/_contract/*` SKILLs,
-the `patterns/` and `capabilities/` schemas + linters, the ingest `_scripts`, the commit
-history (`1bffad7`, `5877839`, `1d55b80`, `580e236`, `c5ac713`), and the maintainers'
-internal design-deliberation notes ("the design doc", held with the maintainers). Where a
-rationale is not recorded in any of these, this document says so rather than inventing one.*
+*Canonical per-decision record: [`ADR.md`](ADR.md) — the numbered, status-tracked log of
+immutable records `ADR-0001..N` that owns the why / alternatives / dissent for every
+architectural decision this document indexes. Each invariant (§2), decision-record row (§3),
+and guard-table entry (§6) cites the `ADR-NNNN` that owns its rationale; this doc carries
+the cross-cutting synthesis (invariants, lessons, limitations, guard table) that the ADRs do
+not. Evidence base: `ADR.md`, `README.md`, `DESIGN.md` (§1–9), `CONTRIBUTING.md`,
+`.github/CODEOWNERS`, `.gitattributes`, the `skills/_shared/*.md` canonical stubs,
+`skills/_contract/*` SKILLs, the `patterns/` and `capabilities/` schemas + linters, the
+ingest `_scripts`, the commit history (`1bffad7`, `5877839`, `1d55b80`, `580e236`,
+`c5ac713`), and the maintainers' internal design-deliberation notes ("the design doc", held
+with the maintainers). Where a rationale is not recorded in any of these, this document says
+so rather than inventing one.*
