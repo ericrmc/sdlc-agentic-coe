@@ -69,16 +69,15 @@ skill shares so the discipline reads identically everywhere.
 ## Why a quoted copy and not an import
 
 This is a markdown library meant to run in **any** LLM workflow that can read a file —
-Claude Code, a plain prompt, a CI step. There is no import mechanism we can rely on at
-read time, and a skill that references a rule it doesn't contain is a skill that ships
-broken when copied alone. So each skill carries the rule **in its own bytes**, and the
-drift check is how we keep dozens of copies honest without a runtime dependency. The
-trade is deliberate: redundancy on disk, zero coupling at use time, one canonical
-source for edits.
+Claude Code, a plain prompt, a CI step. There is no import mechanism to rely on at
+read time, and a skill that references a rule it does not contain ships broken when
+copied alone. So each skill carries the rule **in its own bytes**, and the drift check
+keeps the copies honest without a runtime dependency. The trade is deliberate:
+redundancy on disk, zero coupling at use time, one canonical source for edits.
 
 ## Relationship to the rest of the library
 
-- The **full rationale** — why "no enforcement gates" is *safe* under this rule, the
+- The **full rationale** — why the four-kinds rule is *safe* without enforcement, the
   forbidden-output catalogue with concrete ❌ examples, and the frontmatter contract —
   lives in `skills/_contract/target-rule-output-kinds/SKILL.md`. That file *explains*;
   this file is the *byte-stable quotable*. The wording here is the subset both agree on.
@@ -88,6 +87,5 @@ source for edits.
 - The **drift check** that pins quoted copies to this file is
   `skills/_scripts/check_shared_stub_drift.py` (`check-shared-stub-drift` Action).
 - Both Actions are **advisory CI**: they comment and fail the check to prompt a human
-  fix. Neither is a runtime gate, and neither blocks a downstream project. Consistent
-  with the library's keep-it-light stance — the machine catches the *shape*; a human
-  still owns every call.
+  fix. Neither blocks a downstream project. Consistent with the library's keep-it-light
+  stance — the machine catches the *shape*; a human still owns every call.

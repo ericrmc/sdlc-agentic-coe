@@ -4,7 +4,7 @@ This is the **definitive** vocabulary the requirements red-team uses. When a ski
 or workflow red-teams a project's requirement set, every challenge it raises MUST
 carry exactly one `kind` drawn from the nine values below — no others.
 
-The `red-team-requirements` skill (`skills/02-review/red-team-requirements/`) cites
+The `red-team-requirements` skill (`skills/challenge/red-team-requirements/`) cites
 this file as its single source of truth. If that skill ships its own
 `references/challenge-kinds.md`, that copy is a pointer back to **this** document.
 
@@ -30,11 +30,11 @@ requirements that are not in the set. Do not change status.
 
 ---
 
-## The nine kinds (verbatim definitions)
+## The nine kinds (definitions)
 
-Each definition below is reproduced **verbatim** from the source critique prompt.
-Do not paraphrase these when implementing a red-team pass — they carry load-bearing
-guards (the both-ids rule, the scoped-prohibition guard, the set-level NFR categories).
+Use each definition below as written. Do not paraphrase these when implementing a
+red-team pass — they carry load-bearing guards (the both-ids rule, the
+scoped-prohibition guard, the set-level NFR categories).
 
 ### 1. `vague`
 
@@ -91,7 +91,7 @@ single row, so `requirement_id` is `null`. The six — and only six — category
 
 ### 9. `off_vision`
 
-> "off_vision" — a requirement introduces a direction NOT reflected in the PROJECT VISION (the foreword at the top of this prompt) or the rest of the set — a possible UNINTENDED PIVOT by someone who cannot see the whole picture. ADVISORY only: flag it as a light steer to confirm against the north star; it never blocks acceptance. Only emit this when a vision is present and the drift is real.
+> "off_vision" — a requirement introduces a direction NOT reflected in the PROJECT VISION or the rest of the set — a possible UNINTENDED PIVOT by someone who cannot see the whole picture. ADVISORY only: flag it as a light steer to confirm against the north star; it never blocks acceptance. Only emit this when a vision is present and the drift is real.
 
 ---
 

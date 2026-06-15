@@ -40,16 +40,13 @@ against); keep this prose mirror in sync whenever the enum changes via PR.
 
 ---
 
-## Why it is closed (and how it got that way)
+## Why it is closed
 
-These kinds were **promoted from open-ended seed strings to a fixed list**. In the original
-bespoke app the `attached_nfrs` column was free JSON, and the `kind` was whatever the seed
-author happened to type. That worked for a demo but is hostile to automation: any two
-patterns could spell the same concept differently (`"perf"` vs `"performance"`,
-`"data residency"` vs `"data-residency"`), and a coverage check can't tell whether a
-project's NFR set is missing *security* if "security" isn't a value it can count on.
-
-Freezing the vocabulary buys two deterministic behaviours that the rest of the CoE depends on:
+A free-text `kind` is hostile to automation: any two patterns could spell the same concept
+differently (`"perf"` vs `"performance"`, `"data residency"` vs `"data-residency"`), and a
+coverage check cannot tell whether a project's NFR set is missing *security* if "security"
+is not a value it can count on. A fixed vocabulary buys two deterministic behaviours the
+rest of the library depends on:
 
 - **`propagate-pattern-nfrs`** — when a project adopts a pattern, this skill turns each
   `attached_nfrs[]` entry into a derived non-functional requirement on the project. A closed
@@ -59,33 +56,31 @@ Freezing the vocabulary buys two deterministic behaviours that the rest of the C
   reports which categories are unaddressed. It can only be deterministic if the universe of
   kinds is fixed and enumerable. An open string set makes "is *resilience* covered?" unanswerable.
 
-Both run as plain markdown-reading skills and (where wired) as PR Actions, so determinism is
-the whole point: the same inputs must always yield the same coverage verdict and the same
-propagated set, with no model creativity in the `kind` field.
+Both run as plain markdown-reading skills and (where wired) as PR Actions, so the same inputs
+always yield the same coverage report and the same propagated set, with no model creativity in
+the `kind` field.
 
 ---
 
-## Origin: the seed patterns
+## How the eleven map to the shipped patterns
 
-The eleven values are the **distinct `kind`s observed across the seed solution patterns** —
-they were lifted directly from the patterns that ship as worked examples, not invented in the
-abstract. The seeds, and the kinds each one attaches:
+Every kind in the vocabulary is **evidenced by at least one shipped component pattern**, and
+every shipped pattern's `kind`s are **all in the vocabulary**. The shipped patterns and the kinds
+each one attaches:
 
-| Seed pattern | Kinds it attaches |
+| Component pattern | Kinds it attaches |
 |---|---|
-| Three-tier web app on managed Postgres | `security`, `availability`, `data-residency`, `scalability` |
+| Web app on managed Postgres | `security`, `availability`, `data-residency`, `scalability` |
 | Event-driven ingestion (Kafka / broker) | `availability`, `security`, `observability`, `resilience` |
 | Governed lakehouse (Unity Catalog) | `data-governance`, `security`, `compliance`, `cost` |
 | Serverless API (CDN + functions + gateway) | `availability`, `performance`, `security`, `cost` |
 | Client-managed on-prem / VM deployment | `compliance`, `availability`, `operations`, `security` |
 | API-gateway + BFF (token / tracing) | `security`, `observability`, `availability`, `scalability` |
 
-Taking the union of those rows yields exactly the eleven kinds above — every kind in the
-vocabulary is *evidenced by at least one shipped pattern*, and every shipped pattern's `kind`s
-are *all in the vocabulary*. That round-trip is the invariant the
-`validate-pattern-frontmatter` Action enforces on every pattern PR: each `attached_nfrs[].kind`
-must be a member of `patterns/_schema/nfr-kinds.enum.txt`, or the check fails the PR with the
-offending value named.
+The union of those rows is exactly the eleven kinds above. That round-trip is the invariant
+the `validate-pattern-frontmatter` Action checks on every pattern PR: each
+`attached_nfrs[].kind` must be a member of `patterns/_schema/nfr-kinds.enum.txt`, or the check
+fails with the offending value named.
 
 ---
 
@@ -118,7 +113,6 @@ kinds as still needing project-level attention if nothing else covers them.
    (the machine list) and this file (the prose mirror) in the same change.
 2. State in the PR description which existing kind was insufficient and why the nearest
    neighbour doesn't fit — the bar for a new kind is deliberately high.
-3. A human reviews and merges. The change is **advisory, not gated**: no state machine blocks
-   it, but the `validate-pattern-frontmatter` Action will start enforcing the new value against
-   every pattern on the next PR, so land the enum change before any pattern that uses the new
-   kind.
+3. A human reviews and merges. The change is **advisory**: nothing blocks it, but the
+   `validate-pattern-frontmatter` Action will start checking the new value against every pattern
+   on the next PR, so land the enum change before any pattern that uses the new kind.

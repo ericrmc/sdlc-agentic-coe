@@ -922,10 +922,17 @@ def discover_pattern_files(repo_root: Path) -> list[Path]:
         return []
     out: list[Path] = []
     for p in sorted(patterns_dir.rglob("*.md")):
-        # skip schema/docs scaffolding under _schema/ and any README/CONTRIBUTING
-        parts = set(p.relative_to(patterns_dir).parts)
-        if "_schema" in parts:
+        rel_parts = p.relative_to(patterns_dir).parts
+        # skip the schema tree (patterns/_schema/**) — it is scaffolding, not a pattern.
+        if "_schema" in set(rel_parts):
             continue
+        # skip the copy-me scaffold (patterns/_TEMPLATE.md) and any other leading-
+        # underscore scaffold file: these are intentionally incomplete (no name,
+        # no NFRs) and must NOT be linted as real patterns, or the bare documented
+        # command would never report green on a clean library.
+        if p.name == "_TEMPLATE.md" or p.name.startswith("_"):
+            continue
+        # skip the prose docs that live beside the patterns.
         if p.name.lower() in {"readme.md", "contributing.md", "index.md"}:
             continue
         out.append(p)

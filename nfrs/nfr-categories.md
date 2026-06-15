@@ -1,8 +1,8 @@
 # NFR Coverage Categories
 
 The six **canonical NFR coverage categories**, in fixed order. This is the
-*assessment axis* — the checklist a project's requirement set is judged
-against. Every coverage assessment returns exactly one verdict per category
+*assessment axis* — the checklist a project's requirement set is checked
+against. Every coverage assessment returns exactly one result per category
 below: addressed or not, in this order, with no category added, dropped, or
 renamed.
 
@@ -61,7 +61,7 @@ They are a **separate but related** vocabulary from the pattern `attached_nfr`
 [`patterns/_schema/nfr-kinds.enum.txt`](../patterns/_schema/nfr-kinds.enum.txt),
 the single source the schema and linter read). That list describes which NFR
 concerns a reusable **component pattern** has been built and validated against —
-a property of a pattern, not a coverage verdict on a project.
+a property of a pattern, not a coverage result on a project.
 
 The six coverage categories are a **labelled subset of the eleven pattern
 kinds** — a coarser assessment lens that rolls several kinds together. They map

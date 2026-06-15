@@ -2,7 +2,7 @@
 
 A small, closed-list reference the lifecycle skills cite by name. Two vocabularies live
 here: the **four release change kinds** (the verbs that describe a delta) and the **six
-ordered migration wave kinds** (the spine of a cutover). Keep both lists closed — if a
+ordered migration wave kinds** (the backbone of a cutover). Keep both lists closed — if a
 new word seems needed, it almost always maps onto one of these.
 
 > **The load-bearing insight.** A *phase*, a *release*, and a *migration wave* are all the

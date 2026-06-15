@@ -1,210 +1,86 @@
 # The Pattern Library
 
-This directory is the **Centre of Excellence component-pattern library**: a small,
-PR-reviewed set of *solution shapes that have actually been built*, captured as plain
-markdown so any LLM workflow (or any human) can read them. A pattern is a recommendation
-you can reach for with confidence — it carries the non-functional requirements (NFRs) it
-implies, the constraints it makes you give up, and the evidence that it is real. The
-library is **light and advisory**: a pattern recommends, attaches NFRs, and shows its
-track record. It never gates a downstream project. Adopting a pattern is a human choice;
-checking its acceptance criteria during the build is the adopting team's responsibility.
+A PR-reviewed set of solution shapes that have actually been built, captured as one markdown file per pattern. Each pattern recommends a shape, attaches the non-functional requirements (NFRs) it implies, names the constraints it costs, and carries the evidence it is real. The library is advisory: it recommends; adopting a pattern and checking its acceptance criteria is the adopting team's job.
 
-If you are here to *write* a pattern, jump to [How to author one](#3-how-to-author-one).
-If you are here to *understand the rules of the road*, read on.
+Front doors: [`../GETTING-STARTED.md`](../GETTING-STARTED.md) · [`../skills/MAP.md`](../skills/MAP.md) · [`../capabilities/INDEX.md`](../capabilities/INDEX.md) (need-side sibling).
 
----
+## Author a pattern
 
-## 1. What a pattern is
+Run [`../skills/library/author-component-pattern`](../skills/library/author-component-pattern/SKILL.md) to emit a `candidate` file from an already-built shape, then open the PR with the pattern PR template (`.github/PULL_REQUEST_TEMPLATE/pattern.md`), populating each field from the pattern you authored. With no model available, fall back to [`_TEMPLATE.md`](./_TEMPLATE.md): every field carries an inline `REQUIRED | CONDITIONAL | OPTIONAL | COMPUTED` note and a worked body skeleton — fill the REQUIRED fields and omit the COMPUTED ones (Actions write those into `generated/`). To re-review the library, run [`../skills/library/pattern-library-curate`](../skills/library/pattern-library-curate/SKILL.md).
 
-**One `.md` file per pattern, at `patterns/<category>/<pattern_key-slug>.md`.** The
-frontmatter **is** the schema — the YAML block at the top of each file is the structured
-record; the markdown body is the human-readable explanation of the same facts. Everything
-a tool needs to retrieve, rank, and reason about a pattern lives in that frontmatter; the
-body exists so a person opening the file understands *why* before they adopt.
+Either way the pattern lands at `approval_status: candidate`. An agent never advances past `candidate` — promotion is a human PR (see lifecycle below).
 
-A pattern file therefore has two halves that must agree:
+## Anatomy
 
-- **Frontmatter (the record):** `pattern_key`, `name`, `category`, `intent`, the
-  approval-lifecycle fields, validity/sunset dates, `constraints`, and `attached_nfrs`.
-  This is what an Action validates and what a retrieval step reads.
-- **Body (the explanation):** `## Summary`, `## When to use / when not`,
-  `## Attached NFRs`, `## Trade-offs`, `## Evidence of having been built`, `## References`.
-  Each section restates a frontmatter fact in prose a colleague would actually say out loud.
+One `.md` file per pattern at `patterns/<category>/<slug>.md`. The frontmatter **is** the schema (the structured record an Action validates and a retrieval step reads); the body explains the same facts for a human.
 
-Two ideas anchor the whole schema:
+| Field | Role |
+| --- | --- |
+| `pattern_key` | Cite-able id, UPPER-KEBAB, `^PAT-[A-Z0-9]+(-[A-Z0-9]+)*$`. Survives renames; the filename slug is chosen for legibility and need not equal it. |
+| `intent` | Retrieval anchor, written `use WHEN … so that …`. The one line that decides whether the pattern fits. |
+| `attached_nfrs` | List of `{kind, statement, acceptance_criterion}`. The `acceptance_criterion` is the testable "done" that turns the NFR into a checkable requirement when a project adopts. `kind` is closed (see below). |
+| `constraints` | What the shape makes you give up. |
+| `fulfils` (optional) | `[CAP-…]` back-ref to the capabilities a pattern serves, so a reader sees the need behind it. |
+| `evidence` | Artefact links `{title, url}` proving it was built (reference build, runbook, load test, first engagement). Required once a pattern reaches `provisional`. |
 
-- **`intent` is the retrieval anchor.** It is written in the `use WHEN … so that …` shape
-  (a real precondition, not a category restatement). It is the single line an agent reads
-  to decide whether the pattern fits.
-- **`attached_nfrs` are propagatable.** Each NFR is `{kind, statement, acceptance_criterion}`.
-  The `acceptance_criterion` is the testable "done" — the field that lets an adopting
-  project turn a pattern's NFR into a real, checkable requirement instead of a vague
-  aspiration. (See the closed `kind` vocabulary in §5.)
+## Categories (closed enum)
 
-See [`_TEMPLATE.md`](./_TEMPLATE.md) for the canonical, fully-commented frontmatter block.
+A pattern belongs to exactly one folder; `category` matches the folder name. Widening the set is a CONTRIBUTING-level change, not a per-PR call.
 
----
+| Folder | What goes here | Authored exemplar |
+| --- | --- | --- |
+| [`deployment/`](./deployment) | How and where the system runs: topology, hosting, residency. | `PAT-WEBAPP-PG` |
+| [`integration/`](./integration) | How components and teams talk: brokers, gateways, BFFs, events. | `PAT-APIGW-BFF` |
+| [`data/`](./data) | Where data lives and how it is governed: lakehouse, catalogues, residency. | `PAT-LAKEHOUSE-DELTA` |
 
-## 2. The category folders
+## NFR kinds (closed, 11)
 
-Patterns live under exactly **three** category folders. `category` in the frontmatter is a
-closed enum matching the folder:
+Every `attached_nfrs[].kind` is one of: `security`, `availability`, `performance`, `data-residency`, `observability`, `resilience`, `cost`, `compliance`, `scalability`, `data-governance`, `operations`. The single source is [`_schema/nfr-kinds.enum.txt`](./_schema/nfr-kinds.enum.txt); the catalogue with sample targets is [`../nfrs/nfr-kinds.md`](../nfrs/nfr-kinds.md). The validator rejects anything else.
 
-| Folder | `category` | What goes here | Seed exemplar |
+## Lifecycle
+
+`approval_status` is human trust; it is closed and ordered: `candidate` → `provisional` → `approved` → `deprecated`.
+
+| Rule | Detail |
+| --- | --- |
+| Human-only promotion | A CODEOWNERS architect review is the one structural human gate — only a human advances status, sets `approved_by`/`approved_at`, and attaches `evidence`. |
+| `provisional` vs `approved` | `provisional` = reviewed, use with care, evidence attached. `approved` = trusted fast-path with a production reference build. |
+| Validity & sunset | `valid_from` + `validity_check_months` let an Action compute a next-review date; it warns, never blocks. `sunset_at` (optional) = stop adopting for new work after this date. |
+| Supersede, don't orphan | Replacement adds `supersedes: <old_key>`; the old pattern adds `superseded_by: <new_key>` and moves to `deprecated`. |
+| Never delete an adopted pattern | A pattern adopted even once is provenance someone relied on; deprecate and supersede, never remove. |
+
+The authoritative who/what/when of review lives in [`../CONTRIBUTING.md`](../CONTRIBUTING.md).
+
+## Maturity is computed, never asserted
+
+| Fact | Source |
+| --- | --- |
+| Adoptions | One append-only line per real adoption in [`../adoptions/ledger.jsonl`](../adoptions/ledger.jsonl), including teams that evaluated and chose otherwise (non-adoption is signal). |
+| `maturity` (`experimental` → `emerging` → `battle-tested`) | COMPUTED from the adoption count by an Action into `generated/`. Never hand-written. Same for `adoption_count` and `next_review_at`. |
+| Adopted-by-zero | A new `candidate` with no ledger entries shows as `experimental` / adopted-by-0, shown honestly rather than padded. |
+
+A tool may read `maturity` to narrate a recommendation; it never authors it. Approval is human; maturity is arithmetic over the ledger.
+
+## Fulfilling a capability
+
+Patterns are the component side; [`../capabilities/`](../capabilities) is the need side. A capability resolves a plain-language need (e.g. "data warehouse") to a fulfilling pattern via [`../capabilities/INDEX.md`](../capabilities/INDEX.md). A capability cites `fulfilled_by: [{pattern_key, confidence: proven|candidate, …}]`; a pattern MAY cite `fulfils: [CAP-…]` back. `confidence: proven` carries build evidence; `candidate` carries the spike questions that gate promotion.
+
+## Authored patterns
+
+These have a file under `patterns/<category>/` and carry an `approval_status`.
+
+| `pattern_key` | Name | Category | `approval_status` |
 | --- | --- | --- | --- |
-| [`deployment/`](./deployment) | `deployment` | How and where the system runs: topology, hosting, residency posture. | `PAT-WEBAPP-PG` — containerised web + managed Postgres |
-| [`integration/`](./integration) | `integration` | How components and teams talk: brokers, gateways, BFFs, event flows. | `PAT-APIGW-BFF` — API gateway + managed identity + BFF |
-| [`data/`](./data) | `data` | Where data lives and how it is governed: lakehouse, catalogues, residency. | `PAT-LAKEHOUSE-DELTA` — Databricks Lakehouse + Delta Lake |
+| `PAT-WEBAPP-PG` | Containerised web + managed Postgres | `deployment` | `provisional` |
+| `PAT-APIGW-BFF` | API gateway + managed identity + BFF | `integration` | `provisional` |
+| `PAT-LAKEHOUSE-DELTA` | Databricks Lakehouse + Delta Lake | `data` | `provisional` |
 
-A pattern belongs to exactly one folder. If a shape feels like it spans two categories,
-that is usually a sign it is really two patterns (one of which `supersedes`/composes the
-other), or that the larger combined shape belongs in a concatenated skill assembled by an
-Action — not a fourth category. The three-way split is deliberate and closed; widening it
-is a CONTRIBUTING-level conversation, not a per-PR decision.
+## Planned — not yet authored
 
----
+Reserved keys for recurring shapes worth capturing. No file exists for these yet; the key is held so a future author cites it consistently. To author one, run [`../skills/library/author-component-pattern`](../skills/library/author-component-pattern/SKILL.md) — it lands the file at `approval_status: candidate`, and a human attaches real evidence to promote it in a PR.
 
-## 3. How to author one
-
-Do not hand-craft frontmatter from memory. Two starting points, in order of preference:
-
-1. **Copy [`_TEMPLATE.md`](./_TEMPLATE.md).** It contains the entire frontmatter block with
-   an inline `REQUIRED | CONDITIONAL | OPTIONAL | COMPUTED` comment on every field, plus a
-   body skeleton with worked examples for each section. Fill the REQUIRED fields; leave the
-   COMPUTED ones out entirely (they are written into `generated/` by an Action, never by hand).
-
-2. **Run the authoring skill:**
-   [`skills/08-pattern-library/author-component-pattern`](../skills/08-pattern-library/author-component-pattern/SKILL.md).
-   It takes a chosen, *already-built* solution shape and emits a pattern file at
-   `approval_status: candidate` with the full lifecycle/provenance field set and a body of
-   summary + attached NFRs + honest trade-offs. It is the right tool when promoting a
-   solution a project actually explored into a reusable library entry. (For curating or
-   re-reviewing the library as a whole, see the sibling
-   [`pattern-library-curate`](../skills/08-pattern-library/pattern-library-curate/SKILL.md) skill.)
-
-Either way, the author/skill leaves the pattern at `candidate`. **An agent never advances
-`approval_status` beyond `candidate`.** Promotion is a human act in a PR review (§4).
-
-Naming: the **filename** is a human-readable lower-kebab slug
-(`containerised-web-managed-postgres.md`) and is chosen for legibility. The
-**`pattern_key`** is the separate, cite-able identifier — UPPER-KEBAB and category-prefixed
-by convention (`PAT-WEBAPP-PG`, `PAT-EVENT-BROKER`, `PAT-LAKEHOUSE-DELTA`), matching the
-schema regex `^PAT-[A-Z0-9]+(-[A-Z0-9]+)*$`. The key is what a project cites and what an
-Action concatenates by, so it must survive renames. The filename and the key are
-deliberately **different shapes** — the linter validates the key's regex but does **not**
-require it to equal the filename stem.
-
----
-
-## 4. The lifecycle in brief
-
-A pattern moves through a simple, **human-ratified** lifecycle. Nothing here is a state
-machine that blocks downstream work — these are signals of trust and freshness, not gates.
-
-```
-   author/skill writes it          PR review (human)             time passes
-   ───────────────────────►  candidate  ──────────────►  approved  ──────────►  (re-review / sunset)
-                                  │  human attaches            │
-                                  │  evidence + advances       │ maturity is COMPUTED
-                                  ▼                            ▼ from adoption count (§6)
-                            provisional                    deprecated ──► superseded_by: <key>
-```
-
-- **`approval_status`** is the closed, ordered enum — `candidate` → `provisional` →
-  `approved` → `deprecated`. An author or agent leaves a new pattern at `candidate`. A
-  **human reviewer advances it in a PR**, and only a human sets `approved_by` /
-  `approved_at` and attaches `evidence` (artefact links proving it was built — a reference
-  build, a runbook, a load-test report, the engagement it first shipped on). `approved` is
-  the trusted fast-path; `provisional` means "reviewed, use with care, evidence attached."
-- **Maturity is computed, not asserted** — see §6. `approval_status` is human trust;
-  `maturity` is the track record. They are different axes and live in different places
-  (frontmatter vs. `generated/`).
-- **Validity & sunset make staleness visible (advisory).** `valid_from` +
-  `validity_check_months` let an Action compute a next-review date into `generated/`; it
-  **warns, never blocks**. `sunset_at` (optional) is the date after which a pattern should
-  not be adopted for new work.
-- **Supersede, don't orphan.** A replacement points back with `supersedes: <old_key>`; the
-  old pattern points forward with `superseded_by: <new_key>` and moves to `deprecated`.
-- **Never delete a pattern that has adoptions.** A pattern adopted by even one downstream
-  project is provenance someone relied on; it is deprecated and superseded, never removed.
-  Deleting it would hand a successor a tidied lie about what was actually built.
-
-The full review/validation/promotion/sunset process — who reviews, what evidence is
-required at each step, and how the PR gate is run — lives in
-[`CONTRIBUTING.md`](../CONTRIBUTING.md). This section is the orienting summary; that file
-is authoritative.
-
----
-
-## 5. The NFR-kind vocabulary (closed)
-
-Every entry in a pattern's `attached_nfrs` carries a `kind`, and `kind` is a **closed
-enum** — exactly one of:
-
-```
-security · availability · performance · data-residency · observability ·
-resilience · cost · compliance · scalability · data-governance · operations
-```
-
-These eleven values are the shared spine that lets NFRs flow cleanly from a pattern into a
-downstream project as checkable requirements, and that lets the frontmatter-validation
-Action reject typos and one-off kinds on PR. Do not invent new kinds in a pattern file. The
-catalogue — each kind's intent plus sample measurable targets — is
-[`nfrs/nfr-kinds.md`](../nfrs/nfr-kinds.md); that file is the source of truth for the
-vocabulary, and the validator enforces it.
-
----
-
-## 6. Provenance: maturity is computed, never asserted
-
-The number that matters about a pattern is **how many real engagements adopted it** — and
-that number is *tallied from evidence, not typed into a file as an opinion.*
-
-- **Adoptions are recorded in [`adoptions/ledger.jsonl`](../adoptions/ledger.jsonl)** — one
-  append-only JSON line per real adoption (which project adopted which `pattern_key`, when,
-  with what disposition). The ledger includes teams that adopted *and* teams that evaluated
-  and chose an alternative, because honesty about non-adoption is itself signal.
-- **`maturity` is COMPUTED** from the adoption count — `experimental` → `emerging` →
-  `battle-tested` — by an Action that writes it into `generated/`. It is **never** a field
-  you hand-write in the source pattern. The same goes for `adoption_count` and
-  `next_review_at`: derived facts, written by Actions, never opinions typed into the source.
-- **Absent = adopted-by-zero, shown honestly.** A brand-new `candidate` pattern with no
-  ledger entries is `experimental` / adopted-by-0, and the library shows it that way rather
-  than padding the number or hiding the pattern. "Used in 0 engagements so far" is a true,
-  useful fact — not an embarrassment to mask.
-
-The discipline, stated once: a tool may *read* `maturity` and the adoption count to narrate
-a recommendation; it may never *author* them. Approval is human; maturity is arithmetic over
-the ledger. Neither is ever a model-emitted verdict.
-
----
-
-## 7. Current seed patterns
-
-The library seeds from the six original `solution_pattern` rows of the SDLC-companion app,
-converted into this file-per-pattern shape. Two are converted and live today; the rest are
-queued for conversion.
-
-| `pattern_key` | Name | Category | Status | Notes |
-| --- | --- | --- | --- | --- |
-| `PAT-WEBAPP-PG` | Containerised web + managed Postgres | `deployment` | live (`provisional`) | Stateless web tier over a single managed relational state authority; strict in-region residency. 4 NFRs (`security`, `availability`, `data-residency`, `scalability`). |
-| `PAT-APIGW-BFF` | API gateway + managed identity + backend-for-frontend | `integration` | live (`provisional`) | Cross-cutting concerns at the gateway; a BFF per client type; OIDC/Entra identity. Carries a worked **override** example. 4 NFRs (`security`, `observability`, `availability`, `scalability`). |
-| `PAT-LAKEHOUSE-DELTA` | Databricks Lakehouse + Delta Lake | `data` | live (`provisional`) | Unity-Catalog-governed analytics/ML with column-level PII control; the **data/AI-governance exemplar**. 4 NFRs (`data-governance`, `security`, `compliance`, `cost`). |
-| `PAT-EVENT-BROKER` | Event-driven microservices + message broker | `integration` | to convert | Services publish domain events to a durable broker; async, replayable, audit-friendly. NFRs: `availability`, `security`, `observability`, `resilience`. |
-| `PAT-STATIC-SERVERLESS` | Static site + serverless API | `deployment` | to convert | CDN-served static frontend + scale-to-zero serverless backend for read-heavy/burst workloads. NFRs: `availability`, `performance`, `security`, `cost`. |
-| `PAT-ONPREM-VM-NFS` | On-premises VM cluster + NFS shared storage | `deployment` | to convert | No-cloud / data-sovereignty deployments; client-managed infra, app layer only. NFRs: `compliance`, `availability`, `operations`, `security`. |
-
-As patterns are converted, each lands in its category folder at `candidate` and is
-promoted only when a human reviewer attaches real evidence in a PR (§4). The three live
-exemplars are at **`provisional`** — reviewed and usable with care, each carrying a real
-adoption-decision artefact as its `evidence`; a CODEOWNER promotes one to `approved` when a
-production reference build is attached. That honest "provisional, not yet approved" state is
-exactly what the lifecycle is designed to make visible.
-
----
-
-> **The library in one sentence:** a pattern is one markdown file whose frontmatter *is*
-> the record, written at `candidate`, human-ratified to `approved` by PR with attached
-> evidence, carrying its NFRs and constraints as propagatable facts — with maturity computed
-> from a real adoption ledger, never asserted. Light, advisory, honest. It recommends; it
-> does not gate.
+| `pattern_key` | Name | Category |
+| --- | --- | --- |
+| `PAT-EVENT-BROKER` | Event-driven microservices + message broker | `integration` |
+| `PAT-STATIC-SERVERLESS` | Static site + serverless API | `deployment` |
+| `PAT-ONPREM-VM-NFS` | On-premises VM cluster + NFS shared storage | `deployment` |

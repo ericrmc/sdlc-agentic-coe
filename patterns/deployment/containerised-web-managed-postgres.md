@@ -11,6 +11,7 @@ approved_by: "@architects"
 approved_at: "2026-06-15"
 valid_from: "2026-06-15"
 validity_check_months: 12
+fulfils: [CAP-OLTP]
 constraints:
   - {statement: "DB connection pool (e.g. PgBouncer) required", enforced: hard}
 attached_nfrs:
@@ -24,7 +25,7 @@ evidence:
 
 # Containerised web + managed Postgres (`PAT-WEBAPP-PG`)
 
-> Seed pattern, converted. **`approval_status: provisional`** — reviewed and usable with
+> **`approval_status: provisional`** — reviewed and usable with
 > care; its evidence is a real design-note adoption pending a production reference build,
 > at which point a CODEOWNER may promote it to `approved`. Advisory, not enforced — a
 > recommendation to weigh against the project's requirements, not a gate to pass.
@@ -96,10 +97,9 @@ The four NFRs travel with this pattern. Each kind maps to the closed 11-value NF
 
 ## References
 
-- Converted verbatim-in-substance from seed pattern 1 (`solution_pattern`,
-  "Containerised web + managed Postgres", category `deployment`) in the original
-  SDLC-companion app.
-- Real-world fit: the seed self-service-portal rebuild project recommended and accepted
+- Provenance: a real in-region managed-Postgres deployment design; see the adoption-decision
+  artefact linked in `evidence`.
+- Real-world fit: a self-service-portal rebuild project recommended and accepted
   this pattern for an in-region (UK-South) managed Postgres deployment with a 99.9% SLA and
   ~400-user horizontal scaling target — the residency constraint was a hard contractual
   requirement, which is exactly the situation this pattern is built for.

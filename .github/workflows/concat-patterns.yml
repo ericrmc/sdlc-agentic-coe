@@ -18,7 +18,7 @@
 # Triggers:
 #   - push to main                -> rebuild + commit the bundles back (the
 #                                    patterns-by-category + everything else).
-#   - PR labelled `build:combined`-> rebuild + upload bundles as an artifact so a
+#   - pull_request (bundle source)-> rebuild + upload bundles as an artifact so a
 #                                    reviewer can preview the review/design
 #                                    bundles without a bot writing to their branch.
 #   - workflow_dispatch           -> manual rebuild (commits back when run on main,
@@ -37,7 +37,13 @@ on:
       - "skills/_scripts/bundles.yml"
       - ".github/workflows/concat-patterns.yml"
   pull_request:
-    types: [labeled, synchronize, reopened]
+    types: [opened, synchronize, reopened, labeled]
+    paths:
+      - "skills/**"
+      - "patterns/**"
+      - "skills/_scripts/concat_skills.py"
+      - "skills/_scripts/bundles.yml"
+      - ".github/workflows/concat-patterns.yml"
   workflow_dispatch:
 
 # Only the most recent run per ref needs to finish; cancel superseded ones.
@@ -52,19 +58,17 @@ jobs:
   build-bundles:
     runs-on: ubuntu-latest
 
-    # On PRs, only run when the `build:combined` label is present. (push and
-    # workflow_dispatch always run.) Keeps the review/design-bundle preview
-    # opt-in instead of firing on every PR push.
-    if: >-
-      github.event_name != 'pull_request' ||
-      contains(github.event.pull_request.labels.*.name, 'build:combined')
-
+    # Runs on push (to main) AND on every pull_request that touches a bundle
+    # source, plus workflow_dispatch. On a PR the bundles are uploaded as an
+    # artifact (Path B below) so a reviewer can preview them; the commit-back
+    # step (Path A) is separately gated to push/main, so a PR run never writes
+    # to a contributor branch. The build always produces non-empty bundles.
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # On a label/dispatch against a PR we want the PR head; default
-          # checkout already does the right thing for push.
+          # On a PR / dispatch we want the PR head; default checkout already
+          # does the right thing for push.
           fetch-depth: 0
 
       - name: Set up Python
@@ -123,7 +127,7 @@ jobs:
           Co-Authored-By: coe-bot <coe-bot@users.noreply.github.com>"
           git push
 
-      # ---- Path B: PR label / dispatch off main -> upload as artifact ---------
+      # ---- Path B: pull_request / dispatch off main -> upload as artifact -----
       # On a PR we do NOT write to the contributor's branch; a reviewer downloads
       # the artifact to preview the review/design bundles. Advisory, not enforced.
       - name: Upload bundles artifact

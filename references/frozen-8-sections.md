@@ -3,11 +3,11 @@
 > Canonical reference. This is the discoverability mirror of `skills/_shared/frozen-8-sections.md`.
 > If the two ever disagree, the `_shared` copy is the one the skills load — fix this one to match.
 >
-> Cited by the four architecture skills:
-> `synthesise-solution-architecture`, `reconcile-design`, `as-built-loop`, and
-> `projections` (exec-summary / estimate / architecture-diagram).
+> Cited by the architecture skills:
+> `architect/synthesise-solution-architecture`, `architect/reconcile-design-vs-requirements`,
+> `architect/reconcile-as-built`, and `architect/import-external-design`.
 
-A solution architecture in this Centre of Excellence is **not one free-form document**. It is a fixed
+A solution architecture here is **not one free-form document**. It is a fixed
 set of **eight sections**, each its own markdown block, written in a **fixed order**. The set is
 **frozen** — it is not per-project configurable, and you do not add, drop, rename, or re-order
 sections per project. Freezing it is the whole point: it is what makes generation, reconcile, and the
@@ -81,7 +81,7 @@ not configurable. This is what lets the downstream skills be deterministic rathe
   so they regenerate cleanly and never drift from the source.
 
 If sections were per-project configurable, none of these could be written once and reused — every
-project would need bespoke check wiring. Freezing the order is the cheap discipline that buys
+project would need its own check wiring. Freezing the order is the cheap discipline that buys
 deterministic, reusable downstream tooling.
 
 ---
@@ -98,21 +98,20 @@ deterministic, reusable downstream tooling.
   the inputs it was built from (which outcomes, which requirements, which pattern, which estimate).
   The reconcile skill uses that note to spot a section that was generated from data which has since
   changed — the "is this section stale?" question. (Light and advisory: it is a prompt to regenerate,
-  not an enforced gate.)
+  not a block.)
 - **Proposals, not verdicts.** Reconcile and the as-built diff phrase findings as questions a human
   resolves ("Is this addressed?", "Should this be re-parented or retired?"). They never stamp a
   pass/fail. The frozen-8 structure exists to make those questions precise — not to enforce anything.
 
 ## See also
 
-- `skills/05-solution-architecture/synthesise-solution-architecture/SKILL.md` — reads the codebase
-  and project material and writes these eight sections.
-- `skills/05-solution-architecture/reconcile-design-vs-requirements/SKILL.md` — checks the eight
+- `skills/architect/synthesise-solution-architecture/SKILL.md` — reads the project
+  material and writes these eight sections.
+- `skills/architect/reconcile-design-vs-requirements/SKILL.md` — checks the eight
   sections against the requirements; surfaces drift, gaps, and contradictions as proposals.
-- `skills/05-solution-architecture/reconcile-as-built/SKILL.md` — diffs a submitted as-built
+- `skills/architect/reconcile-as-built/SKILL.md` — diffs a submitted as-built
   document against these eight as-designed sections.
-- `skills/05-solution-architecture/import-external-design/SKILL.md` — merges an external solution
+- `skills/architect/import-external-design/SKILL.md` — merges an external solution
   design onto these eight sections as the authoritative source of truth.
-- The exec summary, estimate, and architecture-diagram **projections** are derived from a known
-  subset of these sections by the synthesise/reconcile skills above and by
-  `skills/06-handoff/comparator-grounded-estimate/SKILL.md` (the estimate projection).
+- The estimate projection is derived from a known subset of these sections by
+  `skills/deliver/comparator-grounded-estimate/SKILL.md`.

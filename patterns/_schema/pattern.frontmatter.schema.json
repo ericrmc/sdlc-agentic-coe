@@ -248,6 +248,15 @@
         }
       }
     },
+    "fulfils": {
+      "type": "array",
+      "description": "Optional back-reference: the capability_keys this pattern fulfils, so a reader on the pattern sees the need it serves. The forward edge lives on the capability (fulfilled_by[].pattern_key); this is the optional mirror. Each entry is a capability_key (UPPER-KEBAB after CAP-). Additive — a pattern without this field still validates.",
+      "items": {
+        "type": "string",
+        "pattern": "^CAP-[A-Z0-9]+(-[A-Z0-9]+)*$"
+      },
+      "uniqueItems": true
+    },
     "maturity": {
       "not": {},
       "description": "FORBIDDEN as an input. maturity (battle-tested / emerging / experimental) is COMPUTED from the adoption ledger, never authored in frontmatter. Remove it from this file."

@@ -1,39 +1,35 @@
 name: New project intake
-description: Paste the messy reality of a project to seed a downstream delivery
+description: Seed a downstream delivery from the raw context of a project
 labels: [intake]
 body:
   - type: markdown
     attributes:
       value: |
-        ## The front door is typing
+        ## Intake
 
-        You don't need a polished brief. Paste the messy reality — an email
-        thread, a half-formed idea, a slide, a Slack rant about what's broken.
-        The point of this form is to **start**, not to be complete. Anything
-        you already have is enough; the gaps become the first questions we ask.
+        Capture the raw context of a project — an email thread, a half-formed idea, a
+        slide, a note on what is broken. Completeness is not required; the gaps become
+        the first questions the intake reader asks. Paste whatever exists.
 
-        **What happens after you submit:**
-        1. The `decompose-intake-to-outcomes` skill reads your vision and drafts
-           a short stack of **business outcomes** (the few things that are real
-           commitments), then derives the technical requirements beneath each
-           one — every derived requirement threaded back to the outcome it serves.
-        2. This issue **seeds a downstream delivery project that gets its OWN
-           repo and its OWN GitHub Project** (run `sdlc-spine`'s seed step).
-           Requirements live as **markdown in that repo** — never on this
-           portfolio board. The board tracks **phases**, not requirements.
-        3. You accept the handful of outcomes that matter; the agents derive and
-           auto-apply everything beneath. Nothing here is a gate — it's all
-           advisory. You stay in command.
+        What happens after submit:
+        1. The `decompose-intake-to-outcomes` skill reads the vision and drafts a short
+           stack of business outcomes, then derives the technical requirements beneath
+           each one — every derived requirement threaded back to the outcome it serves.
+        2. This issue seeds a downstream delivery project that gets its own repo and its
+           own GitHub Project (run the seed step in `skills/MAP.md`). Requirements live
+           as markdown in that repo, never on this portfolio board — the board tracks
+           phases, not requirements.
+        3. A human accepts the handful of outcomes that matter; the agents derive and
+           apply everything beneath. Nothing here is a gate — it is all advisory, and a
+           human ratifies.
 
-        > Reuse is the fast path. If an **approved pattern** fits, adopting it
-        > brings its governed NFRs along for free. We'll surface candidates once
-        > the outcomes take shape — you don't need to know them now.
-
+        > Reuse is the fast path. If an approved pattern fits, adopting it brings its
+        > governed NFRs along for free. Candidates surface once the outcomes take shape.
   - type: input
     id: project-title
     attributes:
       label: Project title
-      description: A short, human name for this engagement. Don't overthink it — it can change.
+      description: A short, human name for this engagement. It can change later.
       placeholder: e.g. Claims intake triage, Partner onboarding portal, Internal RAG search
     validations:
       required: true
@@ -43,23 +39,22 @@ body:
     attributes:
       label: What should this project deliver?
       description: |
-        Paste anything you already have. Plain language is perfect. The more
-        of the *why* and the *who it's for* you include, the better the first
-        draft of outcomes will be — but a single messy paragraph is a fine start.
+        Paste whatever exists. Plain language is fine. The more of the *why* and the
+        *who it is for* it includes, the better the first draft of outcomes — but a
+        single messy paragraph is a fine start.
 
-        Helpful (all optional) to mention if you know them:
+        Helpful to include if known (all optional):
         - the business problem or opportunity, and who feels the pain today
         - what "good" looks like — and what breaks if this fails
-        - rough scope, any hard deadlines, anyone who must be happy
+        - rough scope, any hard deadlines, anyone who must be satisfied
       placeholder: |
-        Paste an email, a paragraph, a transcript, a slide's worth of notes...
+        An email, a paragraph, a transcript, a slide's worth of notes...
 
-        Example: "Our delivery leads spend the first three weeks of every
-        engagement in workshops re-deriving requirements we've solved before.
-        We want a way to type the project context once and get a governed,
-        executable structure a coding agent can act on. Success = a lead can go
-        from blank page to build handoff in a single session. If it's wrong on
-        our own work, it's wrong."
+        Example: "Delivery leads spend the first three weeks of every engagement in
+        workshops re-deriving requirements already solved before. A way to type the
+        project context once and get a governed, executable structure a coding agent can
+        act on. Success = a lead goes from blank page to build handoff in a single
+        session."
     validations:
       required: true
 
@@ -68,11 +63,11 @@ body:
     attributes:
       label: Known constraints
       description: |
-        Anything that bounds the solution space — leave blank if unknown.
-        Common ones worth a line each:
+        Anything that bounds the solution space — leave blank if unknown. Common ones,
+        a line each:
         - **Data residency / sovereignty** (e.g. data must stay in-region)
-        - **Deployment target** (e.g. existing cloud account, on-prem, a platform we're told to use)
-        - **Identity / access** (e.g. must use corporate SSO, specific IdP, role model)
+        - **Deployment target** (e.g. existing cloud account, on-prem, a mandated platform)
+        - **Identity / access** (e.g. corporate SSO, a specific IdP, a role model)
         - any compliance, contractual, or non-negotiable technical guardrail
       placeholder: |
         Residency: ...
@@ -87,9 +82,9 @@ body:
     attributes:
       label: Existing material (links)
       description: |
-        Links to anything that already exists — decks, docs, a related repo, a
-        Figma, a recording, an old proposal. We'll read what's relevant for
-        grounding. No need to attach or tidy anything; links are fine.
+        Links to anything that already exists — decks, docs, a related repo, a Figma, a
+        recording, an old proposal. The intake reader reads what is relevant for
+        grounding. Links are fine; no need to attach or tidy anything.
       placeholder: |
         - https://...  (the original brief)
         - https://...  (related repo)
@@ -101,6 +96,5 @@ body:
     attributes:
       value: |
         ---
-        That's everything. Submit and the intake reader takes it from here —
-        you'll get back a draft outcome tree to react to, not a wall of
-        technical requirements to rubber-stamp.
+        That is enough to start. On submit, the intake reader drafts an outcome tree to
+        react to — not a wall of technical requirements to rubber-stamp.

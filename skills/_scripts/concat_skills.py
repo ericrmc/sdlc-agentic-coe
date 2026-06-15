@@ -37,9 +37,9 @@ Manifest shape (YAML)
         intro: >
           Run these three skills in order to red-team a requirement set...
         parts:
-          - skills/02-review/red-team-requirements/SKILL.md
-          - skills/04-review-and-panel/design-review-findings/SKILL.md
-          - skills/04-review-and-panel/red-team-and-dissent/SKILL.md
+          - skills/challenge/red-team-requirements/SKILL.md
+          - skills/panel/design-review-findings/SKILL.md
+          - skills/panel/red-team-and-dissent/SKILL.md
 
 The script is intentionally dependency-light. YAML is parsed with PyYAML if it is
 installed; otherwise a tiny built-in parser handles the simple subset this
@@ -81,9 +81,9 @@ class Bundle:
 
 
 # The three v1 bundles, baked in so the repo builds with no manifest present.
-# Every path below resolves to a REAL on-disk file (the numeric-prefixed 9-bucket
-# skill layout + the category-foldered pattern library); keep them in sync if a
-# skill/pattern is moved or renamed. These mirror the SDLC method:
+# Every path below resolves to a REAL on-disk file (the named-category skill
+# layout + the category-foldered pattern library); keep them in sync if a
+# skill/pattern is moved or renamed. These bundle the method:
 #   - adversarial review  = red-team requirements + design-review findings
 #                            + red-team & dissent  (the advisory red-team pass)
 #   - solution design     = synthesise architecture + the frozen-8 section
@@ -104,9 +104,9 @@ DEFAULT_BUNDLES: list[Bundle] = [
             "register, not gates or approvals."
         ),
         parts=[
-            "skills/02-review/red-team-requirements/SKILL.md",
-            "skills/04-review-and-panel/design-review-findings/SKILL.md",
-            "skills/04-review-and-panel/red-team-and-dissent/SKILL.md",
+            "skills/challenge/red-team-requirements/SKILL.md",
+            "skills/panel/design-review-findings/SKILL.md",
+            "skills/panel/red-team-and-dissent/SKILL.md",
         ],
     ),
     Bundle(
@@ -123,9 +123,9 @@ DEFAULT_BUNDLES: list[Bundle] = [
             "drift, it does not block."
         ),
         parts=[
-            "skills/05-solution-architecture/synthesise-solution-architecture/SKILL.md",
+            "skills/architect/synthesise-solution-architecture/SKILL.md",
             "references/frozen-8-sections.md",
-            "skills/05-solution-architecture/reconcile-design-vs-requirements/SKILL.md",
+            "skills/architect/reconcile-design-vs-requirements/SKILL.md",
         ],
     ),
     Bundle(

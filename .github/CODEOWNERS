@@ -4,21 +4,19 @@
 #
 # Read this before changing it.
 #
-# The CoE is deliberately LIGHT and ADVISORY. There is no state-machine,
-# no governance disposition, no version-bound approval gate anywhere in the
-# library, and NOTHING at the downstream-project level is enforced here — each
-# project runs in its own GitHub Project, guided by these skills, and decides
-# for itself. The skills nudge; they never block.
+# The library is deliberately LIGHT and ADVISORY. There is no approval gate
+# anywhere in the library, and NOTHING at the downstream-project level is
+# enforced here — each project runs in its own GitHub Project, guided by these
+# skills, and decides for itself. The skills nudge; they never block.
 #
-# There is exactly ONE place where a human's review is made STRUCTURALLY
-# necessary, and it is here: adding or changing a component PATTERN requires
-# review from a human architect before it can merge. That requirement is
-# expressed entirely in GitHub mechanics — this CODEOWNERS file PLUS a branch
-# protection rule on the default branch with "Require review from Code Owners"
-# turned on. It is NOT enforced in any application code (there is no application
-# anymore — that is the whole point of the pivot).
+# There are exactly TWO places where a human's review is made STRUCTURALLY
+# necessary, and they are here: adding or changing a component PATTERN, or a
+# CAPABILITY, requires review from a human architect before it can merge. That
+# requirement is expressed entirely in GitHub mechanics — this CODEOWNERS file
+# PLUS a branch protection rule on the default branch with "Require review from
+# Code Owners" turned on.
 #
-# WHY a pattern, and only a pattern, gets a hard gate:
+# WHY a pattern (and a capability) gets a hard gate:
 #   A pattern is a load-bearing claim. When a downstream project adopts one, the
 #   pattern's governed NFRs propagate into that project's requirements, its
 #   constraints get replayed during validation, and its "used in N engagements"
@@ -26,12 +24,15 @@
 #   one artefact that can quietly do harm at scale. So a pattern must be:
 #     - PR-reviewed and validated by a human architect (this file),
 #     - carry evidence/artefacts that it was actually built,
-#     - carry validated_on + review_by + sunset_on/supersede metadata
+#     - carry approved_at + validity_check_months + sunset_at/superseded_by metadata
 #       (validated by the frontmatter-check Action — advisory CI, not a gate).
-#   The CI Action checks shape; the architect review checks SUBSTANCE. Only the
-#   human can set the equivalent of `approved_by` — agents enumerate, compute,
-#   and propose, but never bless a pattern. CODEOWNERS is how we make that
-#   human-in-the-loop structural instead of merely hoped-for.
+#   A capability is the need-side mirror: it names a need and records which
+#   components fulfil it (proven, with evidence) or only might (candidate, with
+#   spikes owed). Flipping a fulfilment to `proven`, like promoting a pattern, is
+#   a human-only act gated here. The CI Action checks shape; the architect review
+#   checks SUBSTANCE. Only the human can set the equivalent of `approved_by` —
+#   agents enumerate, compute, and propose, but never bless a pattern or
+#   capability. CODEOWNERS is how that human-in-the-loop is made structural.
 #
 # Everything else below routes to the team that maintains it for ordinary
 # review hygiene — none of those routes is a "gate" in the governance sense;
@@ -44,7 +45,8 @@
 #   2. In Settings → Branches → branch protection for the default branch:
 #        ✓ Require a pull request before merging
 #        ✓ Require review from Code Owners
-#      That single checkbox + the /patterns/** line below IS the gate.
+#      That single checkbox + the /patterns/** and /capabilities/** lines below
+#      IS the gate.
 #   3. Leave everything else advisory. Resist adding enforcement.
 #
 # NOTE: matching is last-match-wins, so order matters. More specific paths
@@ -54,17 +56,23 @@
 
 # ─── THE HARD GATE ───────────────────────────────────────────────────────────
 # Component patterns: a human architect must review every add/change.
-# This is the only line in the repo that, combined with branch protection,
-# blocks a merge. Patterns carry propagatable NFRs + replayable constraints +
-# adoption provenance — they earn the gate. (Placeholder: set @org/architects
-# to your real architecture-review team.)
+# Combined with branch protection, this blocks a merge. Patterns carry
+# propagatable NFRs + replayable constraints + adoption provenance — they earn
+# the gate. (Placeholder: set @org/architects to your real architecture-review
+# team.)
 /patterns/**                @org/architects
+
+# Capabilities: the need-side mirror of patterns — same hard gate, same team.
+# A capability names a need and records proven|candidate fulfilments; flipping a
+# fulfilment to `proven` is a human-only act, so capability changes get the same
+# architect review as patterns.
+/capabilities/**            @org/architects
 
 
 # ─── ADVISORY ROUTES (review hygiene, NOT gates) ─────────────────────────────
 
-# The portable agent skills — the SDLC method lifted out of the old app.
-# Maintained by the CoE maintainers; reviewed, not gated.
+# The portable agent skills. Maintained by the CoE maintainers; reviewed, not
+# gated.
 /skills/**                  @org/coe-maintainers
 
 # The NFR catalogue — shared vocabulary that patterns attach to. Owned by the
@@ -82,3 +90,8 @@
 # shape ALL patterns must satisfy — it is machinery, not a pattern. Placed after
 # the /patterns/** line so this more-specific rule wins (last match wins).
 /patterns/_schema/**        @org/platform
+
+# The capability SCHEMA — same reasoning as the pattern schema: it defines the
+# shape ALL capabilities must satisfy, so it is platform machinery, not a
+# capability. Placed after /capabilities/** so this more-specific rule wins.
+/capabilities/_schema/**    @org/platform

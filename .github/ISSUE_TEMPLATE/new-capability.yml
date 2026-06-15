@@ -1,0 +1,161 @@
+name: Propose a capability
+description: Propose a named need (a capability) and the components that fulfil it
+title: "[capability] <capability_key> — <name>"
+labels: [capability, proposal]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Propose a capability
+
+        AGENT: populate every field below from the capability you authored. A
+        capability is a named **need** — "a system needs to …" — stated in plain,
+        technology-free language, plus an honest record of which components fulfil it.
+        A fulfilment is either **proven** (a real pattern, with build evidence) or a
+        **candidate** (a vendor component that still owes a spike). The need-first
+        lookup at `capabilities/INDEX.md` routes a lay synonym ("data warehouse", "run
+        our agents in prod") to the right capability, so the aliases below are the
+        findability seed.
+
+        This form opens a PR that adds the capability with candidate fulfilments only.
+        A candidate becomes **proven** only when a spike attaches evidence and a
+        CODEOWNERS-reviewed architect promotes a fulfilling pattern. Write
+        `confidence: candidate` and `approval_status: candidate` and stop — never set
+        `approval_status` or `confidence: proven` yourself. The human reviews and
+        ratifies. Be concrete; a placeholder is worse than a gap.
+  - type: input
+    id: capability_key
+    attributes:
+      label: capability_key
+      description: >-
+        The stable, cite-able key from the frontmatter. UPPER-KEBAB after the `CAP-`
+        prefix. It survives renames and requirements cite it in `fulfils_capability:`,
+        so it is fixed once chosen.
+      placeholder: CAP-OLAP
+    validations:
+      required: true
+  - type: input
+    id: name
+    attributes:
+      label: name
+      description: Human-readable name.
+      placeholder: Online Analytical Processing (OLAP)
+    validations:
+      required: true
+  - type: dropdown
+    id: capability_domain
+    attributes:
+      label: capability_domain
+      description: The one domain this need belongs to.
+      options:
+        - data
+        - compute
+        - integration
+        - runtime
+        - experience
+        - governance
+    validations:
+      required: true
+  - type: textarea
+    id: need_statement
+    attributes:
+      label: need_statement — "a system needs to … so that …"
+      description: >-
+        Paste the `need_statement`. State the NEED, not a technology — no vendor or
+        product names here; those belong in candidate components below. One or two
+        sentences: what a system must be able to do, and the payoff.
+      placeholder: >-
+        a system needs to answer analytical and BI queries over large historical
+        datasets, with governance and lineage, so that regulated analytics and ML
+        feature engineering stay inside an auditable perimeter.
+    validations:
+      required: true
+  - type: textarea
+    id: aliases
+    attributes:
+      label: aliases — lay synonyms (one per line, at least TWO)
+      description: >-
+        Paste the `aliases` — the findability seed. Every plain-language phrase a reader
+        might type when they have this need but not the canonical name. These feed
+        `capabilities/INDEX.md`, the first place a need-first reader is pointed. The
+        schema requires at least two.
+      placeholder: |
+        data warehouse
+        data analytics platform
+        EDW
+        reporting store
+        BI backend
+        big-data query
+    validations:
+      required: true
+  - type: textarea
+    id: candidate_components
+    attributes:
+      label: Candidate components (one per line)
+      description: >-
+        Paste each `fulfilled_by` entry as
+        `component-name | vendor | proven|candidate | what a spike must prove`. Mark
+        `proven` only where a real pattern already fulfils this need with build evidence
+        (name its pattern_key); otherwise `candidate` with the open question the spike
+        must answer before promotion. Write `candidate` and stop — a human flips it.
+      placeholder: |
+        Databricks Lakehouse (Delta) | Databricks | proven | already fulfilled by PAT-LAKEHOUSE-DELTA
+        Some Vendor Warehouse | VendorX | candidate | residency controls + column-level access at query time?
+    validations:
+      required: true
+  - type: textarea
+    id: known_caveats
+    attributes:
+      label: Known caveats (limits / compromises per candidate)
+      description: >-
+        Paste the `open_questions` and honest caveats per candidate — "this is where it
+        compromises the need". Precision over volume.
+      placeholder: |
+        - Some Vendor Warehouse: no column-level policy enforcement at query time yet (compromise: data-governance)
+        - candidate-only: no production reference build in our portfolio
+    validations:
+      required: false
+  - type: checkboxes
+    id: governance_nfrs
+    attributes:
+      label: Governance NFR floor (closed list)
+      description: >-
+        Tick the `kind` of each entry in `governance_nfrs` — the floor any fulfilling
+        pattern must meet (or honestly waive) to serve this need, and the bar a
+        candidate clears to be promoted. Same closed list patterns attach to. At least
+        one.
+      options:
+        - label: security
+        - label: availability
+        - label: performance
+        - label: data-residency
+        - label: observability
+        - label: resilience
+        - label: cost
+        - label: compliance
+        - label: scalability
+        - label: data-governance
+        - label: operations
+  - type: textarea
+    id: governance_nfr_detail
+    attributes:
+      label: Governance NFR floor detail (one line per ticked kind)
+      description: >-
+        Paste each `governance_nfrs` entry as
+        `kind: statement — acceptance_criterion (measurable target if any)`. A fulfilling
+        pattern is measured against these; the acceptance criterion must be testable.
+      placeholder: |
+        data-governance: catalogued + column-level access control on sensitive columns — PII columns carry policies enforced at query time
+        compliance: processing region matches data classification — region == declared classification region
+        security: no external/model-serving path reads sensitive columns — verified by access-policy scan
+    validations:
+      required: true
+  - type: dropdown
+    id: ack
+    attributes:
+      label: Acknowledgement
+      description: Confirms the agent stops at candidate.
+      options:
+        - "This enters as a candidate via PR; candidate components stay unproven until a spike attaches evidence and a CODEOWNERS-reviewed architect promotes a fulfilling pattern; no agent sets approval_status or confidence: proven."
+    validations:
+      required: true

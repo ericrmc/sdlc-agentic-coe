@@ -1,0 +1,21 @@
+# capability-domains.enum.txt — the closed capability_domain vocabulary.
+#
+# One value per line. This is the single source the capability frontmatter schema
+# and the new-capability issue form reference; do not duplicate the list elsewhere.
+#
+# A capability_domain answers "what kind of need is this" at the top level, so a
+# reader can scan the library by domain. It is deliberately coarse — the alias
+# index, not the domain, is how a need-first reader finds a specific capability.
+#
+# Rules of thumb (advisory, not enforced):
+#   - A capability's `capability_domain` MUST be one of these values.
+#   - Lines starting with `#` and blank lines are ignored.
+#   - To add a domain: open a PR, get human review, add ONE line here.
+#   - Order is canonical; keep it stable for diff readability.
+
+data
+compute
+integration
+runtime
+experience
+governance

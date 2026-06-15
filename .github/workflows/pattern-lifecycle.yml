@@ -15,7 +15,7 @@
 #                    validity_check_months and OPENS a pattern-revalidation issue
 #                    (from the issue template, assigned via CODEOWNERS) when review is
 #                    due and no open revalidation issue already exists for that key.
-#   (4) SUNSET     — flags any pattern past its sunset_at / sunset_on date by opening
+#   (4) SUNSET     — flags any pattern past its sunset_at date by opening
 #                    (or refreshing) a sunset issue for a human to action.
 #   (5) DELETE     — verifies that no pattern WITH recorded adoptions was deleted in
 #                    the last week's history (deprecate-don't-delete; the provenance
@@ -235,10 +235,9 @@ jobs:
                   fm = load_frontmatter(p.read_text(encoding="utf-8"))
                   if not fm:
                       continue
-                  # The cite-able key the ledger joins on. Canonical field is
-                  # `pattern_key`; tolerate `id` for older converted files that lead
-                  # with it, so a pattern is never silently dropped from the tally.
-                  key = fm.get("pattern_key") or fm.get("id")
+                  # The cite-able key the ledger joins on — the canonical
+                  # `pattern_key` (the only key field in the schema).
+                  key = fm.get("pattern_key")
                   if not isinstance(key, str) or not key:
                       continue
 
@@ -253,8 +252,8 @@ jobs:
                       vcm = int(fm.get("validity_check_months") or 12)
                   except (TypeError, ValueError):
                       vcm = 12
-                  # tolerate both the schema name (sunset_at) and the seed-file name (sunset_on)
-                  sunset = parse_iso(fm.get("sunset_at") or fm.get("sunset_on"))
+                  # optional advisory retirement date (schema field: sunset_at)
+                  sunset = parse_iso(fm.get("sunset_at"))
 
                   # next-review date computed from valid_from + cadence (NOT written into the file)
                   next_review = None
@@ -454,7 +453,7 @@ jobs:
           REVAL_JSON: ${{ steps.compute.outputs.revalidation_json }}
 
       # ---------------------------------------------------------------------- #
-      # (4) SUNSET — flag patterns past their sunset_at/sunset_on date. Same
+      # (4) SUNSET — flag patterns past their sunset_at date. Same
       #     de-dupe discipline; a sunset is advisory ("consider retiring"), the
       #     human decides whether to deprecate + supersede.
       # ---------------------------------------------------------------------- #
@@ -561,7 +560,7 @@ jobs:
               if not m:
                   return None
               for line in m.group(1).splitlines():
-                  mm = re.match(r"^(?:pattern_key|id)\s*:\s*(.+?)\s*$", line)
+                  mm = re.match(r"^pattern_key\s*:\s*(.+?)\s*$", line)
                   if mm:
                       return mm.group(1).strip().strip("'\"")
               return None

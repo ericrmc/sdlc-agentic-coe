@@ -1,28 +1,33 @@
 ---
 name: explore-one-area-at-a-time
 description: The organising meta-method — treat a solution space as progressively-surfacing domains (lenses over one graph), dispatch a narrowly-chartered agent per area, roll depth back into one source of truth. Use it when you are exploring a large solution space, authoring multi-section work, or deciding how to fan out.
+one_liner: Fan out one narrow agent per surfaced area, recombine into one truth.
+aliases: [divide and conquer, break a problem into parts, work one area at a time, parallel exploration, scope the work, split a big task, focus areas, fan out and merge]
 when_to_use: exploring a large solution space; authoring multi-section work; deciding how to fan out
 output_kinds: [proposal, question, menu]
 deterministic_fallback: the BDAT/crosscutting/lifecycle domain checklist
-suggested_tier: sonnet
+suggested_tier: mid
+neighbours: Pair with `_contract/parallel-agents` (the execution convention for the fan-out this method shapes) and `_contract/target-rule-output-kinds` (the advisory output rule every dispatched agent obeys). It organises work that lands in `architect/synthesise-solution-architecture`.
 ---
 
 # explore-one-area-at-a-time — the domain-lens fan-out meta-method
 
-This is the meta-method the rest of this Centre of Excellence is organised around. Every other skill
-(derive requirements, red-team, identify capabilities, recommend components, design review, NFRs, convene a
-panel, synthesise the architecture) is *one lens* you point at the space. This skill is the rule for **which
-lens to pick up next, how to scope the agent that works it, and where its output goes** so that many parallel
-threads still leave behind exactly one source of truth.
+Attack a large solution space by working one surfaced area at a time, each on its own narrow agent, then
+recombining all of them into a single source of truth.
+
+This is the organising method the other skills compose with. Each other skill (derive requirements, red-team,
+identify capabilities, recommend components, design review, NFRs, convene a panel, synthesise the architecture)
+is *one lens* you point at the space. This skill is the rule for **which lens to pick up next, how to scope the
+agent that works it, and where its output goes** so that many parallel threads still leave behind exactly one
+source of truth.
 
 If you only remember one sentence, remember this:
 
 > **A new area surfaces → explore it on its own, narrowly scoped, told what to ignore → roll its depth back
 > into the one source-of-truth document, routed by section.**
 
-That is the move real delivery actually makes, and it is the move you should make when exploring any non-trivial
-solution space. You do not enumerate everything upfront. You surface areas progressively and work them one at a
-time.
+That is the move real delivery makes, and it is the move to make when exploring any non-trivial solution space.
+Do not enumerate everything upfront. Surface areas progressively and work them one at a time.
 
 ---
 
@@ -35,7 +40,7 @@ NFRs*, never a new container that owns its own copy of the work — and give eac
 
 The payoff is depth without fragmentation: specialists produce more thorough, less shallow exploration, and
 because every domain rolls its findings back into **one** sectioned source-of-truth markdown (routed by a stable
-section key), you get "many threads, one truth" instead of N parallel documents that drift apart.
+section key), the result is "many threads, one truth" instead of N parallel documents that drift apart.
 
 ## When to use
 
@@ -43,10 +48,10 @@ section key), you get "many threads, one truth" instead of N parallel documents 
 - You are **authoring multi-section work** (a solution-design doc, an options paper, an architecture write-up)
   and need to decide who writes which section and how to keep them coherent.
 - You are **deciding how to fan out** — how many agents, scoped how, and how to recombine their output.
-- A new concern just **surfaced** mid-exploration ("we never thought about data residency") and you want to
+- A new concern just **surfaced** mid-exploration ("data residency was never considered") and you want to
   spin up a focused thread for it without re-planning the whole effort.
 
-If your task is small enough for one pass, skip this — the overhead of chartering and routing is not worth it.
+If the task is small enough for one pass, skip this — the overhead of chartering and routing is not worth it.
 
 ## Inputs
 
@@ -55,11 +60,11 @@ The user (or the calling workflow) supplies:
 1. **A description of the solution space** — the business vision/outcomes and any derived requirements so far.
    Even a paragraph is enough to start; areas will surface as you go.
 2. **The source-of-truth document** (or the intent to create one) — the single sectioned markdown file that all
-   domain depth rolls back into. If it does not exist yet, this method tells you how to seed its sections.
+   domain depth rolls back into. If it does not exist yet, this method says how to seed its sections.
 3. **(Optional) areas already known** — domains the user already wants worked, or ones a previous pass surfaced.
 4. **(Optional) a concurrency budget** — how many focused agents may run at once (default: **≤ 4**).
 
-You do **not** need a complete list of areas. Surfacing them progressively is the point.
+A complete list of areas is **not** needed. Surfacing them progressively is the point.
 
 ---
 
@@ -98,13 +103,13 @@ and already trace to outcomes. A domain is a *named scope* = (a predicate over t
 (a chartered agent). Every artefact a domain agent produces is a normal traced row, merely *tagged* with which
 domain surfaced it. The graph stays single; the domain is a queryable facet over it.
 
-Treat this as non-negotiable. The moment a domain starts owning its own private copy of requirements, you have
-forked the truth and reconciliation becomes a diff between two stores instead of an additive thread into one.
+Treat this as non-negotiable. The moment a domain starts owning its own private copy of requirements, the truth
+is forked and reconciliation becomes a diff between two stores instead of an additive thread into one.
 
 ### The domain families
 
-Domains **surface progressively** and are partly project-specific — you do not get a fixed checklist. But there
-is a reliable starting roster, the deterministic fallback you seed before any creative surfacing:
+Domains **surface progressively** and are partly project-specific — there is no fixed checklist. But there is a
+reliable starting roster, the deterministic fallback you seed before any creative surfacing:
 
 | Family | Domains | Typical target section |
 |---|---|---|
@@ -121,7 +126,7 @@ set of domains one-to-one to a frozen, closed set of sections.
 
 ## The method (numbered steps)
 
-This preserves a **deterministic spine** (seed the standard roster, route by section, cap concurrency, roll up
+This preserves a **deterministic base** (seed the standard roster, route by section, cap concurrency, roll up
 additively) and one explicit **LLM reasoning step** (propose the next domains + their charters as a menu).
 
 ### Step 1 — Seed the standard roster (deterministic)
@@ -195,17 +200,16 @@ Domain agents emit exactly three kinds of thing, and **none of them is a verdict
 - **questions** — necessity challenges ("is this requirement actually needed?"), open questions (a human answers),
 - **cited facts** — roadblocks/constraints with their evidence (a human dispositions).
 
-This is advisory by construction. An agent literally produces no accepted/approved state; the human (or the
-downstream review) decides. This keeps the whole method **light and advisory** — there are no enforcement gates
-here, only surfaced cues.
+This is advisory by construction. An agent produces no accepted/approved state; the human (or the downstream
+review) decides. The method stays **light and advisory** — agents surface cues, a human dispositions every one.
 
 ### Step 7 — Re-surface and iterate
 
-As a domain is worked, **new areas surface from it** ("integration raised a data-residency question we should
-make its own thread"). Return to Step 2, propose the newly-surfaced domains as a menu, and pull each into
-exploration when the human is ready. The board of areas grows over time; you never needed the full list upfront.
-Retire areas that turn out not to matter (mark them `dismissed`, with memory, so they don't re-nag against
-unchanged evidence).
+As a domain is worked, **new areas surface from it** ("integration raised a data-residency question worth its
+own thread"). Return to Step 2, propose the newly-surfaced domains as a menu, and pull each into exploration when
+the human is ready. The board of areas grows over time; the full list was never needed upfront. Retire areas
+that turn out not to matter (mark them `dismissed`, with memory, so they don't re-nag against unchanged
+evidence).
 
 ---
 
@@ -261,15 +265,15 @@ expensive proposed requirements. *Ignore:* implementation detail and security co
 > question is read-audit scope, and the binding constraint is EU residency …
 ```
 
-When several domains route to the same section, you present each as its own sub-block (ordered, append-only) and
-the section is regenerated from all of them together — never one domain overwriting another.
+When several domains route to the same section, present each as its own sub-block (ordered, append-only) and
+regenerate the section from all of them together — never one domain overwriting another.
 
 ---
 
 ## Notes / anti-patterns
 
-- **Don't let a domain become a container.** The first sign you've gone wrong: a requirement "lives in the
-  security domain" instead of "is tagged security and traces to OUT-2." Tags are provenance, not ownership.
+- **Don't let a domain become a container.** The first sign of going wrong: a requirement "lives in the security
+  domain" instead of "is tagged security and traces to OUT-2." Tags are provenance, not ownership.
 - **Don't dispatch a charter without an ignore-list.** "Explore security" with no "ignore X, Y, Z" produces a
   generalist. The ignore-list is what makes the agent narrow.
 - **Don't bind domains 1:1 to sections.** Four crosscutting domains share the quality-NFR section. Many-to-one is
@@ -277,16 +281,16 @@ the section is regenerated from all of them together — never one domain overwr
 - **Don't exceed the concurrency cap to "go faster."** ≤4 protects the human's review channel; flooding it with
   proposals is the failure mode, not the win.
 - **Don't emit verdicts.** Proposals, questions, and cited facts only. The instant an agent emits "approved" or
-  "done," it has crossed the advisory line this whole CoE deliberately holds.
+  "done," it has crossed the advisory line.
 - **Don't enumerate everything upfront.** Surface progressively (Steps 2 and 7). Forcing a complete domain list
   before starting is the generalist trap wearing a planning hat.
 - **Don't duplicate the keystone passes per domain.** One tracer, one classifier, one validation — domains feed
   them. Re-running edge-drawing inside every domain agent fragments the graph.
-- **Deterministic fallback:** if you have no model budget for Step 2's creative surfacing, just run the
+- **Deterministic fallback:** with no model budget for Step 2's creative surfacing, just run the
   **BDAT / crosscutting / lifecycle checklist** (Step 1's roster) with default section routing. It is shallower —
   it can't surface novel project-specific domains — but it never forgets a standard concern, and the routing and
   roll-up steps work identically.
 
-This method is the organising spine of the rest of the library. When in doubt about *how* to attack a big space:
+This is the organising method behind the rest of the library. When in doubt about *how* to attack a big space:
 surface one area, charter it tightly (including what to ignore), work it, roll it into the one truth by section,
 and repeat — many threads, one source of truth.

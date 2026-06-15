@@ -4,10 +4,9 @@
 > `red-team-and-dissent`, and `advisory-governance-checklist`. When a skill says
 > "honour dismissal memory", this is the contract it means.
 >
-> **Light and advisory.** Dismissal memory is an ergonomic, not a gate. It changes
-> *what a skill bothers to re-surface*, never *what a human is allowed to do*. There
-> is no state machine, no approval, no enforcement. A human can always re-open
-> anything by hand.
+> **Light and advisory.** Dismissal memory is an ergonomic. It changes
+> *what a skill bothers to re-surface*, never *what a human is allowed to do*. It
+> approves nothing and blocks nothing. A human can always re-open anything by hand.
 
 ## The one rule
 
@@ -29,8 +28,7 @@ ignore the channel, and a channel that is ignored is worse than no channel.
 The failure this prevents is the unconditional re-propose: a skill that recomputes
 its findings each run and re-emits every one, so the same "Requirement R-014 has no
 acceptance criterion — how will it be tested?" question reappears after the human
-has deliberately deferred it. (In the app this was a literal duplicate-INSERT bug;
-in a markdown workflow it is a wall of repeated notes that buries the one new thing.)
+has deliberately deferred it — a wall of repeated notes that buries the one new thing.
 
 ## The memory key — what makes a cue "the same cue"
 
@@ -71,7 +69,7 @@ portable between skills and across re-runs.
 > the `message` from `check_kind` + the cited handles (and, where needed, a stable
 > item id) — **never** from the item's free-text statement/title. That keeps the key
 > distinct between two items that share a handle, and stable across a "why" edit to
-> either item. This is the exact discipline the reconcile engine uses: its proposals
+> either item. Reconcile follows this discipline: its proposals
 > carry `(check_kind, section_key, req_key, message)` where `message` is composed from
 > handles, so a reworded requirement does not resurrect a dismissed proposal.
 
@@ -116,7 +114,7 @@ markdown is fine for human-first teams.
 | `by` | who dismissed it (provenance; this is a human call, never the skill's) |
 | `note` | optional — the human's reason; useful, never required |
 
-## The method — how a skill uses it (the deterministic spine)
+## The method — how a skill uses it (the deterministic base)
 
 Any skill that emits dismissible cues follows the same four steps:
 
@@ -134,7 +132,7 @@ Any skill that emits dismissible cues follows the same four steps:
    reasoning**, because a false re-arm re-nags and a missed re-arm hides a real change.
 
 Step 3 is mechanical (key match + evidence-snapshot compare). Step 4 is the reasoning
-step — it is where "the evidence changed" is judged. Keep the spine deterministic so
+step — it is where "the evidence changed" is judged. Keep the base deterministic so
 the channel stays quiet; keep step 4 honest so a real change is never buried.
 
 ### How "evidence unchanged" is decided
@@ -144,10 +142,10 @@ Two portable techniques, in order of preference:
 - **Snapshot compare (preferred where a snapshot exists).** Record, alongside the
   dismissal, a tiny snapshot of the evidence — e.g. the set of source ids + a
   count + a max-version, or a content hash of the cited text. On the next run,
-  recompute the snapshot; if it differs, the cue re-arms. (This mirrors how reconcile
+  recompute the snapshot; if it differs, the cue re-arms. This is how reconcile
   decides a section is stale: it compares a recorded `generated_from` snapshot —
-  `{ids, max_version, count}`, plus a status-aware variant for items with no version
-  column — against the live one. Same idea, kept as a note instead of a column.)
+  `{ids, max_version, count}`, plus a status-aware variant for items with no version —
+  against the live one.
 - **Key-only (lightweight default).** When no snapshot is recorded, treat a present
   key as dismissed until a human removes the line. Cheaper, but it will not auto-re-arm
   on a content change — so prefer it only for cues whose evidence rarely changes
@@ -180,13 +178,13 @@ again", so the reader sees it is a *change*, not a re-nag.
   dismissed-and-changed reads as the skill ignoring the human. Always flag the re-raise.
 - **A skill writing its own dismissals.** Dismissal is a **human** action — the skill
   only *reads* the ledger and *respects* it. The skill never decides on its own that a
-  cue is dismissed; `by` is always a person. (Mirrors the source rule: the agent
-  proposes/questions; the human owns the disposition.)
+  cue is dismissed; `by` is always a person. The agent proposes and questions; the human
+  owns the disposition.
 - **A central/global store.** Dismissal memory belongs **in the downstream repo** with
   the work, not in a shared service — so it diffs, travels, and is auditable. Each
   project owns its own ledger.
-- **Coupling to a gate.** Dismissal memory must stay advisory. It only affects what is
-  re-surfaced; it never blocks, approves, or records a verdict.
+- **Treating it as enforcement.** Dismissal memory must stay advisory. It only affects
+  what is re-surfaced; it never blocks, approves, or records a verdict.
 
 ## Drift guard
 

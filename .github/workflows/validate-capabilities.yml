@@ -1,0 +1,170 @@
+# .github/workflows/validate-capabilities.yml
+#
+# Advisory frontmatter lint for CAPABILITIES — the requirements-to-components
+# bridge files under capabilities/.
+#
+# WHAT THIS IS: a thin runner with two steps.
+#   1. Schema-validate every capability file's YAML frontmatter against
+#      capabilities/_schema/capability.frontmatter.schema.json, via
+#      skills/_scripts/lint_capability_schema.py. That script uses jsonschema
+#      (Draft 7) when it is installable and an equivalent standard-library
+#      structural check (the same v1 contract: required fields, the closed
+#      capability_domain + NFR-kind enums, >=2 aliases, the proven-needs-
+#      pattern_key+evidence rule) when it is not — so it works on a bare runner.
+#   2. Run skills/_scripts/lint_capability_index.py: every INDEX.md entry
+#      resolves to a real capability key/path, every declared alias is indexed,
+#      and every capability <-> pattern link is bidirectional.
+#
+# WHAT THIS IS NOT: a gate. Like every Action here it is ADVISORY — it runs,
+# comments, surfaces a red x on a real inconsistency, and is designed to be left
+# OFF the required-checks list. The structural gate for a capability is the
+# CODEOWNERS architect PR review (capabilities/** is CODEOWNER-owned); this check
+# only makes sure the reviewer reads a well-formed, consistent library. A failing
+# lint never blocks a merge.
+
+name: validate-capabilities (advisory)
+
+on:
+  pull_request:
+    paths:
+      - "capabilities/**"
+      - "patterns/**"
+      - "skills/_scripts/lint_capability_index.py"
+      - "skills/_scripts/lint_capability_schema.py"
+      - ".github/workflows/validate-capabilities.yml"
+  workflow_dispatch:
+
+# Least-privilege: read the repo, write one PR comment.
+permissions:
+  contents: read
+  pull-requests: write
+
+# A new push to the PR supersedes the previous run.
+concurrency:
+  group: validate-capabilities-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-capabilities:
+    name: Validate capability frontmatter + index (advisory)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Best-effort install: jsonschema + PyYAML give the richest schema check.
+      # If the install is unavailable the schema linter falls back to its stdlib
+      # structural checks, so this step failing to install is never fatal.
+      - name: Install optional deps (best-effort)
+        run: |
+          python -m pip install --upgrade pip >/dev/null 2>&1 || true
+          python -m pip install jsonschema PyYAML >/dev/null 2>&1 || \
+            echo "jsonschema/PyYAML unavailable - using stdlib fallback validation."
+
+      # (1) Schema-validate every capability frontmatter. Advisory: capture the
+      #     report and exit code but never fail the job here.
+      - name: Validate capability frontmatter against schema (advisory)
+        id: schema
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          set +e
+          OUT="$(python3 skills/_scripts/lint_capability_schema.py 2>&1)"
+          CODE=$?
+          set -e
+          printf '%s\n' "$OUT"
+          {
+            echo "## Capability frontmatter validation (advisory)"
+            echo ""
+            echo '```'
+            printf '%s\n' "$OUT"
+            echo '```'
+            if [ "$CODE" -eq 0 ]; then
+              echo "_Every capability frontmatter is well-formed. checked OK_"
+            else
+              echo "_A capability frontmatter is malformed (above). Advisory - fix the"
+              echo "field; this never blocks a merge._"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "schema_exit=$CODE" >> "$GITHUB_OUTPUT"
+          # Advisory: never fail the job on the exit code.
+          exit 0
+
+      # (2) Capability-index linter: INDEX <-> capability files <-> patterns.
+      - name: Lint capability index (aliases <-> INDEX.md <-> capabilities <-> patterns)
+        id: index
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          set +e
+          OUT="$(python3 skills/_scripts/lint_capability_index.py 2>&1)"
+          CODE=$?
+          set -e
+          printf '%s\n' "$OUT"
+          {
+            echo "## Capability-index lint (advisory)"
+            echo ""
+            echo '```'
+            printf '%s\n' "$OUT"
+            echo '```'
+            if [ "$CODE" -eq 0 ]; then
+              echo "_Every alias resolves, every INDEX entry points at a real capability,"
+              echo "and every capability <-> pattern link is bidirectional. checked OK_"
+            else
+              echo "_The index and the capability files disagree (above). Advisory - fix"
+              echo "the alias, the INDEX entry, or the missing back-reference; never blocks._"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "index_exit=$CODE" >> "$GITHUB_OUTPUT"
+          # Advisory: never fail the job on the exit code.
+          exit 0
+
+      # Post / update a single sticky PR comment with both advisory results.
+      - name: Find existing advisory comment
+        if: github.event_name == 'pull_request'
+        uses: peter-evans/find-comment@v3
+        id: find
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: "github-actions[bot]"
+          body-includes: "<!-- validate-capabilities-advisory -->"
+
+      - name: Assemble comment body
+        if: github.event_name == 'pull_request'
+        run: |
+          {
+            echo '<!-- validate-capabilities-advisory -->'
+            echo '### Capability validation - advisory'
+            echo ''
+            if [ "${{ steps.schema.outputs.schema_exit }}" = "0" ] && [ "${{ steps.index.outputs.index_exit }}" = "0" ]; then
+              echo '**Result: clean.** Capability frontmatter is well-formed and the index is consistent.'
+            else
+              echo '**Result: issues found (advisory - does not block merge).** See the run summary for detail.'
+            fi
+            echo ''
+            echo '---'
+            echo '> This check is **advisory**. It never hard-blocks a merge. The structural'
+            echo '> gate for a capability is **human review**: `CODEOWNERS` on `capabilities/**`'
+            echo '> plus branch protection requiring a CODEOWNER approval. A capability earns trust'
+            echo '> because a named architect reviewed it - not because this linter is green.'
+            echo '>'
+            echo '> It checks: the capability frontmatter schema (jsonschema when installable, else'
+            echo '> an equivalent stdlib structural check), and the `lint_capability_index.py` rules'
+            echo '> (every INDEX entry resolves, every alias is indexed, capability <-> pattern links'
+            echo '> are bidirectional).'
+          } > comment_body.md
+
+      - name: Post / update advisory comment
+        if: github.event_name == 'pull_request'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: comment_body.md
+          edit-mode: replace

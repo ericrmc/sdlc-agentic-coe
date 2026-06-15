@@ -11,14 +11,14 @@ The end-to-end solution-architecture authoring method in one file. Start with th
 
 ## Bundled sources
 
-- `skills/05-solution-architecture/synthesise-solution-architecture/SKILL.md`
+- `skills/architect/synthesise-solution-architecture/SKILL.md`
 - `references/frozen-8-sections.md`
-- `skills/05-solution-architecture/reconcile-design-vs-requirements/SKILL.md`
+- `skills/architect/reconcile-design-vs-requirements/SKILL.md`
 
 
 ---
 
-## Source: `skills/05-solution-architecture/synthesise-solution-architecture/SKILL.md`
+## Source: `skills/architect/synthesise-solution-architecture/SKILL.md`
 
 <details><summary>frontmatter</summary>
 
@@ -28,18 +28,25 @@ description: Read the codebase plus the project's outcomes/requirements/decision
 when_to_use: authoring the durable solution design once a direction is locked in
 output_kinds: [proposal]
 deterministic_fallback: the frozen-8 section skeleton with an honest 'nothing recorded yet' per empty section
-suggested_tier: opus
+one_liner: Author the durable solution-design doc as eight fixed sections.
+aliases: [solution design document, architecture document, design doc, write up the design, solution architecture, design write-up, architecture spec, document the design]
+suggested_tier: frontier
+neighbours: |
+  Before: panel/frontend-a11y-review (design has been battle-tested and reviewed).
+  After: architect/reconcile-design-vs-requirements (check the written design against the requirements as both change).
 ```
 
 </details>
 
 ## Synthesise solution architecture
 
+Author the durable solution-design document for a project as a fixed set of eight independently-versioned markdown sections, each grounded only in its own slice of the project's material.
+
 ### Purpose
 
-Author the living **solution-design document** for a project — not as one monolithic doc, but as a **fixed set of eight independently-versioned markdown sections**. You read the codebase plus the project's recorded outcomes, requirements, pattern, decisions, estimate, and open risks, then write each section grounded *only* in its own slice of that material.
+Write the living **solution-design document** — not as one monolithic doc, but as a **fixed set of eight independently-versioned markdown sections**. Read the codebase plus the project's recorded outcomes, requirements, pattern, decisions, estimate, and open risks, then write each section grounded *only* in its own slice of that material.
 
-The output is a **proposal**: a faithful synthesis a human reviews, edits, and re-runs. It issues no verdict, enforces no gate, and approves nothing. It is "here is the design, written down honestly, with traceability intact."
+The output is a **proposal**: a faithful synthesis a human reviews, edits, and re-runs. It issues no verdict and approves nothing. It is "here is the design, written down honestly, with traceability intact."
 
 The discipline that makes it trustworthy is mechanical, not stylistic:
 
@@ -52,7 +59,7 @@ The discipline that makes it trustworthy is mechanical, not stylistic:
 
 Use this once a direction is **locked in** — outcomes accepted, a pattern chosen, decisions made, an estimate produced (or honestly absent). This is the durable design everyone then builds against.
 
-Do **not** use it to explore options or to decide direction (that is earlier work). And do not treat its output as an approval — it is advisory synthesis, light by design. Re-run it whenever the underlying material changes; regeneration is cheap and non-destructive (you keep the old version).
+Do **not** use it to explore options or to decide direction (that is earlier work). And do not treat its output as an approval — it is advisory synthesis, light by design. Re-run it whenever the underlying material changes; regeneration is cheap and non-destructive (the old version is kept).
 
 ### Inputs
 
@@ -83,15 +90,15 @@ These eight sections, **in this fixed order, with these stable keys**, are the w
 | 7 | `estimate_plan` | Estimate & delivery plan | Sized effort and confidence for the real build, with its evidential basis. | current / accepted estimate (effort, low / high, confidence, basis); confirmed comparator rows cited as basis. |
 | 8 | `open_questions` | Open questions & risks | What is unresolved or carried as a known risk — never tidied away. | orphaned requirements; deferred outcomes; pattern override; open roadblocks; open requirement challenges; space-expansions; live risks & assumptions. |
 
-The layout is a **hybrid of Background & context + BDAT** (Business / Data / Application / Technology), deliberately bent so each section maps onto data the project already holds. Two departures from textbook BDAT: NFRs and decisions are pulled out into their own first-class sections (they are the keystone — NFRs flow from the pattern, decisions are the contested calls — so burying them inside "Technology" would hide them); and an estimate section and an open-questions section are appended (both are durable and already produced upstream).
+The layout is a **hybrid of Background & context + BDAT** (Business / Data / Application / Technology), deliberately bent so each section maps onto data the project already holds. Two departures from textbook BDAT: NFRs and decisions are pulled out into their own first-class sections (they are the keystone — NFRs flow from the pattern, decisions are the contested calls — so burying them inside "Technology" would hide them); and an estimate section and an open-questions section are appended (both are durable and produced upstream).
 
 Note the **single-home rule made concrete**: the adopted pattern's identity, topology, and provenance belong to section 4 (`application_architecture`); the same pattern's *NFRs* belong to section 5 (`quality_nfrs`) and must not also appear in section 4. Keeping each fact in one place is exactly what lets a later "is this NFR addressed?" reconcile check have one unambiguous target.
 
 ### The method
 
-This is the contract for authoring, taken verbatim from the proven generation prompt. Honour every clause.
+This is the contract for authoring. Honour every clause.
 
-1. **Assemble the project-graph slice ONCE.** Read the project and reshape it into a single assembled context up front — outcomes grouped, children grouped under their parent, acceptance criteria grouped per requirement, the settled pattern with its attached NFRs, ratified decisions, the estimate, comparators, orphans, open roadblocks / challenges, space-expansions, and live register items. Read whatever of the codebase grounds the architecture *now*, not section by section. One assembly, then route slices of it to sections. (This mirrors `build_solution_ctx`: one read per source, plain data, no re-reads mid-author.)
+1. **Assemble the project-graph slice ONCE.** Read the project and reshape it into a single assembled context up front — outcomes grouped, children grouped under their parent, acceptance criteria grouped per requirement, the settled pattern with its attached NFRs, ratified decisions, the estimate, comparators, orphans, open roadblocks / challenges, space-expansions, and live register items. Read whatever of the codebase grounds the architecture *now*, not section by section. One read per source, plain data, no re-reads mid-author. One assembly, then route slices of it to sections.
 
 2. **Render the deterministic skeleton first.** Lay down all eight sections, in the frozen order, with their canonical titles, *before* authoring any prose. This skeleton is the deterministic fallback: even with zero material it is a complete, honest document of eight sections each saying "nothing recorded yet."
 
@@ -103,23 +110,25 @@ This is the contract for authoring, taken verbatim from the proven generation pr
 
 6. **When a section's material is thin, say so plainly.** If there are no decisions, the decisions section says "No decisions have been ratified yet." — it does not invent a decision. Empty estimate, empty comparators, no overrides, no risks: state the honest empty-line and move on. Fabrication is the cardinal failure here. Ground every claim in the provided material; add no facts of your own.
 
-7. **Plain house style, no product / codenames.** Write as a faithful solution architect: clean professional markdown, a short heading per section then prose and / or lists, no editorialising beyond what the material supports, no product names, stage codenames, or internal jargon. The open-questions section is titled "Open questions & risks".
+7. **Plain house style, no product / codenames.** Write as a faithful solution architect: clean professional markdown, a short heading per section then prose and / or lists, no editorialising beyond what the material supports, no product names or internal jargon. The open-questions section is titled "Open questions & risks".
 
 8. **The frozen order is load-bearing.** Emit the eight in the canonical order above, always. The order is not cosmetic — it is what makes a downstream reconcile (and any combined export) deterministic. Do not reorder, drop, merge, or add sections.
 
-#### Deterministic spine and the LLM step
+#### The deterministic base and the model step
 
 The work has two clearly separated halves — keep them separate:
 
-- **DETERMINISTIC STEP — render the 8-section skeleton.** Mechanically produce the eight titled sections in frozen order. No judgement, no LLM, no randomness. This is the floor you can always ship.
-- **LLM STEP — generate each section body.** For each `section_key`, run the section's grounding prompt (`references/section-prompts/<section_key>.md`) against that section's slice to author the body. This is the only place reasoning enters, and it is fenced inside one section's material at a time.
+- **DETERMINISTIC STEP — render the 8-section skeleton.** Mechanically produce the eight titled sections in frozen order. No judgement, no model call, no randomness. This is the floor you can always ship.
+- **MODEL STEP — generate each section body.** For each `section_key`, run the section's grounding prompt (`references/section-prompts/<section_key>.md`) against that section's slice to author the body. This is the only place reasoning enters, and it is fenced inside one section's material at a time.
 
 ### Composing other skills
 
 This skill is the **composition root** for two reusable mechanics:
 
-- **`llm-fanout-orchestrator`** — fan out **one parallel agent per section**. Each agent gets exactly one section's slice and its grounding prompt, authors that one body, and returns it. Because each fact lives in one section and each section is grounded only in its own slice, the eight authoring jobs are genuinely independent and parallelise cleanly. Reassemble the returned bodies into the frozen order.
-- **`explore-one-area-at-a-time`** — the **`section_key` is the routing edge**. It is the stable identifier that says which slice of the assembled graph an agent sees and which section it writes. Routing by `section_key` is what keeps each agent inside its lane and stops facts leaking across section boundaries.
+- **`skills/_contract/parallel-agents`** — fan out **one parallel agent per section**. Each agent gets exactly one section's slice and its grounding prompt, authors that one body, and returns it. Because each fact lives in one section and each section is grounded only in its own slice, the eight authoring jobs are genuinely independent and parallelise cleanly. Reassemble the returned bodies into the frozen order.
+- **`skills/_contract/explore-one-area-at-a-time`** — the **`section_key` is the routing edge**. It is the stable identifier that says which slice of the assembled graph an agent sees and which section it writes. Routing by `section_key` is what keeps each agent inside its lane and stops facts leaking across section boundaries.
+
+> **Multi-agent option (advisory).** This step deepens with independent parallel agents: launch one sub-agent per section, at most 4 at a time, each a separate sub-agent. A failed sub-agent returns nothing and is never fatal — the deterministic base stands; merge what succeeded. (Claude Code: use the Task tool / subagents. Other tools: launch parallel model calls; or a matrix-strategy CI job.) Never required — it adds coverage and cuts single-pass bias. See `skills/_contract/parallel-agents`.
 
 Ship a **grounding prompt per section** in `references/section-prompts/` (eight files, named by `section_key`). Each is a thin specialisation of the shared authoring prompt, naming the one section, its title, and the slice it is grounded in. The shared template's invariant clause — *"This is the ONLY source material. Do NOT invent … If the material for this section is empty or thin, say so plainly … Preserve every backtick-quoted key verbatim … Plain professional house style, no product / codenames"* — is repeated in every one.
 
@@ -194,7 +203,7 @@ _No estimate has been produced yet. Confirm comparators and run the estimate to 
 - **Risk #7:** Third-party auth provider deprecation (likelihood medium, impact high).
 ```
 
-Each section is **individually exportable** as `<section_key>.md`, and all eight join client-side into a single combined `SOLUTION-DESIGN.md` with the titles as headings. Re-running a section produces a **new version** that supersedes the old — never an in-place overwrite; the prior version is always retained. A hand edit follows the same path (a new version marked as edited). Record, alongside each generated section, a small snapshot of *which* rows it was generated from (ids / count / max version per source) — that snapshot is the baseline a later reconcile diffs against to flag a stale section. This is advisory bookkeeping, not a gate.
+Each section is **individually exportable** as `<section_key>.md`, and all eight join client-side into a single combined `SOLUTION-DESIGN.md` with the titles as headings. Re-running a section produces a **new version** that supersedes the old — never an in-place overwrite; the prior version is always retained. A hand edit follows the same path (a new version marked as edited). Record, alongside each generated section, a small snapshot of *which* rows it was generated from (ids / count / max version per source) — that snapshot is the baseline a later reconcile diffs against to flag a stale section. This is advisory bookkeeping, not a go/no-go gate.
 
 ### Notes / anti-patterns
 
@@ -203,9 +212,9 @@ Each section is **individually exportable** as `<section_key>.md`, and all eight
 - **Do not fabricate to fill space.** Thin material is a true fact about the project. "No comparators were confirmed" is a better section than an invented comparator. Add no facts not in the material.
 - **Do not rename or paraphrase keys.** `F-1` stays `F-1`, backticked. The whole value of the document is the preserved thread from outcome to requirement to acceptance criterion.
 - **Do not assemble per-section.** Read and reshape the graph once; route slices to sections. Re-reading per section is how facts and keys drift between sections.
-- **Do not editorialise or import codenames.** Plain solution-architect prose, grounded strictly in the slice. No product names, no stage codenames, no internal jargon in any rendered string.
-- **Do not treat the output as approval.** This is advisory synthesis. It proposes the written design; it gates nothing, blocks nothing, and signs off nothing. If something is unresolved, it belongs in section 8 — surfaced, not tidied away.
-- **Prefer the deterministic floor over a bad guess.** If the LLM step is unavailable or a slice is unclear, ship the skeleton with honest empty lines. A correct, sparse document beats a confident, invented one.
+- **Do not editorialise or import codenames.** Plain solution-architect prose, grounded strictly in the slice. No product names or internal jargon in any rendered string.
+- **Do not treat the output as approval.** This is advisory synthesis. It proposes the written design; it blocks nothing and signs off nothing. If something is unresolved, it belongs in section 8 — surfaced, not tidied away.
+- **Prefer the deterministic floor over a bad guess.** If the model step is unavailable or a slice is unclear, ship the skeleton with honest empty lines. A correct, sparse document beats a confident, invented one.
 
 
 ---
@@ -217,11 +226,11 @@ Each section is **individually exportable** as `<section_key>.md`, and all eight
 > Canonical reference. This is the discoverability mirror of `skills/_shared/frozen-8-sections.md`.
 > If the two ever disagree, the `_shared` copy is the one the skills load — fix this one to match.
 >
-> Cited by the four architecture skills:
-> `synthesise-solution-architecture`, `reconcile-design`, `as-built-loop`, and
-> `projections` (exec-summary / estimate / architecture-diagram).
+> Cited by the architecture skills:
+> `architect/synthesise-solution-architecture`, `architect/reconcile-design-vs-requirements`,
+> `architect/reconcile-as-built`, and `architect/import-external-design`.
 
-A solution architecture in this Centre of Excellence is **not one free-form document**. It is a fixed
+A solution architecture here is **not one free-form document**. It is a fixed
 set of **eight sections**, each its own markdown block, written in a **fixed order**. The set is
 **frozen** — it is not per-project configurable, and you do not add, drop, rename, or re-order
 sections per project. Freezing it is the whole point: it is what makes generation, reconcile, and the
@@ -295,7 +304,7 @@ not configurable. This is what lets the downstream skills be deterministic rathe
   so they regenerate cleanly and never drift from the source.
 
 If sections were per-project configurable, none of these could be written once and reused — every
-project would need bespoke check wiring. Freezing the order is the cheap discipline that buys
+project would need its own check wiring. Freezing the order is the cheap discipline that buys
 deterministic, reusable downstream tooling.
 
 ---
@@ -312,44 +321,51 @@ deterministic, reusable downstream tooling.
   the inputs it was built from (which outcomes, which requirements, which pattern, which estimate).
   The reconcile skill uses that note to spot a section that was generated from data which has since
   changed — the "is this section stale?" question. (Light and advisory: it is a prompt to regenerate,
-  not an enforced gate.)
+  not a block.)
 - **Proposals, not verdicts.** Reconcile and the as-built diff phrase findings as questions a human
   resolves ("Is this addressed?", "Should this be re-parented or retired?"). They never stamp a
   pass/fail. The frozen-8 structure exists to make those questions precise — not to enforce anything.
 
 ### See also
 
-- `skills/05-solution-architecture/synthesise-solution-architecture/SKILL.md` — reads the codebase
-  and project material and writes these eight sections.
-- `skills/05-solution-architecture/reconcile-design-vs-requirements/SKILL.md` — checks the eight
+- `skills/architect/synthesise-solution-architecture/SKILL.md` — reads the project
+  material and writes these eight sections.
+- `skills/architect/reconcile-design-vs-requirements/SKILL.md` — checks the eight
   sections against the requirements; surfaces drift, gaps, and contradictions as proposals.
-- `skills/05-solution-architecture/reconcile-as-built/SKILL.md` — diffs a submitted as-built
+- `skills/architect/reconcile-as-built/SKILL.md` — diffs a submitted as-built
   document against these eight as-designed sections.
-- `skills/05-solution-architecture/import-external-design/SKILL.md` — merges an external solution
+- `skills/architect/import-external-design/SKILL.md` — merges an external solution
   design onto these eight sections as the authoritative source of truth.
-- The exec summary, estimate, and architecture-diagram **projections** are derived from a known
-  subset of these sections by the synthesise/reconcile skills above and by
-  `skills/06-handoff/comparator-grounded-estimate/SKILL.md` (the estimate projection).
+- The estimate projection is derived from a known subset of these sections by
+  `skills/deliver/comparator-grounded-estimate/SKILL.md`.
 
 
 ---
 
-## Source: `skills/05-solution-architecture/reconcile-design-vs-requirements/SKILL.md`
+## Source: `skills/architect/reconcile-design-vs-requirements/SKILL.md`
 
 <details><summary>frontmatter</summary>
 
 ```yaml
 name: reconcile-design-vs-requirements
 description: Advisory review of a solution-architecture doc against its source-of-truth requirements/outcomes/NFRs — five checks plus a semantic drift pass; every finding is a question; under git the stale-section check reads diff/blame; never blocks merge.
+one_liner: Find where a design doc has drifted from its requirements.
+aliases: [design drift check, design vs requirements review, requirements traceability, design coverage check, stale design sections, does the design still match, design consistency review]
 when_to_use: checking a design doc still reflects its requirements after either side changed
 output_kinds: [question]
 deterministic_fallback: the five deterministic checks (exact-token mismatches)
-suggested_tier: opus
+suggested_tier: frontier
+neighbours: |
+  Before: architect/synthesise-solution-architecture (authors the design doc this checks).
+  After: architect/import-external-design (merge an external design back onto the doc).
 ```
 
 </details>
 
 ## Reconcile design vs requirements
+
+Find where a solution-architecture doc has drifted from its requirements, and surface
+each drift as a question for a human to resolve.
 
 ### Purpose
 
@@ -360,27 +376,26 @@ project's life either side moves — an outcome is added, a section is edited, a
 inherited from a new pattern — and the two quietly drift apart.
 
 This skill reads the design sections against the source of truth and surfaces **drift, gaps,
-and contradictions as questions a human resolves**. It is the assurance reviewer's pass over
-the doc, run after either side changes.
+and contradictions as questions a human resolves**. Run it after either side changes.
 
-It has one absolute rule, taken verbatim from the engine it is lifted from:
+One absolute rule:
 
-> **You PROPOSE and you QUESTION. You NEVER issue a verdict, a status, or a pass/fail.**
+> **PROPOSE and QUESTION. NEVER issue a verdict, a status, or a pass/fail.**
 
 Every finding is phrased as an observation or a question ("... Is it addressed?", "Should it
 be re-parented or retired?"). It never says "FAIL", never sets a status, never blocks a merge.
-The human reading the findings decides what to do. This is advisory tooling, not a gate.
+The human reading the findings decides what to do. This is advisory tooling.
 
-The method has two layers that have to stay distinct:
+The method has two layers that stay distinct:
 
 - A **deterministic step** — five exact-token checks. Cheap, repeatable, no model, no
   judgement. These catch literal mismatches (an outcome key that appears in no section body,
   a requirement with no acceptance criterion).
-- A **semantic LLM step** — one reasoning pass that catches the **paraphrase / contradiction
+- A **semantic step** — one reasoning pass that catches the **paraphrase / contradiction
   drift** the deterministic checks miss by construction (an outcome covered only by a
   reworded paragraph, an NFR addressed under different wording, two sections that contradict
-  each other). The deterministic engine can only see literal token matches, so this layer is
-  where the real value is.
+  each other). The token checks only see literal matches, so this layer is where the real
+  value is.
 
 Run the deterministic step first; it is the floor and the fallback. Run the semantic step on
 top; it is the reason a reviewer was asked.
@@ -447,21 +462,17 @@ The full definitions live in `references/five-checks.md`; the summary:
 5. **`section_stale`** — a section whose source data has changed since it was generated.
    Set `section_key` = the section's key; `req_key` = null.
 
-   **Under git, this check reads `git diff` / `git blame`, not a stored snapshot.** The
-   original engine carried a persisted `generated_from` snapshot column (`{ids, max_version,
-   count}` per source table) and diffed the live rows against it. **That persisted-staleness
-   snapshot is dropped here.** In a git-backed CoE the question "did the data this section was
-   built from change after the section was last written?" is answered directly by version
-   control:
+   **Under git, this check reads `git diff` / `git blame`, not a stored snapshot.** Version
+   control answers the question "did the data this section was built from change after the
+   section was last written?" directly:
    - `git log -1 --format=%cI -- <section-file>` → when the section was last touched.
    - `git log -1 --format=%cI -- <requirements-source>` → when the source of truth last
      changed.
    - If the source moved **after** the section, the section is a candidate for `section_stale`.
    - `git blame` on the changed source lines shows *what* changed, to put in the question.
 
-   No snapshot column, no byte-for-byte snapshot recompute — just diff/blame. State this in
-   the output when you raise a `section_stale` finding ("the requirements file was last
-   changed in commit `<sha>` after this section was last edited").
+   State this in the output when you raise a `section_stale` finding ("the requirements file
+   was last changed in commit `<sha>` after this section was last edited").
 
 Emit one finding per tension. Every message must read as a question.
 
@@ -488,7 +499,7 @@ Look specifically for:
   satisfied; the meaning is not.
 - **A contradiction between two sections** — two sections that, read together, cannot both be
   true (one section says data stays on-prem, another describes a cloud-hosted store). The
-  deterministic engine has no cross-section comparison; this is the semantic pass's job.
+  deterministic step has no cross-section comparison; this is the semantic pass's job.
   Surface it as a `section_stale` finding against the section that contradicts the source of
   truth or the other section.
 
@@ -499,12 +510,12 @@ everything is consistent, return no findings.
 #### Step 3 — Apply dismissal memory (do not re-nag)
 
 If the user supplies a list of previously **dismissed** findings, do not re-raise any whose
-identity matches. **Identity is the tuple `(check_kind, req_key, section_key, message)`** — the
-same dedup key the original engine uses. Because the message is derived from stable handles
-(keys and item ids), not from free text, it stays stable across a wording edit and stays
-distinct between two items that share a handle. A finding the human already dismissed against
-unchanged evidence is **not resurrected**. If the underlying evidence changed (the message now
-reads differently because the data changed), it is a new finding and may be raised.
+identity matches. **Identity is the tuple `(check_kind, req_key, section_key, message)`.**
+Because the message is derived from stable handles (keys and item ids), not from free text, it
+stays stable across a wording edit and stays distinct between two items that share a handle. A
+finding the human already dismissed against unchanged evidence is **not resurrected**. If the
+underlying evidence changed (the message now reads differently because the data changed), it is
+a new finding and may be raised.
 
 #### Step 4 — Assemble the worklist
 
@@ -572,7 +583,7 @@ honest, valid outcome.
 - **Never a verdict.** The single hard rule. No "PASS", no "FAIL", no status column, no
   "blocks merge". If a sentence could be read as a ruling, rewrite it as a question. The human
   owns the disposition.
-- **Advisory, not a gate.** This skill produces a worklist. It must not be wired to fail a CI
+- **Advisory only.** This skill produces a worklist. It must not be wired to fail a CI
   job or block a PR. (A CI job *may* run it and post the findings as a non-blocking comment.)
 - **Deterministic floor first.** Always run the five token checks even when an LLM is
   available — they are the repeatable fallback and they make the semantic pass cheaper by
@@ -580,9 +591,9 @@ honest, valid outcome.
   the whole skill.
 - **Don't invent scope.** Reason only about the supplied outcomes/requirements/NFRs/sections.
   Never reference a `req_key` or `section_key` that is not in the inputs verbatim.
-- **Stale = git, not a snapshot.** Do not reintroduce a persisted `generated_from` snapshot.
-  Under version control the staleness question is answered by `git diff` / `git log` /
-  `git blame` comparing when the section vs the source last changed. Cite the commit.
+- **Stale = git, not a snapshot.** Under version control the staleness question is answered by
+  `git diff` / `git log` / `git blame` comparing when the section vs the source last changed.
+  Cite the commit; do not keep a separate snapshot of the source data.
 - **Respect dismissal memory.** Key it on `(check_kind, req_key, section_key, message)`. Don't
   re-nag a human about evidence they already looked at and dismissed and which has not changed.
   Derive the message from stable handles so the key survives a harmless rewording.
@@ -591,6 +602,6 @@ honest, valid outcome.
   `nfr_unaddressed` / coverage checks get noisier — note it, don't silently dedup.
 - **Semantic pass is where the value is.** A reviewer is not needed to grep for a token. Spend
   the model budget on paraphrase coverage and cross-section contradiction — the things a
-  deterministic engine structurally cannot see.
+  token check structurally cannot see.
 
 See `references/five-checks.md` for the verbatim definitions of the five deterministic checks.

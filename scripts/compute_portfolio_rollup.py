@@ -5,10 +5,10 @@ This is the *compute* half of the portfolio-rollup Action (push_portfolio_to_boa
 is the projection half). It reads the tracked-project registry
 (``portfolio/tracked-projects.yml``) and, for each downstream project, recomputes an
 **advisory Red/Amber/Green standing** from the SAME transparent checklist the
-``skills/09-portfolio/portfolio-phase-health`` skill documents in
+``skills/library/portfolio-phase-health`` skill documents in
 ``references/rag-checklist.md``.
 
-Discipline (carried verbatim from that reference and docs/portfolio-github-projects.md):
+Discipline (follows that checklist and docs/portfolio-github-projects.md):
 
 * **Derived-on-read, never a stored score.** The verdict is recomputed from scratch
   every run and written to a *throwaway* JSON artefact (git-ignored). Nothing is a

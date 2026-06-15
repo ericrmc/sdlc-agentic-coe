@@ -11,39 +11,43 @@ A single paste-able file for the full advisory red-team pass over a project. Run
 
 ## Bundled sources
 
-- `skills/02-review/red-team-requirements/SKILL.md`
-- `skills/04-review-and-panel/design-review-findings/SKILL.md`
-- `skills/04-review-and-panel/red-team-and-dissent/SKILL.md`
+- `skills/challenge/red-team-requirements/SKILL.md`
+- `skills/panel/design-review-findings/SKILL.md`
+- `skills/panel/red-team-and-dissent/SKILL.md`
 
 
 ---
 
-## Source: `skills/02-review/red-team-requirements/SKILL.md`
+## Source: `skills/challenge/red-team-requirements/SKILL.md`
 
 <details><summary>frontmatter</summary>
 
 ```yaml
 name: red-team-requirements
 description: Adversarially critique a requirement set and emit one dismissible challenge per genuine issue over the closed 9-kind taxonomy (vague, unquantified, untestable, solution_shaped, orphan_value, conflicting, gold_plated, missing_nfr, off_vision); conservative on conflicting/gold_plated; never picks a winner, deletes scope, or sets status.
-when_to_use: pressure-testing a requirement set before solutioning — the highest-value review pass in the flow. Run it after requirements are derived and before you identify capabilities or recommend components.
+one_liner: Pressure-test a requirement set for conflicts, gaps, and gold-plating.
+aliases: [requirements review, critique requirements, find conflicting requirements, requirements quality check, scope creep check, ambiguous requirements, missing NFR check, requirements sanity check]
+when_to_use: pressure-testing a requirement set before solutioning — the highest-value review pass. Run it after requirements are derived and before identifying capabilities or recommending components.
 output_kinds: [question, proposal]
 deterministic_fallback: the 9-kind vocabulary as a manual review checklist
-suggested_tier: opus
+suggested_tier: frontier
+tier_reason: adversarial judgement over a whole set, with strict precision discipline on conflict/gold-plating — strong reasoning required.
+neighbours: runs after `understand/nfr-coverage-check` (requirements derived and NFR-checked); feeds `challenge/surface-risks-and-assumptions` and the rest of the challenge pass.
 ```
 
 </details>
 
 ## red-team-requirements
 
-The adversarial requirements critic. This is the highest-value salvaged pass in the
-SDLC flow: it red-teams a *set* of requirements and surfaces the things a human keeps
+Pressure-test a requirement set for conflicts, gaps, and gold-plating.
+
+This pass red-teams a *set* of requirements and surfaces the things a human keeps
 missing — the unquantified NFR, the solution wearing a requirement's clothes, the two
 clauses that quietly contradict each other, the scope nobody asked for.
 
-It is **advisory**. It flags and poses questions. It is wired so it *cannot* make a
-decision: it never picks a winner between two conflicting requirements, never deletes
-or rejects scope, never sets or changes any requirement's status. A human triages every
-challenge it raises.
+It is **advisory**. It flags issues and poses questions. It cannot make a decision: it
+never picks a winner between two conflicting requirements, never deletes or rejects
+scope, never sets or changes any requirement's status. A human triages every challenge.
 
 ---
 
@@ -74,18 +78,26 @@ What this skill **never** does:
   produces challenges; a human dismisses or addresses each one.
 - Invent requirements that are not in the supplied set.
 
-The drop-in mental model: you are a sharp, sceptical reviewer who annotates someone
-else's requirement list in the margin with pointed questions, then hands it back. You
-do not hold the pen on the requirements themselves.
+The mental model: a sharp, sceptical reviewer who annotates someone else's requirement
+list in the margin with pointed questions, then hands it back — without holding the pen
+on the requirements themselves.
+
+> **Multi-agent option (advisory).** This step deepens with independent parallel agents:
+> launch one sub-agent per objection (or per requirement cluster), at most 4 at a time,
+> each a separate sub-agent. A failed sub-agent returns nothing and is never fatal — the
+> deterministic base stands; merge what succeeded. (Claude Code: use the Task tool /
+> subagents. Other tools: launch parallel model calls; or a matrix-strategy CI job.)
+> Never required — it adds coverage and cuts single-pass bias. See
+> `skills/_contract/parallel-agents`.
 
 ---
 
 ### When to use
 
 - After requirements have been **derived from business vision/outcomes** and assessed
-  (technical / solution / overlap), and **before** you identify capabilities, recommend
-  components, or start solution architecture.
-- Any time a requirement set has churned and you want a fresh pressure test.
+  (technical / solution / overlap), and **before** identifying capabilities, recommending
+  components, or starting solution architecture.
+- Any time a requirement set has churned and a fresh pressure test is wanted.
 - As a recurring, idempotent pass — re-running it should produce the same challenges for
   the same text (clear prior open challenges, re-emit the fresh set, preserve the
   human's addressed/dismissed history).
@@ -130,11 +142,11 @@ REQUIREMENTS:
 
 ### The method
 
-The skill runs a **deterministic spine** (a per-requirement and pairwise checklist that
-fires on hard signals) and an **LLM reasoning step** (a critique prompt that reads the
-whole set and emits structured challenges). Use both: the deterministic spine is a
-backstop that guarantees the obvious issues are never missed; the LLM step catches the
-subtle, semantic ones. When they agree, confidence is high; when only the LLM fires,
+The skill runs a **deterministic base** (a per-requirement and pairwise checklist that
+fires on hard signals) and a **model reasoning step** (a critique prompt that reads the
+whole set and emits structured challenges). Use both: the deterministic base is a
+backstop that guarantees the obvious issues are never missed; the model step catches the
+subtle, semantic ones. When they agree, confidence is high; when only the model fires,
 treat it as a softer steer.
 
 Both layers emit the **same nine kinds and the same JSON shape**, so their outputs merge.
@@ -169,7 +181,7 @@ Both layers emit the **same nine kinds and the same JSON shape**, so their outpu
   `requirement_id` to null. Use ONLY these category names: `security`, `availability`,
   `performance`, `data_residency`, `maintainability`, `scalability`.
 - **`off_vision`** — a requirement introduces a direction NOT reflected in the PROJECT
-  VISION (the foreword) or the rest of the set — a possible UNINTENDED PIVOT by someone
+  VISION (the foreword) or the rest of the set — a possible unintended drift by someone
   who cannot see the whole picture. ADVISORY only: flag it as a light steer to confirm
   against the north star; it never blocks acceptance. Only emit this when a vision is
   present and the drift is real.
@@ -187,7 +199,7 @@ corrodes trust in the entire channel. Apply these rules strictly:
    input reordering and gives it a stable dismissal signature. For every *other* kind,
    omit `contests_id` or set it null.
 2. **Require a shared subject.** Two requirements only conflict if they are about the
-   *same thing*. The deterministic spine proves this via subject-token overlap (content
+   *same thing*. The deterministic base proves this via subject-token overlap (content
    words, stop-words and high-frequency domain words excluded, so "the system shall"
    does not count as a shared subject). Do not flag a "conflict" between requirements on
    unrelated topics.
@@ -204,7 +216,7 @@ corrodes trust in the entire channel. Apply these rules strictly:
    — or do they apply to different scopes?"* The suggested action says *"Reconcile the
    two (pick the binding rule or scope each). The agent does not choose a winner."* Do
    not assert which one is right.
-5. **Fire only on a hard signal.** The proven hard triggers are: (a) contradictory
+5. **Fire only on a hard signal.** The hard triggers are: (a) contradictory
    quantified targets on the same subject+dimension (two different time magnitudes
    normalised to a common unit, or two different percentages, with ≥2 shared subject
    tokens); (b) mutually-exclusive constraints from a known hard-opposite list (on-prem
@@ -240,7 +252,7 @@ gold-plating. For both kinds:
   support"), only when there is **no** captured `value_outcome` to back the extra scope.
   A well-grounded broad requirement stays silent.
 
-#### STEP-BY-STEP
+#### Step by step
 
 **Step 1 — Scope the live set.** Take only requirements whose status is `proposed` or
 `accepted`. Ignore edited/rejected rows. This is the set the critic reasons over for
@@ -270,30 +282,29 @@ the extra scope is justified by the captured outcome. Apply the additive-languag
   challenge (requirement_id null) per uncovered category.
 - `off_vision` — only if a non-terse vision is present: flag any proposed requirement
   that introduces several subject tokens absent from both the vision and the accepted
-  corpus, as a possible unintended pivot. Advisory; never blocks.
+  corpus, as a possible unintended drift. Advisory; never blocks.
 
-**Step 6 — LLM reasoning pass (the semantic critic).** Run the critique prompt below over
-the full set. It catches the subtle issues the keyword backstop cannot: a conflict
+**Step 6 — Model reasoning pass (the semantic critic).** Run the critique prompt below
+over the full set. It catches the subtle issues the keyword backstop cannot: a conflict
 phrased without the trigger words, a solution-shaped requirement using novel
 terminology, a real but non-obvious vision drift. It emits the *same nine kinds* in the
 *same JSON shape*.
 
-**Step 7 — Merge and de-duplicate.** Combine the deterministic and LLM challenges. When
+**Step 7 — Merge and de-duplicate.** Combine the deterministic and model challenges. When
 both fired the same kind on the same requirement(s), keep one (prefer the more specific
 message). Present the merged list. Every challenge stays `open` until a human dismisses
 or addresses it.
 
-#### The LLM step — the critique prompt
+#### The model step — the critique prompt
 
-Use this prompt verbatim (substitute the bracketed inputs). It is the salvaged
-production prompt and already encodes the advisory contract, the nine-kind constraint,
-and the exact output shape.
+Use this prompt as written (substitute the bracketed inputs). It encodes the advisory
+contract, the nine-kind constraint, and the exact output shape.
 
 ```
-You are the REQUIREMENTS CRITIC. You red-team a project's current requirement set
-and surface dismissible CHALLENGES for a human to triage. You are ADVISORY: you flag
-and pose questions; you NEVER pick a winner, delete scope, or change any requirement's
-status. A human decides every challenge.
+You red-team a project's current requirement set and surface dismissible CHALLENGES
+for a human to triage. You are ADVISORY: you flag and pose questions; you NEVER pick a
+winner, delete scope, or change any requirement's status. A human decides every
+challenge.
 
 PROJECT TITLE: [project_title]
 
@@ -334,7 +345,7 @@ concrete `message`, a concrete `suggested_action`, and a `requirement_id`.
   performance, data_residency, maintainability, scalability.
 - "off_vision" — a requirement introduces a direction NOT reflected in the PROJECT
   VISION (the foreword at the top of this prompt) or the rest of the set — a possible
-  UNINTENDED PIVOT by someone who cannot see the whole picture. ADVISORY only: flag it as
+  unintended drift by someone who cannot see the whole picture. ADVISORY only: flag it as
   a light steer to confirm against the north star; it never blocks acceptance. Only emit
   this when a vision is present and the drift is real.
 
@@ -445,13 +456,13 @@ Field contract:
 
 ### Notes / anti-patterns
 
-- **Never pick a winner.** For a `conflicting` challenge, you pose "which holds, or do
-  they apply to different scopes?" — you do not assert which requirement is correct.
-- **Never drop scope.** For `gold_plated`, you *ask* whether the extra capability is
+- **Never pick a winner.** For a `conflicting` challenge, pose "which holds, or do they
+  apply to different scopes?" — do not assert which requirement is correct.
+- **Never drop scope.** For `gold_plated`, *ask* whether the extra capability is
   justified by an outcome. Removing it is a human decision, taken elsewhere.
 - **Never touch status.** This skill emits challenges only. It does not accept, reject,
-  ratify, or advance any requirement, and it has no governance gate — challenges are
-  advisory annotations a human triages at their discretion.
+  ratify, or advance any requirement — challenges are advisory annotations a human
+  triages at their discretion.
 - **Stay inside the closed vocabulary.** Only the nine kinds. If something doesn't fit a
   kind, it is probably not a challenge — resist inventing a tenth.
 - **Conservatism beats coverage on `conflicting`/`gold_plated`.** A single false conflict
@@ -473,25 +484,29 @@ Field contract:
 
 ---
 
-## Source: `skills/04-review-and-panel/design-review-findings/SKILL.md`
+## Source: `skills/panel/design-review-findings/SKILL.md`
 
 <details><summary>frontmatter</summary>
 
 ```yaml
 name: design-review-findings
 description: Read a design or solution-architecture draft (or a running front-end) and emit severity-tagged, citation-bearing FINDINGS over a built-in architecture checklist. Clamp out-of-set severity to info, default a missing ref, drop empty findings. Never approves or rejects — findings, not verdicts. Use when reviewing a design draft for concrete, actionable observations a panel would raise.
+one_liner: Emit severity-tagged, cited findings over a design draft.
 when_to_use: reviewing a design draft or a running front-end for concrete actionable findings
+aliases: [design review, architecture review, design critique, solution review, gap analysis, design feedback, review checklist, security review checklist]
 output_kinds: [proposal, question]
 deterministic_fallback: the architecture checklist + the severity-clamp / default-ref / drop-empty harness
-suggested_tier: opus
-stage: 8
+suggested_tier: frontier
+neighbours:
+  before: panel/red-team-and-dissent — adversarial pressure-test that records dissent
+  after: panel/frontend-a11y-review — the same engine with a WCAG checklist for front-ends
 references:
   - references/architecture-checklist.md
 ```
 
 </details>
 
-## design-review-findings — the general review engine
+## design-review-findings
 
 ### Purpose
 
@@ -502,28 +517,27 @@ citation to the exact thing it attaches to.
 
 This skill is a **reviewer, not a judge**. It stays inside the material it was
 given. It does not invent scope the text does not imply, it does not approve or
-reject the design, and it produces no verdict and no gate disposition. A human
-decides what to do with the findings. The skill's only job is to surface them
-clearly, with enough specificity that a reader can act on each one.
+reject the design, and it produces no verdict. A human decides what to do with
+the findings. The skill's only job is to surface them clearly, with enough
+specificity that a reader can act on each one.
 
-This is the **general review engine**. The companion skill
-`frontend-a11y-review` is a *specialisation* of this same engine: it carries a
-WCAG success-criteria checklist instead of the architecture checklist, and cites
-WCAG SCs in `ref`. Everything else — the finding shape, the severity set, the
-validation harness — is shared. If you change the contract here, change it there
-too.
+This is the **general review engine**. The companion skill `frontend-a11y-review`
+is a *specialisation* of this same engine: it carries a WCAG success-criteria
+checklist instead of the architecture checklist, and cites WCAG SCs in `ref`.
+Everything else — the finding shape, the severity set, the validation harness —
+is shared. A change to the contract here is a change there too.
 
 ### When to use
 
-- A solution-architecture draft has been synthesised (FORGE stage 7) and you
-  want a pass over it before it goes to a panel or to the author for revision.
-- A front-end is running and you want a structured list of design concerns
+- A solution-architecture draft has been synthesised and a pass over it is
+  wanted before it goes to a panel or to the author for revision.
+- A front-end is running and a structured list of design concerns is wanted
   (for the a11y-specific variant, prefer `frontend-a11y-review`).
 - Any time someone asks "what would a reviewer flag in this?" and wants a list
   they can triage, not a yes/no.
 
-Do **not** use this to gate or block. There is no pass/fail here. If a process
-needs a decision, that is a human's call downstream of these findings.
+There is no pass/fail here, and nothing this skill emits blocks an advance. If a
+process needs a decision, that is a human's call downstream of these findings.
 
 ### Inputs
 
@@ -540,11 +554,19 @@ The user supplies, as markdown / context:
 If the material is empty, there is nothing to review — say so and stop. Do not
 manufacture findings from nothing.
 
+> **Multi-agent option (advisory).** This step deepens with independent parallel
+> agents: launch one sub-agent per candidate finding area (or per design
+> section), at most 4 at a time, each a separate sub-agent. A failed sub-agent
+> returns nothing and is never fatal — the deterministic base stands; merge what
+> succeeded. (Claude Code: use the Task tool / subagents. Other tools: launch
+> parallel model calls; or a matrix-strategy CI job.) Never required — it adds
+> coverage and cuts single-pass bias. See `skills/_contract/parallel-agents`.
+
 ### The method (numbered STEPS)
 
-The engine has a **deterministic spine** (steps 1, 3, 4) and an **LLM reasoning
-step** (step 2). The spine is what makes the output trustworthy even when the
-model is weak or unavailable; the LLM step is what makes it insightful.
+The engine has a **deterministic base** (steps 1, 3, 4) and a **model reasoning
+step** (step 2). The base is what makes the output trustworthy even when the
+model is weak or unavailable; the model step is what makes it insightful.
 
 #### Step 1 — DETERMINISTIC: walk the architecture checklist
 
@@ -571,7 +593,7 @@ context makes it load-bearing). A present-but-vague item is a `low` or `medium`.
 A present-and-adequate item needs no finding (or an `info` note for
 traceability).
 
-#### Step 2 — LLM: review for everything the checklist does not catch
+#### Step 2 — MODEL: review for everything the checklist does not catch
 
 Now reason openly over the draft for gaps, risks, unstated assumptions, and
 missing specifications **beyond** the fixed checklist — the things specific to
@@ -582,10 +604,10 @@ design-specific ones.
 
 > **REVIEW PROMPT** (carry this to the model verbatim; fill the `${...}` slots):
 >
-> You are a design reviewer on an internal managed-services delivery team.
-> Review the design draft below and produce FINDINGS — observations with a
-> citation — NOT verdicts. You do not approve or reject the design; a human
-> decides what to do with your findings.
+> Review the design draft below as a design reviewer on a managed-services
+> delivery team and produce FINDINGS — observations with a citation — NOT
+> verdicts. Do not approve or reject the design; a human decides what to do with
+> the findings.
 >
 > PROJECT: `${title}`
 >
@@ -637,8 +659,7 @@ citation, or an empty string; the harness makes the output safe regardless.
 3. **Drop empty-text findings.** Trim the text; if it is empty, discard the
    finding entirely. A finding with nothing to say is not a finding.
 
-Reference implementation of the harness (the exact behaviour the source app
-ships):
+Reference implementation of the harness:
 
 ```python
 ALLOWED = {"high", "medium", "low", "info"}
@@ -668,7 +689,7 @@ the material reviewed" — rather than inventing filler.
 
 #### Deterministic fallback
 
-If the LLM step (step 2) is unavailable or returns nothing usable, the skill
+If the model step (step 2) is unavailable or returns nothing usable, the skill
 still produces value: emit findings from the architecture checklist alone
 (step 1), run them through the harness (step 3), and order/emit (step 4). The
 checklist plus the harness *is* the floor of this skill — it never returns
@@ -678,7 +699,7 @@ nothing useful just because the model was unavailable.
 
 Return a markdown block the user can triage. Each finding is one row: a severity
 tag, the citation it attaches to, and the observation. Findings only — no
-verdict line, no "APPROVED / REJECTED", no gate status.
+verdict line, no "APPROVED / REJECTED".
 
 ```markdown
 ## Design review findings — <project title>
@@ -716,7 +737,7 @@ to act on a single row without reading the others.
 - **`info` is not a problem.** Use it for neutral traceability notes (a
   comparator match, a deliberate trade-off worth recording). Do not inflate an
   `info` into a `low` to pad the list, and do not bury a real `high` as `info`.
-- **The harness is not optional.** Even when you trust the model, run step 3.
+- **The harness is not optional.** Even when the model is trusted, run step 3.
   It is cheap, it is deterministic, and it is what lets a downstream consumer
   trust the severity field and the ref field without re-validating.
 - **Don't pad.** Zero findings is a legitimate, valuable result. An empty draft
@@ -728,19 +749,33 @@ to act on a single row without reading the others.
 
 ---
 
-## Source: `skills/04-review-and-panel/red-team-and-dissent/SKILL.md`
+## Source: `skills/panel/red-team-and-dissent/SKILL.md`
 
 <details><summary>frontmatter</summary>
 
 ```yaml
 name: red-team-and-dissent
 description: From one or N persona lenses raise the single strongest objection to each emerging proposal (never a verdict, never kills it); a declined objection becomes a durable dissent record feeding dismissal-memory.
+one_liner: Raise the strongest objection per proposal; record declined ones as durable dissent.
+aliases:
+  - devils advocate
+  - play devil's advocate
+  - poke holes
+  - challenge a proposal
+  - decision log of what was rejected
+  - record why a proposal was declined
+  - dissent register
+  - objection log
 when_to_use: adversarially stress-testing a proposal, or recording what was decided NOT to do and why
 output_kinds: [question, proposal]
 deterministic_fallback: the single-objection template + the dissent register template
-suggested_tier: opus
+suggested_tier: frontier
+tier_reason: adversarial judgement plus a durable human-facing dissent record is high-stakes.
+neighbours:
+  before: panel/synthesise-panel — supplies the proposals a synthesised review surfaces
+  after: panel/design-review-findings — turns surviving proposals into concrete findings
 compose_with:
-  - 03-requirements/llm-fanout-orchestrator   # fan one lens out over N
+  - skills/_contract/parallel-agents   # fan one lens out over N
 references:
   - references/dissent-register.template.md
 ```
@@ -749,7 +784,7 @@ references:
 
 ## Red-team and Preserve-Dissent
 
-Adversarial pass + durable memory of what you decided **not** to do.
+Raise the single strongest objection to each emerging proposal, then turn any objection a human declines into a durable record of what was decided **not** to do, and why.
 
 This skill does two jobs that belong together:
 
@@ -758,11 +793,19 @@ This skill does two jobs that belong together:
    it **never** delivers a verdict and **never** kills the proposal.
 2. **Preserve-dissent** — when a human *declines* an objection (keeps the proposal),
    the objection doesn't evaporate. It becomes a durable **dissent record**: a titled
-   "what we decided NOT to do, and why" with a human-owned reason and provenance back
+   "what was decided NOT to do, and why" with a human-owned reason and provenance back
    to the objection. The register is revisitable and feeds **dismissal-memory** so the
    same idea is not silently re-proposed later.
 
 The call **always** stays with the human. The agent surfaces; the human disposes.
+
+> **Multi-agent option (advisory).** This step deepens with independent parallel
+> agents: launch one sub-agent per objection lens, at most 4 at a time, each a
+> separate sub-agent. A failed sub-agent returns nothing and is never fatal — the
+> deterministic base stands; merge what succeeded. (Claude Code: use the Task tool /
+> subagents. Other tools: launch parallel model calls; or a matrix-strategy CI job.)
+> Never required — it adds coverage and cuts single-pass bias. See
+> `skills/_contract/parallel-agents`.
 
 ---
 
@@ -773,23 +816,23 @@ gap to close, a shape of the solution. Most of them are fine. A few are quietly 
 they over-reach, under-deliver, or carry a hidden risk that nobody named out loud.
 
 The red-team's job is to name that risk **once, at full strength**, per proposal — and
-then get out of the way. It is not a gate. It does not have a kill switch. It produces
-exactly one artefact per proposal: the strongest single objection, framed so a human
-can decide in seconds whether to **keep** the proposal or **record a dissent**.
+then get out of the way. It does not have a kill switch. It produces exactly one
+artefact per proposal: the strongest single objection, framed so a human can decide in
+seconds whether to **keep** the proposal or **record a dissent**.
 
 When the human keeps the proposal *over* an objection, that objection is the most
-valuable thing in the room — it's the "we considered this and chose the other way"
-that future-you (and future contributors) will desperately want. So we capture it.
+valuable thing in the room — the "this was considered and the other way was chosen"
+that a future reader will want. So it is captured.
 
 ---
 
 ### When to use
 
-- You have one or more **emerging proposals** (from a panel, a fan-out, a brainstorm,
-  or your own design pass) and you want them stress-tested before they harden.
-- You are about to record **what the project decided NOT to do** and the durable WHY,
+- There are one or more **emerging proposals** (from a panel, a fan-out, a brainstorm,
+  or a design pass) and they need stress-testing before they harden.
+- The project is about to record **what was decided NOT to do** and the durable WHY,
   so it can be cited and is not re-litigated by accident.
-- You want **dismissal-memory**: a future proposal that matches a recorded dissent
+- **Dismissal-memory** is wanted: a future proposal that matches a recorded dissent
   should surface that prior decision instead of arriving fresh.
 
 Do **not** use this skill to *approve* anything. It has no "pass". A clean red-team
@@ -806,12 +849,13 @@ pass means "no strong objection surfaced" — not "this is blessed".
 | `lens(es)` | optional | One persona kind, or N. Defaults to `skeptic` then `minimalist`, alternating (see below). |
 | `grounding` | recommended | The facts the objection must keep — the proposal's source, prior context, any objection-so-far to *deepen*. |
 
-You don't need a database, a panel, or any state machine. A proposal pasted into a
-prompt is enough.
+No database, panel, or session state is needed. A proposal pasted into a prompt is
+enough.
 
 #### The persona lenses
 
-These are the same lenses the source platform seats, each a deliberate slant:
+Each lens is a deliberate slant. Pick the one whose domain the proposal sits in, or
+alternate the two default adversarial voices across a batch.
 
 | Lens | Slant | Objects when… |
 |---|---|---|
@@ -822,8 +866,8 @@ These are the same lenses the source platform seats, each a deliberate slant:
 | `explorer` | Argues for wider | orphaned value or an unexplored domain the proposal walks past |
 
 The two **default adversarial voices** are `skeptic` and `minimalist` — alternate them
-across a batch of proposals so you don't hear the same objection in the same voice
-twice in a row. The others are available when the proposal is clearly in their domain.
+across a batch of proposals so the same objection is not heard in the same voice twice
+in a row. The others are available when the proposal is clearly in their domain.
 
 ---
 
@@ -852,14 +896,13 @@ Assign each surviving proposal a stable `proposal_ref` (`gap-0`, `req-0`, `decis
 
 #### Step 2 — LLM: raise the single strongest objection per proposal
 
-For each proposal, run the red-team prompt below from its assigned lens. This is the
-**verbatim method** from the source platform's `red_team_challenge.md`:
+For each proposal, run the red-team prompt below from its assigned lens:
 
 > You are the RED TEAM on a design deliberation, speaking from the **{persona_kind}**
 > lens. Raise the single STRONGEST objection to the EMERGING proposal below — the one
 > thing most likely to make it the wrong call. Be specific and hard-hitting. But you
 > NEVER deliver a verdict and you NEVER kill the proposal: you surface the objection so
-> a human can decide whether to keep the proposal or record it as a dissent (what we
+> a human can decide whether to keep the proposal or record it as a dissent (what was
 > decided NOT to do, and why).
 >
 > **PROPOSAL KIND:** {proposal_kind}
@@ -878,21 +921,21 @@ For each proposal, run the red-team prompt below from its assigned lens. This is
 Rules that make this a red-team and not a reviewer:
 
 - **One** objection per proposal. Not three. The strongest single one.
-- **Keep the proposal's facts.** You are deepening an objection, not re-describing the
+- **Keep the proposal's facts.** This is deepening an objection, not re-describing the
   proposal or arguing a different point.
 - **End by leaving the call to the human.** The last sentence of `body_md` hands the
   decision back: keep it, or record a dissent. No "therefore we should not…".
-- **No verdict, no score, no kill.** "Wrong call" is a hypothesis you're surfacing, not
-  a ruling you're issuing.
+- **No verdict, no score, no kill.** "Wrong call" is a hypothesis being surfaced, not a
+  ruling being issued.
 
 #### Step 3 — Composable: one lens, or fan out over N
 
 - **One lens:** run Step 2 once, with the assigned persona. Done.
 - **N lenses (no panel machinery):** to hear several voices on the *same* proposal, run
-  Step 2 once per lens and collect the objections. Use the
-  **`llm-fanout-orchestrator`** skill to issue the calls in parallel — one model call
-  per (proposal × lens) — then gather. You do **not** need a convened panel, a roster,
-  or any session state to do this; the fan-out is just N independent red-team prompts.
+  Step 2 once per lens and collect the objections. Issue the calls in parallel — one
+  model call per (proposal × lens) — then gather, following the convention in
+  `skills/_contract/parallel-agents`. No convened panel, roster, or session state is
+  needed; the fan-out is just N independent red-team prompts.
 
 Deduplicate honestly: if two lenses raise effectively the same objection, keep the
 sharper wording and note both lenses agreed — don't pad the list to look thorough.
@@ -912,10 +955,10 @@ Either way the human owns the outcome. The agent never auto-disposes.
 
 When the human declines a proposal (or keeps one but wants the objection on record),
 materialise a **dissent record** using `references/dissent-register.template.md`. The
-shape (lifted from the source platform's dissent register) is:
+shape is:
 
 ```yaml
-title:        # one line — what we decided NOT to do
+title:        # one line — what was decided NOT to do
 kind:         # feature | requirement | solution | proposal | other
 source:       # agent  -> recorded from a red-team objection (provenance below)
               # human  -> a standalone dissent a human added directly
@@ -930,7 +973,7 @@ recorded_on:  # ISO date
 
 Then append the record to the project's **dissent register** (one markdown file or a
 GitHub Issue using the dissent-record issue template — see Notes). Two properties make
-the register trustworthy, both inherited from the source:
+the register trustworthy:
 
 - **The human owns the WHY.** The `reason` (and `title`) are editable forever. The
   *provenance* — which objection, which lens, which proposal — is **immutable** once
@@ -958,7 +1001,7 @@ This is the whole point of preserving dissent: the project stops re-litigating s
 
 ### Output format
 
-You return two markdown artefacts.
+Two markdown artefacts are returned.
 
 #### A. The objection(s) — one block per proposal
 
@@ -979,8 +1022,8 @@ freshness. Whether that trade is acceptable is the call to make here, not mine.
 > Note: `body_md` is 2–4 sentences and its **last sentence hands the call back to the
 > human**. There is no recommendation line, no score, no "verdict".
 
-When you fan out N lenses on one proposal, list the objections under the same proposal
-header, sharpest first, with the agreeing lenses noted.
+When N lenses are fanned out on one proposal, list the objections under the same
+proposal header, sharpest first, with the agreeing lenses noted.
 
 #### B. A recorded dissent — from `references/dissent-register.template.md`
 
@@ -993,8 +1036,8 @@ header, sharpest first, with the agreeing lenses noted.
 - **recorded_on:** 2026-06-15
 
 **Why (human-owned):**
-We accept the read-path latency cost for v1 to ship the rules feature without standing
-up a queue. We will revisit if p95 regresses past the NFR target in staging.
+The read-path latency cost is accepted for v1 to ship the rules feature without
+standing up a queue. Revisit if p95 regresses past the NFR target in staging.
 
 **Provenance (immutable):**
 - objection_lens: solution_designer
@@ -1006,16 +1049,16 @@ up a queue. We will revisit if p95 regresses past the NFR target in staging.
 
 ### Notes / anti-patterns
 
-- **No verdict, ever.** If your output contains "we should not", "rejected",
-  "blocked", a score, or a pass/fail — you've stopped red-teaming and started gating.
-  The strongest objection is a *hypothesis about why this could be wrong*, handed to a
-  human. That's the whole contract.
+- **No verdict, ever.** If the output contains "we should not", "rejected", "blocked",
+  a score, or a pass/fail — it has stopped red-teaming. The strongest objection is a
+  *hypothesis about why this could be wrong*, handed to a human. That's the whole
+  contract.
 - **One objection, full strength.** A list of five mild concerns is weaker than one
-  sharp one. If you genuinely have two strong, *distinct* objections, that's a signal
+  sharp one. If there genuinely are two strong, *distinct* objections, that's a signal
   the proposal is two proposals — say so rather than diluting.
 - **Keep the proposal's facts.** Deepen the objection; don't re-litigate a different
-  point or restate the proposal back. You're given "the objection so far" to *sharpen*,
-  not replace.
+  point or restate the proposal back. The "objection so far" is given to *sharpen*, not
+  replace.
 - **The honest empty case is a result.** Zero proposals → zero objections. A lens with
   no real signal says "no strong objection from this lens" and proposes nothing. Never
   manufacture an objection to look diligent.
@@ -1030,8 +1073,8 @@ up a queue. We will revisit if p95 regresses past the NFR target in staging.
   dissent should arrive *with* its prior dissent attached, not fresh. Silently
   re-proposing a settled "no" is the failure this skill exists to prevent.
 - **Light and advisory.** This skill enforces nothing. It produces objections and
-  records; disposition, ordering, and re-opening are all human moves. There is no state
-  machine to satisfy and no approval to grant.
+  records; disposition, ordering, and re-opening are all human moves. There is no
+  approval to grant.
 
 #### GitHub-native mechanics (optional)
 

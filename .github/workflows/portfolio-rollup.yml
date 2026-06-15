@@ -11,7 +11,7 @@
 #   a throwaway run artefact, regenerated each time — git-ignore it). Nothing here
 #   gates anything; the board cell is a signal, not a stop sign.
 #
-# WHY "worst-of" + reasons (lifted from project_health() in the old app)
+# WHY "worst-of" + reasons
 #   The standing is the WORST level across a small fixed check set — a transparent
 #   boolean fold, never a weighted grade — and every failing check is named in the
 #   reasons list. Because it reads the same signals the per-project checklist reads,

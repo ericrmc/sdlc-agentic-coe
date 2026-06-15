@@ -35,6 +35,7 @@ approved_by: "@architects"
 approved_at: "2026-06-15"
 valid_from: "2026-06-15"
 validity_check_months: 12
+fulfils: [CAP-OLTP]
 constraints:
   - {statement: "DB connection pool (e.g. PgBouncer) required", enforced: hard}
 attached_nfrs:
@@ -50,7 +51,7 @@ evidence:
 
 ## Containerised web + managed Postgres (`PAT-WEBAPP-PG`)
 
-> Seed pattern, converted. **`approval_status: provisional`** — reviewed and usable with
+> **`approval_status: provisional`** — reviewed and usable with
 > care; its evidence is a real design-note adoption pending a production reference build,
 > at which point a CODEOWNER may promote it to `approved`. Advisory, not enforced — a
 > recommendation to weigh against the project's requirements, not a gate to pass.
@@ -122,10 +123,9 @@ The four NFRs travel with this pattern. Each kind maps to the closed 11-value NF
 
 ### References
 
-- Converted verbatim-in-substance from seed pattern 1 (`solution_pattern`,
-  "Containerised web + managed Postgres", category `deployment`) in the original
-  SDLC-companion app.
-- Real-world fit: the seed self-service-portal rebuild project recommended and accepted
+- Provenance: a real in-region managed-Postgres deployment design; see the adoption-decision
+  artefact linked in `evidence`.
+- Real-world fit: a self-service-portal rebuild project recommended and accepted
   this pattern for an in-region (UK-South) managed Postgres deployment with a 99.9% SLA and
   ~400-user horizontal scaling target — the residency constraint was a hard contractual
   requirement, which is exactly the situation this pattern is built for.
@@ -259,6 +259,7 @@ approved_by: "@architects"
 approved_at: "2026-06-15"
 valid_from: "2026-06-15"
 validity_check_months: 12
+fulfils: [CAP-OLAP]
 constraints:
   - {statement: "No external model call may read PII columns", enforced: hard}
   - {statement: "Cluster auto-termination required", enforced: soft}
@@ -275,8 +276,8 @@ attached_nfrs:
 
 ## Databricks Lakehouse + Delta Lake (`PAT-LAKEHOUSE-DELTA`)
 
-> Seed pattern, converted. **`approval_status: provisional`** — reviewed and usable with care; its
-> evidence is a real governed-lakehouse migration design pending a production reference build. This
+> **`approval_status: provisional`** — reviewed and usable with care; its evidence is a real
+> governed-lakehouse migration design pending a production reference build. This
 > is a strong **data/AI-governance-aware exemplar**: governance, lineage, and access control are
 > native to the platform rather than bolted on, and every attached NFR is phrased as a checkable
 > acceptance criterion. Use it as the reference for how a regulated data/AI pattern should attach
@@ -298,7 +299,7 @@ Reach for this pattern when the *governance posture* is part of the requirement,
 
 ### Attached NFRs
 
-These four NFRs travel **with** the pattern. Restating the seed, mapped to the closed enum (`data-governance`, `security`, `compliance`, `cost`). The fact that the pattern arrives pre-loaded with concrete, measurable governance NFRs is what makes it a good data/AI-governance exemplar.
+These four NFRs travel **with** the pattern, mapped to the closed enum (`data-governance`, `security`, `compliance`, `cost`). The fact that the pattern arrives pre-loaded with concrete, measurable governance NFRs is what makes it a good data/AI-governance exemplar.
 
 | Kind | Statement | Acceptance criterion |
 | --- | --- | --- |
@@ -331,7 +332,7 @@ The `security` NFR ("no external model call may read PII columns") is the one th
 
 ### References
 
-- Seed pattern 3 (`solution_pattern`, "Databricks Lakehouse + Delta Lake") from the original SDLC-companion app — converted here verbatim in substance.
+- Based on a governed-lakehouse migration design; provenance is the adoption-decision artefact in `evidence`.
 - Unity Catalog: column/row-level access policies, tagging, and lineage.
 - Delta Lake: ACID tables on cloud object storage for batch + streaming.
 

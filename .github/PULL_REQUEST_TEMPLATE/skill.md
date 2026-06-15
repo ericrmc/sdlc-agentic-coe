@@ -1,83 +1,77 @@
 <!--
-  Skill PR — review checklist.
-  Selected via the URL query: ?template=skill.md
-  Use this template when the PR adds or changes a SKILL.md (a portable agent skill).
-  For component patterns use ?template=pattern.md instead.
+  SKILL PULL REQUEST — filled by the authoring agent, ratified by a human.
+  Select with ?template=skill.md. Use when the PR adds or changes a SKILL.md.
+  For a component pattern use ?template=pattern.md; for anything else the default.
 
-  This is the HUMAN read. A separate, advisory GitHub Action
-  (`validate-skill-frontmatter`) checks the *shape* mechanically and
-  (`check-shared-stub-drift`) pins any quoted shared block to skills/_shared/.
-  CI comments and fails its own check to prompt a fix — it never blocks the merge.
-  The call is always a human's. Keep it light.
+  AGENT: you authored the skill; populate every field below FROM THE FILE YOU WROTE.
+  Two advisory Actions run on this PR — validate-skill-frontmatter (checks the target
+  rule and frontmatter shape) and check-shared-stub-drift (pins any quoted shared block
+  to skills/_shared/). They comment and may fail their own check; neither blocks the
+  merge. The human reviewer ratifies by merging.
 -->
 
 ## What this skill does
 
-<!-- One or two sentences. What does it derive/structure/surface, and WHEN should someone reach for it? -->
+- Skill file(s): `skills/<category>/<skill>/SKILL.md`
+- One line — what it derives/structures/surfaces, and WHEN to reach for it:
 
+## Agent self-certification
 
+> AGENT: tick each box only after you have verified it against the file you wrote.
+> These are honest self-checks the human reviewer relies on; they are not a gate. Note
+> next to any box you leave unchecked why.
 
-## Skills touched
+### The target rule — target the model, the record, or the blind spot, never the judgment
 
-<!-- List every SKILL.md added or changed, by path. -->
+- [ ] `output_kinds` is a subset of `{proposal, question, menu, halt}`. No fifth kind, and no `status` / `verdict` / `score` / `ranking` / `feasibility` / `disposition` / assessment-of-a-person renamed to slip in.
+- [ ] Every example output in the body is genuinely one of those four kinds — nothing that reads like a decision a human could rubber-stamp.
+- [ ] Where the skill quotes the canonical rule, it pastes the "Target rule (quoted)" block from `skills/_shared/target-rule.md` verbatim, markers included.
 
-- `skills/`
+### The deterministic base — the model is enrichment, never a dependency
 
----
-
-## Reviewer checklist (the human read)
-
-> The `validate-skill-frontmatter` Action checks most of these mechanically and leaves an advisory comment.
-> This list is where a human confirms the *intent* the lint can't see. Tick what you have actually read and agree with;
-> leave a note next to anything you waived and why. An unchecked box is a conversation, not a block.
-
-### The target rule — agents target the model, the record, or the blind spot, never the judgment
-
-- [ ] **`output_kinds` are a subset of `{proposal, question, menu, halt}`** (the target rule). No fifth kind. No `status`, `verdict`, `colour`, `ranking`, `score`, `feasibility`, `disposition`, or assessment-of-a-person has crept in under a different name.
-- [ ] Every example output in the body is genuinely one of those four kinds — nothing that reads like a decision a human could rubber-stamp. If an output looks like a verdict, it has targeted the *judgment*; it should hand the human a typed thing to rule on instead.
-- [ ] Where the skill quotes the canonical rule, it pastes the **"Target rule (quoted)"** block from `skills/_shared/target-rule.md` verbatim, markers included.
-
-### The deterministic spine — the LLM is enrichment, never a dependency
-
-- [ ] **A deterministic, no-LLM fallback is named** in the `deterministic_fallback:` frontmatter field — concrete (split / regex / template / skeleton), one line, honest about depth. Not "best-effort heuristics."
-- [ ] The body actually implements that fallback: a reader could delete the model step and still get a draft a reviewer would accept. The spine may be shallow; it may not be empty or a fiction.
-- [ ] The spine and the model step are **separate numbered steps**, and there is a **merge step** that keeps the spine's output when the model is absent, errors, times out, returns junk, or violates the skill's vocabulary. The model path degrades; it is never fatal.
-- [ ] The LLM reasoning step is still present and pulls its weight (this is a *companion* to the spine, not a replacement for it) — the skill keeps the deterministic spine **and** the real reasoning step the method needs.
+- [ ] `deterministic_fallback:` names a concrete no-model fallback (split / regex / template / skeleton), one line, honest about depth — not "best-effort heuristics".
+- [ ] The body implements that fallback: delete the model step and a reviewer still gets a usable draft. The base may be shallow; it may not be a fiction.
+- [ ] The deterministic base and the model step are separate numbered steps, and a merge step keeps the base's output when the model is absent, errors, times out, or violates the vocabulary.
+- [ ] The model reasoning step is still present and pulls its weight — a companion to the base, not a replacement.
 
 ### Provider-agnostic — tier hints only
 
-- [ ] **No model ids are hard-coded.** Model selection names a **tier** (`opus` / `sonnet` / `haiku`) or defers to the caller — never a concrete id, never a vendor, anywhere in the frontmatter or body.
-- [ ] The one-line model swap honours the fixed precedence (global pin → per-call override → skill default tier), so deepening the skill is editing one word, not rewriting it.
+- [ ] No model ids are hard-coded anywhere. Model selection names a tier (`frontier` / `mid` / `light`) or defers to the caller — never a vendor or a concrete id.
+- [ ] The model swap honours the precedence (global pin → per-call override → skill default tier): deepening the skill is editing one word.
 
 ### Survives extraction — the method works without GitHub
 
-- [ ] **Any GitHub-native step is marked optional** so the method survives extraction. A reader running this skill in a bare terminal, a plain prompt, or another LLM workflow gets a complete result; Actions / Projects / PR mechanics are a *convenience layer*, never load-bearing.
-- [ ] No step *requires* a repo, a runner, or a CI secret to produce its primary artefact.
+- [ ] Any GitHub-native step is marked optional; a reader running this in a bare terminal or another LLM workflow gets a complete result.
+- [ ] No step requires a repo, runner, or CI secret to produce its primary artefact.
 
 ### No drift in shared stubs
 
-- [ ] **Any quoted shared stub matches `skills/_shared/`** (the `check-shared-stub-drift` drift guard will check). Quoted copies of `target-rule`, `deterministic-fallback`, `dismissal-memory`, `trace-edge`, `frozen-8-sections`, or `propose-ratify` are byte-for-byte identical to the canonical source — markers included.
-- [ ] If a shared rule genuinely needed to change, it was changed **in `skills/_shared/` first**, then re-quoted into every skill in *this same PR* — never edited in place in a quoted copy.
+- [ ] Any quoted shared stub (`target-rule`, `deterministic-fallback`, `dismissal-memory`, `trace-edge`, `frozen-8-sections`, `propose-ratify`) is byte-for-byte identical to `skills/_shared/`, markers included (`check-shared-stub-drift` will check).
+- [ ] If a shared rule needed to change, it was changed in `skills/_shared/` first, then re-quoted into every skill in THIS PR — never edited in place in a quoted copy.
 
-### Light and advisory — no enforcement gates
+### Light, advisory, self-contained
 
-- [ ] The skill introduces **no enforcement gate** — no state-machine, no required approval, no version-bound blocker, no acceptance-rate metric. It proposes, questions, offers a menu, or halts; the human decides.
-- [ ] Frontmatter is complete and sane: `name:` is kebab-case; `description:` is one line that says **WHEN** to use the skill (not just what it is); `output_kinds:` and `deterministic_fallback:` are both present.
-- [ ] The skill reads cleanly **on its own** — Purpose, When to use, Inputs, numbered Steps, Output format with a concrete template/example, and Notes/anti-patterns. Someone who has never seen this repo could run it from this one file.
+- [ ] The skill introduces no enforcement — no blocking approval, no automated blocker, no acceptance-rate metric. It proposes, questions, offers a menu, or halts.
+- [ ] Frontmatter is complete: `name:` kebab-case matching the directory; `description:` one line saying WHEN to use it; `output_kinds:` and `deterministic_fallback:` both present.
+- [ ] The body reads cleanly on its own — Purpose, When to use, Inputs, numbered Steps, Output format with a concrete template, Notes/anti-patterns. Someone who has never seen this repo could run it from this one file.
 
----
+## Lint results
+
+> AGENT: run both and paste the output. They are advisory; paste even on failure and
+> explain.
+
+```
+<!-- python3 skills/_scripts/lint_skill_target_rule.py skills/<category>/<skill>/SKILL.md
+     plus the check-shared-stub-drift result if the skill quotes a shared stub -->
+```
 
 ## Evidence / dogfood
 
-<!--
-  How do you know it works? Optional but encouraged:
-  - a run against a real intake / project, with the markdown it produced
-  - the no-LLM spine output (proof the fallback isn't a fiction)
-  - a link to the validate-skill-frontmatter / check-shared-stub-drift check runs on this PR
--->
+> Optional but encouraged: a run against a real intake/project with the markdown it
+> produced, or the no-model deterministic-base output (proof the fallback is not a
+> fiction).
 
+## Notes for the reviewing human
 
-
-## Notes for the reviewer
-
-<!-- Anything you waived, any box you left unchecked on purpose, any open question. The honest "here's what I'm unsure about" is the most useful thing in this box. -->
+> Anything you waived, any box left unchecked on purpose, any open question. The honest
+> "here is what I am unsure about" is the most useful line in this box.

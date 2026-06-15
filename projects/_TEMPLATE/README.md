@@ -9,7 +9,7 @@ Centre-of-Excellence repo* — for a quick spike, a study, or when a project has
 the artefacts here is genuinely simpler than standing up a repo.
 
 Everything here is **plain markdown, and the markdown is the source of truth.** There is no database,
-no app, no state machine. The skills read these files and write back to them. A human reviews and
+no app, no orchestration engine. The skills read these files and write back to them. A human reviews and
 edits them directly. That is the whole mechanism.
 
 ---
@@ -153,6 +153,6 @@ attached NFRs into section 5 of your architecture — note any you are deliberat
   separate: pushing requirements onto the board recreates the heavyweight tracker we are deliberately
   leaving behind.
 
-- **No gates, no approvals, no state machine.** This folder is a set of living documents, not a
+- **No gates, no approvals, no orchestration engine.** This folder is a set of living documents, not a
   workflow with enforced transitions. The skills propose and question; a human decides and edits.
   Nothing here blocks anything — it is all light and advisory by design.

@@ -2,9 +2,10 @@
 """
 lint_skill_target_rule.py — the target-rule / output-kinds linter.
 
-This is docs/06 Principle VI (the TARGET RULE) and docs/09 Guardrail 1 made
-executable. It is the script the `validate-skill-frontmatter` GitHub Action
-calls on every PR, and it runs identically from a developer's shell:
+This makes the TARGET RULE executable: every skill / agent output is exactly one
+of proposal | question | menu | halt — never a status, verdict, score, or
+ranking. It is the script the `validate-skill-frontmatter` GitHub Action calls on
+every PR, and it runs identically from a developer's shell:
 
     python3 skills/_scripts/lint_skill_target_rule.py            # lint the repo
     python3 skills/_scripts/lint_skill_target_rule.py --root .   # explicit root
@@ -35,7 +36,7 @@ only, so it runs in CI with zero `pip install`):
           status / verdict / colour / ranking / score / disposition / feasibility
           output SHAPES (a verdict wearing one of the four kinds as a costume).
   STEP 5  When scanning a PATTERN file: FAIL if its frontmatter carries an
-          agent-set approval_status (anything past `candidate`) or a validated_by
+          agent-set approval_status (anything past `candidate`) or an approved_by
           that does not match the committing author per `git blame`. When blame is
           unavailable (shallow clone, not a repo, file untracked) this DOWNGRADES
           to an advisory note — never a hard fail on missing provenance alone.
@@ -574,7 +575,7 @@ def lint_pattern_file(path: str, root: str, report: Report) -> None:
     """
     Pattern provenance check (Step 5). Patterns live under patterns/ and carry a
     human-owned lifecycle. An agent (the author skill) only ever writes
-    approval_status: candidate. Anything past that — or a validated_by/author of
+    approval_status: candidate. Anything past that — or an approved_by/author of
     that climb that isn't the human committer per git blame — is the smell.
     """
     report.files_checked += 1
@@ -591,57 +592,50 @@ def lint_pattern_file(path: str, root: str, report: Report) -> None:
         return
 
     approval = str(fm.data.get("approval_status", "")).strip().lower()
-    status = str(fm.data.get("status", "")).strip().lower()
-    validated_by = str(fm.data.get("validated_by", "")).strip()
+    approved_by = str(fm.data.get("approved_by", "")).strip()
 
     # The author skill is allowed to set approval_status: candidate. Any climb
     # beyond candidate must be a human ratification — verify via git blame that a
     # human (not an agent) committed the line that set it.
     climbed = approval and approval != PATTERN_AGENT_SET_APPROVAL
-    promoted_status = status in {"active"}  # "active" is the ratified public state
 
-    if climbed or promoted_status:
-        # Which frontmatter line carries the ratification we must attribute?
-        needle = (
-            f"approval_status:" if climbed else "status:"
-        )
+    if climbed:
+        needle = "approval_status:"
         blame = blame_line_author(path, needle, root)
-        target = approval if climbed else f"status={status}"
         if not blame.available:
             report.add(
-                NOTE, path, _key_line(text, needle.rstrip(":")) or 1,
-                f"pattern carries a ratified {target!r}; could not verify the "
-                f"committing author via git blame ({blame.note}). Advisory only — "
-                f"a human reviewer must confirm a CODEOWNER (not an agent) ratified "
-                f"this in the PR.",
+                NOTE, path, _key_line(text, "approval_status") or 1,
+                f"pattern carries a ratified approval_status: {approval!r}; could not "
+                f"verify the committing author via git blame ({blame.note}). Advisory "
+                f"only — a human reviewer must confirm a CODEOWNER (not an agent) "
+                f"ratified this in the PR.",
             )
         elif _looks_like_agent(blame.author):
             report.add(
-                FAIL, path, _key_line(text, needle.rstrip(":")) or 1,
-                f"pattern's ratified {target!r} was committed by an apparent AGENT "
-                f"author ({blame.author}). Ratification past 'candidate' is a HUMAN "
-                f"act — a CODEOWNER edits the status in a PR with evidence attached. "
+                FAIL, path, _key_line(text, "approval_status") or 1,
+                f"pattern's ratified approval_status: {approval!r} was committed by an "
+                f"apparent AGENT author ({blame.author}). Ratification past 'candidate' "
+                f"is a HUMAN act — a CODEOWNER edits it in a PR with evidence attached. "
                 f"An agent may only write approval_status: candidate.",
             )
         # else: a human committed it — legitimate, no finding.
 
-    # validated_by must never name an agent (validity is a human ratification).
-    if validated_by and _looks_like_agent(validated_by):
+    # approved_by must never name an agent (ratification is a human act).
+    if approved_by and _looks_like_agent(approved_by):
         report.add(
-            FAIL, path, _key_line(text, "validated_by") or 1,
-            f"validated_by points at an apparent agent ({validated_by!r}). Validity "
-            f"is a human ratification with evidence attached, never a field a model "
-            f"sets — name the human reviewer who confirmed the evidence.",
+            FAIL, path, _key_line(text, "approved_by") or 1,
+            f"approved_by points at an apparent agent ({approved_by!r}). Ratification "
+            f"is a human act with evidence attached, never a field a model sets — name "
+            f"the human reviewer who confirmed the evidence.",
         )
 
-    # An explicit agent-set approval_status key at all (beyond candidate) is also
-    # caught structurally above; here we additionally flag the textbook smell of a
-    # generated pattern arriving pre-approved without any blame story.
-    if approval == "approved" and not validated_by:
+    # Flag the textbook smell of a generated pattern arriving pre-approved without a
+    # named human approver.
+    if approval == "approved" and not approved_by:
         report.add(
             WARN, path, _key_line(text, "approval_status") or 1,
-            "approval_status is 'approved' but validated_by is empty — a ratified "
-            "pattern must name its human validator and carry evidence. Advisory.",
+            "approval_status is 'approved' but approved_by is empty — a ratified "
+            "pattern must name its human approver and carry evidence. Advisory.",
         )
 
 
@@ -658,8 +652,8 @@ def scan_body_for_forbidden(
                 continue  # frontmatter is governed structurally, not by this scan
             if line_no in fenced:
                 # Inside a fenced code block: an illustrative template / pseudocode
-                # (e.g. the deterministic `verdict = "red" if red ...` boolean spine
-                # the portfolio skill teaches). That is a derived-on-read COMPUTATION
+                # (e.g. a deterministic `verdict = "red" if red ...` boolean
+                # expression a skill teaches). That is a derived-on-read COMPUTATION
                 # the source material explicitly blesses, not an agent asserting a
                 # RAG verdict as its output. The legal output kind is governed by the
                 # frontmatter check (Step 3); code samples are not prose declarations.
@@ -836,8 +830,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Lint SKILL.md / pattern frontmatter against the TARGET RULE "
-            "(docs/06 Principle VI). Advisory CI: fails on a SHAPE violation; a "
-            "human still owns the call."
+            "(output is proposal | question | menu | halt). Advisory CI: fails on "
+            "a SHAPE violation; a human still owns the call."
         )
     )
     parser.add_argument(

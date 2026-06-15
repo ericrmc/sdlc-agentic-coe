@@ -6,25 +6,26 @@ body:
   - type: markdown
     attributes:
       value: |
-        ## A pattern is asking for a human decision
+        ## A pattern's validity check or sunset has come due
 
-        This issue is usually opened **automatically** by the pattern-lifecycle
-        Action (`.github/workflows/pattern-lifecycle.yml`). The Action reads each
-        pattern's `valid_from + validity_check_months` (its derived review-by date)
-        and its optional `sunset_at`, compares them to today, and — when one has
-        elapsed or is near — files this single prompt.
+        This issue is usually filed automatically by the pattern-lifecycle Action
+        (`.github/workflows/pattern-lifecycle.yml`), which reads each pattern's
+        `valid_from + validity_check_months` (its derived review-by date) and optional
+        `sunset_at`, compares them to today, and prompts when one has elapsed or is near.
+        An agent revisiting the library by hand can file it too.
 
-        **Nothing here is automatic and nothing is a gate.** The dates only raise
-        a nudge; **you** make the call. This is the light replacement for the old
-        version-bound architecture-review gate: a date-driven nudge plus a human
-        decision recorded in a PR, not a state machine that blocks merges.
+        AGENT (or Action): populate the context fields below from the pattern's current
+        frontmatter and the adoption tally so the human has the numbers in front of
+        them. Then propose the disposition you believe the evidence supports — but a
+        human makes the call and ratifies it in a reviewed PR. The dates only raise a
+        nudge; nothing here blocks a merge.
 
-        Whatever you decide, **the pattern file is never deleted** —
-        live and historical adoptions in `adoptions/ledger.jsonl` cite its
-        `pattern_key`, so the file must stay readable forever. Deprecation marks
-        it "do not adopt for new work"; it does not erase it.
+        Whatever is decided, the pattern file is never deleted — live and historical
+        adoptions in `adoptions/ledger.jsonl` cite its `pattern_key`, so it must stay
+        readable forever. Deprecation marks it "do not adopt for new work"; it does not
+        erase it.
 
-        > Reminder of the lifecycle states (the `approval_status` enum):
+        > Lifecycle states (the `approval_status` enum):
         > `candidate` → `provisional` → `approved` → `deprecated`.
         > Only a human moves a pattern between these, and only in a reviewed PR.
 
@@ -32,7 +33,7 @@ body:
     id: pattern-key
     attributes:
       label: pattern_key
-      description: The stable key of the pattern this decision is about — exactly as it appears in the pattern's frontmatter. UPPER-KEBAB after the `PAT-` prefix.
+      description: The stable key of the pattern this decision is about, exactly as it appears in the frontmatter. UPPER-KEBAB after the `PAT-` prefix.
       placeholder: e.g. PAT-WEBAPP-PG
     validations:
       required: true
@@ -41,8 +42,8 @@ body:
     id: pattern-path
     attributes:
       label: Pattern file
-      description: Path to the pattern markdown file the decision touches (the Action pre-fills this).
-      placeholder: e.g. patterns/deployment/webapp-managed-postgres.md
+      description: Path to the pattern markdown file the decision touches (the Action pre-fills it; an agent supplies it otherwise).
+      placeholder: e.g. patterns/deployment/containerised-web-managed-postgres.md
     validations:
       required: true
 
@@ -66,8 +67,8 @@ body:
     attributes:
       label: The relevant date(s)
       description: |
-        The Action pre-fills the dates that drove the nudge so you have the
-        numbers in front of you. Include whichever apply.
+        Fill the dates that drove the nudge so the human has the numbers in front of
+        them (the Action pre-fills these). Include whichever apply.
       placeholder: "e.g. valid_from 2025-06-15 + 12mo → review-by 2026-06-15 (elapsed); sunset_at 2026-09-01 (76 days out)"
     validations:
       required: false
@@ -77,9 +78,9 @@ body:
     attributes:
       label: Current frontmatter (for context)
       description: |
-        The Action pastes the lifecycle-relevant fields here so the decision is
-        grounded in what the file actually says today. Leave as-is if you opened
-        this by hand and don't have it.
+        Paste the lifecycle-relevant fields here so the decision is grounded in what the
+        file says today (the Action pre-fills these). Leave as-is if filed by hand
+        without them.
       render: yaml
       placeholder: |
         approval_status: approved
@@ -100,10 +101,10 @@ body:
     attributes:
       label: Adoptions (computed, for the decision)
       description: |
-        The "used in N engagements" count the Action tallies from
-        `adoptions/ledger.jsonl` for this `pattern_key`. This is the single most
-        important input: a pattern carrying live adoptions is **never deleted**,
-        and deprecating one that is widely adopted needs a clear successor.
+        The "used in N engagements" count tallied from `adoptions/ledger.jsonl` for this
+        `pattern_key` (the Action computes it; do not author the number). This is the
+        single most important input: a pattern carrying live adoptions is never deleted,
+        and deprecating a widely adopted one needs a clear successor.
       placeholder: "e.g. 4 adopted-clean, 1 adopted-with-overrides, 1 overridden-out (6 total ledger lines)"
     validations:
       required: false
@@ -114,26 +115,26 @@ body:
         ---
         ## The decision
 
-        Pick **exactly one** of the three dispositions below, then open the small
-        PR it implies. The checkbox records your intent on this issue; the PR is
-        where the change to the pattern's frontmatter actually lands and gets a
-        second human's review (CODEOWNERS on `patterns/**`).
+        AGENT: tick the **one** disposition the evidence supports as a proposal; a human
+        confirms it and lands the implied PR — where the frontmatter change actually
+        applies and gets a second human's review (CODEOWNERS on `patterns/**`). The
+        checkbox records intent on this issue; the PR is the ratification.
 
-        Nothing auto-deprecates. If you do nothing, the pattern stays exactly as
-        it is and the Action will nudge again at the next cadence — that, too, is
-        a legitimate (if implicit) "leave it for now."
+        Nothing auto-deprecates. If nobody acts, the pattern stays exactly as it is and
+        the Action nudges again at the next cadence — a legitimate, if implicit, "leave
+        it for now."
 
   - type: checkboxes
     id: disposition
     attributes:
       label: Disposition (choose one)
-      description: Tick the one you're acting on. The "what to do" under each is the PR you'll open.
+      description: Tick the one being acted on. The "what to do" under each is the PR it implies.
       options:
         - label: |
             **KEEP** — the pattern is still current. Re-stamp its currency: in a PR,
             reset `valid_from` to today (this re-derives the next review-by date as
             `valid_from + validity_check_months`). Leave `approval_status` unchanged.
-            Refresh `evidence` if you have newer artefacts proving it still holds.
+            Refresh `evidence` if there are newer artefacts proving it still holds.
           required: false
         - label: |
             **SUPERSEDE** — a better pattern exists. In a PR, set this pattern's
@@ -155,9 +156,10 @@ body:
     attributes:
       label: Successor pattern_key (for SUPERSEDE / DEPRECATE)
       description: |
-        The `pattern_key` adopters should move to. Required for SUPERSEDE. For
-        DEPRECATE, the schema still expects a `superseded_by` — if there is truly
-        no successor yet, leave this blank and explain in the rationale.
+        The `pattern_key` adopters should move to. Required for SUPERSEDE. For DEPRECATE
+        the schema still expects a `superseded_by` — if there is truly no successor yet,
+        leave this blank and explain in the rationale, and note the gap so a successor
+        can be authored.
       placeholder: e.g. PAT-WEBAPP-PG-V2
     validations:
       required: false
@@ -168,9 +170,9 @@ body:
       label: Rationale
       description: |
         One honest paragraph: why this decision, what changed in the world (a new
-        platform default, a security advisory, a residency rule, a load-test that
-        held or failed), and — if deprecating without a successor — what gap that
-        leaves. This is the durable "why" the next reader will thank you for.
+        platform default, a security advisory, a residency rule, a load-test that held
+        or failed), and — if deprecating without a successor — what gap that leaves.
+        This is the durable "why" the human ratifies and the next reader relies on.
       placeholder: |
         Keeping: topology still matches our managed-Postgres default; the load-test
         evidence from citizen-portal (2026-05) still holds; resetting valid_from.
@@ -187,7 +189,7 @@ body:
     id: pr-link
     attributes:
       label: PR that lands the change (optional)
-      description: Link the PR once you've opened it. The frontmatter change is reviewed there; this issue closes when it merges.
+      description: Link the PR once it is open. The frontmatter change is reviewed there; this issue closes when it merges.
       placeholder: e.g. https://github.com/owner/sdlc-agentic-coe/pull/123
     validations:
       required: false
@@ -196,8 +198,8 @@ body:
     attributes:
       value: |
         ---
-        **After you merge the PR:** the lifecycle Action re-reads the pattern on
-        the next run, recomputes its review-by/sunset signals from the new dates,
-        and will not re-nudge until the cadence comes round again. Close this issue
-        when the PR is in. If you decided to leave the pattern unchanged, just say
-        so in a comment and close — the "do nothing" path is recorded too.
+        **After the PR merges:** the lifecycle Action re-reads the pattern on its next
+        run, recomputes the review-by/sunset signals from the new dates, and does not
+        re-nudge until the cadence comes round again. Close this issue when the PR is in.
+        If the decision is to leave the pattern unchanged, record that in a comment and
+        close — the "do nothing" path is recorded too.

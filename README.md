@@ -1,98 +1,53 @@
 # SDLC Agentic Centre of Excellence
 
-A portable, GitHub-native library of **agent skills** that runs the proven early-SDLC method — from a
-business vision to a build-ready solution design and on through phases and releases — as light, advisory
-markdown you can drop into Claude Code or any LLM workflow.
+A portable, GitHub-native library of advisory agent skills for the early software lifecycle — from a business vision to a build-ready solution design and on through phases and releases. Each skill is self-contained markdown (steps + YAML frontmatter) an agent reads and runs inside any LLM workflow, backed by a PR-reviewed library of reusable component **patterns** and the **capabilities** that bridge a plain-language need to a proven component.
 
-No app to deploy. No state machine. No approval gates. The method is the asset; GitHub carries the
-mechanics; a human always disposes.
+Read this as the agent who will use it. You author the patterns, capabilities, and skill changes and open the PR; a human reviewer ratifies it by merging.
 
----
+## Start here
 
-## What this is
+| To do this | Read |
+| --- | --- |
+| Pick your starting point and wire up your tool | [`GETTING-STARTED.md`](GETTING-STARTED.md) |
+| See every skill and the end-to-end flow | [`skills/MAP.md`](skills/MAP.md) |
+| Resolve a need ("a data warehouse", "run our agents in prod") to a component | [`capabilities/INDEX.md`](capabilities/INDEX.md) |
+| Run a leadership-altitude portfolio view across projects | [`docs/portfolio-github-projects.md`](docs/portfolio-github-projects.md) |
 
-We retired a bespoke three-tier app that ran this method end to end, and lifted the load-bearing reasoning
-out into **36 self-contained skills** (markdown + YAML frontmatter), a **PR-reviewed pattern library**, and a
-**thin GitHub-native control plane** (Actions that validate and combine; Projects that show a phase-level
-portfolio; PRs that *are* the ratification).
+## Skill categories
 
-The whole library is **advisory by construction**. Every skill's output is one of exactly four kinds —
-**proposal, question, menu, or halt** — never a verdict or a status. Because an agent's output structurally
-cannot self-approve, the library needs no enforcement gate. That rule is **lintable**, and one GitHub Action
-checks it on every PR. That is the entire light-governance posture.
+| Category | What it does |
+| --- | --- |
+| [`understand`](skills/understand/) | Turn a raw vision or intake into structured outcomes, requirements, and NFR coverage. |
+| [`challenge`](skills/challenge/) | Pressure-test a requirement set: conflicts, gaps, gold-plating, risks, assumptions, roadblocks, necessity. |
+| [`architect`](skills/architect/) | Choose a solution shape and author the design: recommend patterns, explore options, propagate NFRs, validate, synthesise. |
+| [`panel`](skills/panel/) | Multi-voice deliberation and review: convene a panel, synthesise it, record dissent, run design and a11y review. |
+| [`deliver`](skills/deliver/) | Plan the lifecycle and hand off the build: phases, releases, waves, cutover, triage, testing and estimate scaffolds. |
+| [`library`](skills/library/) | Author and curate the reusable assets: component patterns, capabilities, portfolio health, governance checklist. |
 
-## Why
+## How a skill behaves
 
-The business will not support a bespoke app, but the *method* is valuable and reusable across every
-downstream delivery. So we make the method portable: a reference Centre of Excellence a team adopts skill by
-skill, contributes patterns back to, and runs against each new project's own GitHub repo and Project.
+- Every output is one of exactly four kinds — **proposal**, **question**, **menu**, or **halt**. Never emit a verdict, status, score, or approval; the human decides.
+- A skill runs with no model at all as a deterministic base, then deepens with a single model step (provider-agnostic tier hint: `frontier` | `mid` | `light`).
+- The output format and template travel inside each `SKILL.md`. Read one folder plus the project files — never the whole repo.
 
-## The method (the FORGE spine, de-enforced)
+## Automation (GitHub Actions)
 
-> Intake → Outcomes → Review → Solution patterns (retrieval) → Solution options → Validation → Necessity
-> check → Technical/design review (incl. WCAG/a11y) → NFRs → Convene a battle-test panel → Solution
-> architecture (read the codebase, synthesise in sections) → Phases/MVP/Pilot/Production → Releases →
-> Pattern-library promotion.
+When you author a pattern, capability, or skill change and open a PR, the pipeline validates it for you and posts a pass/fail summary the human reviewer reads. Nothing here blocks a merge — every Action is advisory; CODEOWNERS is the only structural gate.
 
-The ordering and the per-stage reasoning are kept verbatim from the original prompts. Only the *enforcement*
-is dropped.
+| Action | Trigger | What it does for you |
+| --- | --- | --- |
+| `validate-patterns` | PR touching `patterns/**` | Lints pattern frontmatter against the schema; sticky PR comment lists any field you left wrong or missing. |
+| `validate-capabilities` | PR touching `capabilities/**` | Lints capability frontmatter (need-statement, aliases, governance NFRs, fulfilment confidence) so a candidate enters clean. |
+| `validate-skill-frontmatter` | PR touching `skills/**`, `patterns/**`, `capabilities/**`, `references/**` | Runs the target-rule lint (no output kind outside the closed four; no agent-set `approval_status`) plus the map-link, references, and capability-index checks. |
+| `concat-patterns` | push to `main`; PR labelled `build:combined` | Combines related patterns and skills into `generated/` bundles so an agent can load one file instead of many. |
+| `pattern-lifecycle` | weekly schedule; on demand | Recomputes pattern maturity from the adoption ledger and opens revalidation/sunset issues. Never deletes a pattern that has adoptions. |
+| `portfolio-rollup` | weekday schedule; on demand | Writes an advisory RAG verdict per project to the org Project board. See [`docs/portfolio-github-projects.md`](docs/portfolio-github-projects.md). |
+| `check-shared-stub-drift` | PR touching `skills/**` | Flags when a quoted shared convention has drifted from its canonical copy. |
 
-## Quick start (for a team)
+Each Action is a thin runner of a script under `skills/_scripts/` that you can also run locally before opening the PR.
 
-1. **Browse the spine.** Open [`skills/00-sdlc-spine/SKILL.md`](skills/00-sdlc-spine/SKILL.md) — it orders
-   the 14 stages and points at one skill per stage.
-2. **Seed your project.** Run the spine's "seed a project" step to create your project's OWN GitHub Project
-   with phase columns (Prototype / MVP / Pilot / Production). Your requirements and design live as markdown
-   in *your* repo — never on the portfolio board.
-3. **Run a skill.** Paste a `SKILL.md` (or a combined bundle from `generated/`) into your LLM workflow.
-   Every skill works with no model at all (a deterministic scaffold) and deepens with a one-line model swap.
-4. **Ratify by merging.** When a skill proposes markdown, review the delta and merge the PR. That merge is
-   the ratification — the only act that advances anything.
-5. **Adopt patterns.** `recommend-component-patterns` reads the approved library and recommends genuine
-   fits; on adopt, the pattern's NFRs flow into your requirements for free. Append one line to
-   `adoptions/ledger.jsonl` so the pattern's "used in N engagements" tally stays honest.
-6. **Contribute back.** Built something reusable? Open a `new-pattern` issue with evidence, then a PR. An
-   architect reviews and merges (CODEOWNERS makes that review structurally necessary). The merge ratifies it.
+## Governance in one line
 
-You can also copy a single skill folder out of this repo and run it anywhere — the schema and vocabularies
-travel with it.
+Advisory by construction: a human PR merge is the only act that ratifies anything (**propose → ratify**). Patterns and capabilities carry one structural human review — a CODEOWNERS architect must approve every change. No persisted scores, no per-person metrics.
 
-## Repo map
-
-```
-skills/                  THE PRODUCT — 36 copy-pastable SKILL.md folders, numbered by FORGE stage
-  00-sdlc-spine/         umbrella TOC; seeds a downstream Project
-  _contract/             the cross-cutting authoring contract (target rule, propose→ratify, fan-out, explore)
-  01-intake-outcomes/    decompose / classify / nfr-coverage
-  02-review/             red-team-requirements / risks-and-assumptions / roadblocks
-  03-solution/           recommend-patterns / solution-options / propagate-nfrs / validate / necessity
-  04-review-and-panel/   design-review / a11y / open-decisions / convene-panel / synthesise / red-team-dissent
-  05-solution-architecture/  synthesise-architecture / reconcile-design / import-design / reconcile-as-built
-  06-handoff/            scaffold-then-handoff / testing-brief / design-studio-brief / estimate
-  07-lifecycle/          phases-releases-waves / implement-a-wave / triage-backlog / scope-reconcile
-  08-pattern-library/    author-component-pattern / pattern-library-curate
-  09-portfolio/          portfolio-phase-health / advisory-governance-checklist
-  _shared/               ONE canonical copy of each shared convention; skills quote it (drift-guarded)
-  _scripts/              plain validators/concatenators (Actions are just runners of these)
-patterns/                the PR-reviewed component-pattern library (one .md per pattern)
-  _schema/               the frontmatter JSON Schema + closed NFR-kind enum
-nfrs/                     the NFR categories + kind vocabularies the skills cite
-references/               the other closed enums (challenge-kinds, frozen-8, panel roster, waves, change-kinds)
-projects/_TEMPLATE/       OPTIONAL per-engagement markdown SoT + adoption ledger
-adoptions/ledger.jsonl    the append-only adoption provenance (PR-appended, never deleted)
-generated/                Action OUTPUT only — never hand-edited
-.github/                  the thin control plane (Actions, PR/issue templates, CODEOWNERS)
-DESIGN.md                 the full architecture, skill catalogue, mechanics, pattern lifecycle
-CONTRIBUTING.md           how to author/PR/validate a skill or a pattern; the review/evidence/sunset process
-```
-
-## The governance posture in one paragraph
-
-There are no enforcement gates. PR review **is** the ratify. CODEOWNERS + branch protection make a human
-architect's review structurally necessary to merge a *pattern* — the single hard gate, expressed in GitHub
-config, not code. Everything else is a cue, a question, or a checkbox. Derived facts (pattern maturity, the
-portfolio RAG verdict) are recomputed by Actions and never persisted as a field that can rot. No
-acceptance-rate, throughput, or per-person metric exists anywhere.
-
-See [`DESIGN.md`](DESIGN.md) for the complete architecture and [`CONTRIBUTING.md`](CONTRIBUTING.md) for the
-pattern review/validation/evidence/sunset process.
+See [`DESIGN.md`](DESIGN.md) for the architecture and [`CONTRIBUTING.md`](CONTRIBUTING.md) to author or PR a skill, pattern, or capability.

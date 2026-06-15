@@ -133,5 +133,5 @@ authority.
 
 ---
 
-*Light and advisory by design. Nothing here gates a project or enforces a state machine; it
-is a shared vocabulary so the solution-architecture skills speak the same eight words.*
+*Light and advisory by design. Nothing here blocks a project; it is a shared vocabulary so
+the solution-architecture skills speak the same eight words.*

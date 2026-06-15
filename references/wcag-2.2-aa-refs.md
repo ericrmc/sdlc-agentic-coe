@@ -53,7 +53,7 @@ never reused.
 - **Don't invent ids.** If a genuine issue doesn't map to any id here, raise it as a
   general design-review finding with a descriptive `ref` (e.g.
   `design-section:accessibility`) rather than minting a fake `WCAG-x.x.x` id.
-- **Advisory, not a gate.** These findings inform the team; they do not block. Pair them
+- **Advisory.** These findings inform the team; they do not block. Pair them
   with an automated scan (axe-core / Lighthouse / Pa11y) and, for anything user-facing
   and high-risk, real assistive-tech testing (NVDA, VoiceOver, keyboard-only).
 

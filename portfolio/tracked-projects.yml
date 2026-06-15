@@ -4,7 +4,7 @@
 #   One entry per downstream project the org-level portfolio board tracks. For each
 #   project, scripts/compute_portfolio_rollup.py recomputes an ADVISORY Red/Amber/
 #   Green standing from the SAME transparent checklist the
-#   skills/09-portfolio/portfolio-phase-health skill uses (see its
+#   skills/library/portfolio-phase-health skill uses (see its
 #   references/rag-checklist.md). The standing is the WORST level of any firing
 #   check; `reasons[]` names every firing check. It is a render of derived-on-read
 #   facts, NEVER a stored score, and it gates nothing.

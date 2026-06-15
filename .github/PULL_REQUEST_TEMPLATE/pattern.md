@@ -1,129 +1,133 @@
 <!--
-  PATTERN REVIEW PULL REQUEST
-  Select this template with: ?template=pattern.md
-  (e.g. https://github.com/<org>/<repo>/compare/main...your-branch?template=pattern.md&expand=1)
+  PATTERN PULL REQUEST — filled by the authoring agent, ratified by a human.
+  Select with ?template=pattern.md (append &expand=1 to the compare URL).
+  Use for any PR that adds, edits, supersedes, or deprecates a patterns/**/*.md file.
+  For a skill use ?template=skill.md; for anything else use the default template.
 
-  Use this template for any PR that ADDS, CHANGES, SUPERSEDES, or DEPRECATES a
-  component pattern under /patterns. For anything else (skills, actions, docs)
-  use the default template.
+  AGENT: you authored the pattern; now populate every field below FROM THE FILE YOU
+  WROTE. Do not invent values — copy them from the frontmatter and body. Leave a field
+  blank only when the schema leaves it optional and it genuinely does not apply. The
+  human reviewing this PR is the CODEOWNER architect; they ratify by merging. Merging
+  IS the ratification — there is no separate approval step.
 -->
 
-## What this PR does to the pattern library
+## What this PR does
 
-<!-- One or two sentences. Which pattern file(s), and is this new / changed / superseding / deprecating? -->
+- Pattern file(s): `patterns/<category>/<slug>.md`
+- `pattern_key`: `PAT-...`
+- Change: <!-- new candidate | promote (candidate→provisional/approved) | edit | supersede | deprecate -->
 
-- Pattern(s) touched: `patterns/...`
-- Change type: <!-- new candidate | promote candidate→approved | edit approved | supersede | deprecate -->
+## Frontmatter, copied from the file
 
----
+> Populate each value from the pattern you authored. These mirror
+> `patterns/_schema/pattern.frontmatter.schema.json`; the `validate-patterns` Action
+> checks shape and leaves an advisory comment. It does not bless the pattern — the
+> CODEOWNER does, by merging.
 
-## The ratification statement (read this first)
+| Field | Value (paste from the file) |
+|---|---|
+| `pattern_key` | `PAT-...` |
+| `category` | `deployment` \| `integration` \| `data` |
+| `intent` | `use WHEN ... so that ...` |
+| `deployment_topology` | |
+| `data_placement` | |
+| `approval_status` | `candidate` \| `provisional` \| `approved` \| `deprecated` |
+| `valid_from` | `YYYY-MM-DD` |
+| `validity_check_months` | (re-review cadence; default 12) |
+| `sunset_at` | `YYYY-MM-DD` if a known end-of-life, else leave blank |
+| `supersedes` / `superseded_by` | `PAT-...` if this replaces / is replaced, else blank |
+| `fulfils` | `CAP-...` the capability this serves (see below) |
 
-> **MERGING THIS PR IS THE RATIFICATION.** There is no separate gate, state
-> machine, or governance disposition. When a human merges this PR, the pattern
-> in its merged state is what the library asserts. No Action, bot, or agent
-> ratifies a pattern — a reviewer does, by approving and merging.
->
-> A pattern with **zero linked evidence can only be `status: candidate`**. It
-> may live in the library as a candidate so people can find and discuss it, but
-> it must not claim `active` until it carries artefacts proving it was built.
+> `approval_status: candidate` is the only status an agent writes. Leave `approved_by`,
+> `approved_at`, and `evidence` for the human at promotion — do not set them yourself.
+> Never write `maturity` or `adoption_count`: those are computed from
+> `adoptions/ledger.jsonl`, never authored.
 
-This is the human half of pattern governance. The Action on this PR validates
-*shape* (frontmatter parses, enum values are legal, required fields present).
-The Action does **not** and **must not** decide that a pattern is good, true,
-or approved. That is what the checklist below is for.
+## Attached governance NFRs (measurable)
 
----
+> Paste one row per `attached_nfrs` entry. Each `kind` is one of the closed 11; each
+> carries a statement and a TESTABLE acceptance criterion (on adoption this becomes a
+> real derived requirement downstream, so "is secure" is not acceptable). At least one.
 
-## Reviewer checklist (architect / pattern steward)
+<!-- closed kinds: security · availability · performance · data-residency · observability ·
+     resilience · cost · compliance · scalability · data-governance · operations -->
 
-Do not approve until every box that applies is ticked. If a box cannot be
-ticked, the change is not ready, or the pattern drops to `candidate`.
+| `kind` | statement | acceptance_criterion (measurable) |
+|---|---|---|
+| | | |
 
-### Evidence — a pattern is a claim that something was built
+## Constraints (what adopting this gives up)
 
-- [ ] **Evidence / artefacts-of-having-been-built are linked** in `evidence[]`
-      (PR/commit, repo, running deployment, ADR, screenshot, test run, or
-      retro). Each entry is a real, resolvable link — not "internal wiki" or
-      "ask me".
-- [ ] If `evidence[]` is **empty**, then `status` is `candidate` (and only
-      `candidate`). A candidate with no evidence is fine; an `active` pattern
-      with no evidence is not.
+> Paste each `constraints` entry: the thing the pattern forces, and `hard` (cannot be
+> waived) or `soft` (a waiver is a recorded compromise). A pattern that lists no
+> tradeoffs is under-described — state the load-bearing one.
 
-### Human ratification — no agent set the verdict
+| statement | `enforced` |
+|---|---|
+| | `hard` \| `soft` |
 
-- [ ] **The status / approval was moved by a HUMAN in this PR.** No GitHub
-      Action, bot, or agent set `status`, `validated_by`, or `validated_on`.
-      (`validated_by` is a person's name/handle, never `github-actions[bot]`
-      or an agent id.)
-- [ ] `validated_on` is the date a human reviewed it — set in this PR, ISO
-      format (`YYYY-MM-DD`).
+## Fulfils a capability
 
-### Validity window — patterns expire on purpose
+> Name the `capability_key` from `capabilities/INDEX.md` that this pattern fulfils, and
+> confirm the pattern meets (or honestly waives) that capability's `governance_nfrs`
+> floor. The forward edge lives on the capability (`fulfilled_by[].pattern_key`); the
+> `fulfils:` field on this pattern is its mirror.
 
-- [ ] **`valid_from`** is set (ISO date the pattern became usable).
-- [ ] **`review_by`** is set (ISO date this pattern must be re-checked). A
-      pattern with no `review_by` never gets revisited and silently rots.
-- [ ] **`sunset_on`** is set *if applicable* (a known end-of-life: a dependency
-      reaching EOL, a platform being retired). Leave blank only if there is no
-      known sunset — not because nobody thought about it.
+- Fulfils: `CAP-...`
+- Meets the capability's governance floor? <!-- yes / waived (say which and why) -->
 
-### Supersede / deprecate — don't orphan adopters
+## Evidence / artefacts proving it was built
 
-- [ ] If this **replaces** an older pattern: `supersedes` on the new pattern and
-      `superseded_by` on the old one **both** point at each other (no one-way
-      link, no dangling key).
-- [ ] The superseded pattern's `status` is moved to `superseded` (not deleted).
-- [ ] **No pattern that has adoptions is being deleted.** Patterns with a
-      track record are *deprecated or superseded in place*, never removed —
-      deleting one breaks the provenance of every project that adopted it.
-- [ ] If deprecating: `status: deprecated` and a `warnings[]` entry says what
-      to use instead and why.
+> A pattern is a claim that something was built. Paste each `evidence` entry as
+> `title` + a real, resolvable `url` (repo, PR, runbook, ADR, dashboard, load-test,
+> post-mortem, doc). `evidence` is REQUIRED once `approval_status` is `provisional` or
+> `approved`; a `candidate` may have none yet. Do not fabricate a link to fill the slot.
 
-### NFRs — the closed enum
+- <!-- title — url -->
 
-- [ ] **Every `attached_nfrs[].kind` is one of the 11 allowed values** (the
-      Action checks this too, but confirm it reads sensibly):
+## Validity, sunset, supersede
 
-      security · availability · performance · data-residency · observability ·
-      resilience · cost · compliance · scalability · data-governance · operations
+> Confirm the dated lifecycle. `valid_from` + `validity_check_months` derive the next
+> review (the `pattern-lifecycle` Action nudges when it elapses; it never blocks). If
+> this supersedes an older pattern, link both directions and set the old one to
+> `deprecated` (never delete a pattern with adoptions — its provenance must survive).
 
-- [ ] Each attached NFR carries an `acceptance_criterion` (a testable "done"),
-      so that on adoption it can flow into a downstream project as a real
-      derived requirement — not a flat string.
+- Next review derives as `valid_from` + `validity_check_months` = `YYYY-MM-DD`
+- Supersede chain (if any): old `PAT-...` ↔ new `PAT-...`, old set to `deprecated`
 
-### Sanity
+## Spike caveats (for a spike-needed component)
 
-- [ ] `status` is one of: `active` · `warning` · `superseded` · `deprecated`
-      (`candidate` for not-yet-evidenced). It matches what the body claims.
-- [ ] `constraints[]` and `warnings[]` honestly state what you give up by
-      adopting this. A pattern that lists no tradeoffs is under-described.
-- [ ] The body has a real **Example / artefacts** section pointing at the
-      evidence above — a reviewer can see it was actually built.
-
----
-
-## Evidence summary (for the reviewer's convenience)
-
-<!--
-  Paste the strongest 1-3 artefacts here so the reviewer doesn't have to dig.
-  e.g.
-    - Built in: <repo/PR link>
-    - Running at: <deployment / dashboard link>
-    - Retro / outcome note: <link> — "shipped; SLA held"
--->
+> If this pattern was proven only through a spike, record the limits, caveats, and
+> compromises the spike surfaced — the conditions under which it does NOT hold, what
+> stayed unverified, and what a later project must re-check. Leave blank if the pattern
+> is backed by a full production build rather than a spike.
 
 -
 
----
+## Agent self-certification
 
-## Notes for the reviewer
+> AGENT: tick each box only after you have actually done it. These are honest
+> self-checks, not a gate — the human reviewer relies on them to focus their read.
 
-<!-- Context that helps the human decide: where it's been used, what's risky,
-     what you're unsure about, what you deliberately left out of scope. -->
+- [ ] `pattern_key` matches the schema regex `^PAT-[A-Z0-9]+(-[A-Z0-9]+)*$` and is unique.
+- [ ] Evidence is present **or** `approval_status: candidate` (no `provisional`/`approved` without evidence).
+- [ ] This pattern fulfils a capability that exists in `capabilities/INDEX.md` (the `fulfils:` / `CAP-...` above).
+- [ ] Ran the frontmatter linter and it passed: `python3 skills/_scripts/lint_pattern_frontmatter.py patterns/<category>/<slug>.md` — paste the result below.
+- [ ] Did NOT set `approval_status` beyond `candidate`, `approved_by`, `approved_at`, `maturity`, or `adoption_count`.
+
+```
+<!-- AGENT: paste the lint_pattern_frontmatter.py output here -->
+```
+
+## Notes for the reviewing human
+
+> What the reviewer needs to weigh before merging: where this was built, the sharpest
+> tradeoff, anything left out of scope, anything you were unsure of. State the honest
+> "here is what I could not verify" — it is the most useful line in this box.
 
 <!--
-  Reminder for the author: this PR is the ratification. If you are not ready
-  for the pattern to be asserted as `active`, set it to `candidate` and say so
-  above — that is a normal, encouraged state, not a failure.
+  Merging this PR ratifies the pattern in its merged state. The CODEOWNER architect
+  (patterns/** is gated) confirms the evidence is real and, in a commit they own,
+  raises approval_status past candidate and fills approved_by / approved_at / evidence.
+  The agent stops at candidate.
 -->

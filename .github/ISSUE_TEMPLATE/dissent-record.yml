@@ -6,26 +6,29 @@ body:
   - type: markdown
     attributes:
       value: |
-        ## What we decided NOT to do, and why
+        ## What was decided NOT to do, and why
 
-        This is a **dissent record** — a durable, first-class note of something this
-        project *declined*, kept with its human-owned WHY so nothing that was
-        suggested-and-rejected is silently re-proposed later against unchanged evidence.
+        A dissent record is a durable, first-class note of something this project
+        declined, kept with its human-owned WHY so nothing suggested-and-rejected is
+        silently re-proposed later against unchanged evidence.
 
-        A dissent usually originates from a **red-team objection** or a **panel split**:
-        the red team surfaces the single strongest objection to a proposal, a human
-        weighs it, and — if the call is to NOT proceed — records it here. It can also be
-        a standalone dissent a human raises directly.
+        A dissent usually originates from a red-team objection or a panel split: the
+        red team surfaces the single strongest objection to a proposal, a human weighs
+        it, and — if the call is NOT to proceed — it is recorded here. It can also be a
+        standalone dissent a human raises directly.
 
-        **This log is advisory, not a gate.** It blocks nothing. Its job is memory:
-        if the same idea comes back, this record is the evidence of what was decided and
-        why, so the conversation starts from the rationale rather than from zero.
+        AGENT: populate the title, kind, and provenance from the objection or split this
+        came out of, and draft the WHY from the rationale the human gave. The WHY is
+        human-owned — leave it for the human to ratify or rewrite, do not invent a
+        rationale of your own. This log is advisory, not a gate; it blocks nothing. Its
+        job is memory: if the same idea returns, this record is what it is weighed
+        against, so the conversation starts from the rationale rather than from zero.
 
   - type: input
     id: title
     attributes:
       label: Title — what was declined
-      description: A short, plain name for the thing we decided NOT to do.
+      description: A short, plain name for the thing decided against.
       placeholder: e.g. "Do not add a hard architecture-review approval gate"
     validations:
       required: true
@@ -51,17 +54,17 @@ body:
     attributes:
       label: The WHY — rationale for declining (human-owned)
       description: >
-        The durable reasoning for NOT doing this. Own every word — this is the record a
-        future reader (or a future you) will weigh the idea against. State the evidence
-        and the tradeoff, not just the verdict. Be specific enough that someone can tell
-        whether the evidence behind it has changed.
+        The durable reasoning for NOT doing this — the record the idea is weighed
+        against if it returns. Human-owned: the human states (or ratifies) it; an agent
+        may draft from the objection but must not author the verdict. State the evidence
+        and the tradeoff, not just the conclusion. Be specific enough that a later reader
+        can tell whether the evidence behind it has changed.
       placeholder: |
-        e.g. We declined a state-machine enforcement gate because the business will not
-        support a bespoke approval tool, and the cost of false-blocks (work stalled on a
-        ceremony) outweighed the benefit over a light advisory review. We accept the risk
-        that a weak design ships un-gated; the red-team skill + PR review are the
-        compensating controls. Revisit if we ever centralise on a platform that can own
-        the state machine cheaply.
+        e.g. Declined a hard enforcement gate on design sign-off: the cost of false
+        blocks (work stalled on a ceremony) outweighed the benefit over a light advisory
+        review. The risk that a weak design ships is accepted; the red-team skill + PR
+        review are the compensating controls. Revisit if the team ever adopts tooling
+        that can run the check cheaply without stalling delivery.
     validations:
       required: true
 
@@ -80,7 +83,7 @@ body:
   - type: textarea
     id: revisit_conditions
     attributes:
-      label: What would make us revisit this? (optional)
+      label: What would make this worth revisiting? (optional)
       description: >
         Name the change in evidence that should re-open this. The dissent log is
         revisitable by design — re-opening preserves this record, its WHY, and its
@@ -98,6 +101,6 @@ body:
         **How this is used.** A dissent record is never write-only. To re-open it for
         reconsideration, comment on this issue and re-apply the `dissent` label / re-open
         the issue — the history (this WHY + the thread) stays intact, so the decision is
-        revisited, not lost. This is the project's **dismissal-memory**: an idea that was
-        declined here should not be re-proposed silently against the *same* evidence —
-        bring it back only with what changed.
+        revisited, not lost. This is the project's dismissal-memory: an idea declined
+        here is not re-proposed silently against the same evidence — it returns only with
+        what changed.

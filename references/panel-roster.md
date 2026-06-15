@@ -7,7 +7,7 @@ disagree, this roster wins.
 
 A panel is a **multi-voice review you run on a piece of work** — a requirement set, a solution shape, a
 feature brief — where the same reasoning argues *with itself* out loud and you keep the proposals. It is
-advisory. The panel proposes; the human disposes. Nothing here is a gate, a verdict, or an approval. You can
+advisory. The panel proposes; the human disposes. Nothing here is a verdict or an approval. You can
 run a panel at any point, ignore any output, and re-run it later.
 
 ---
@@ -151,7 +151,7 @@ FEATURE-BRIEF mode (4 fixed questions):
   3. alternative  — cheaper or different shape, same outcome?
   4. necessity    — actually needed, or gold-plating?
 
-Advisory always: the panel proposes; the human disposes. No gate, no verdict.
+Advisory always: the panel proposes; the human disposes. No verdict, no approval.
 ```
 
 ---
@@ -168,5 +168,5 @@ Advisory always: the panel proposes; the human disposes. No gate, no verdict.
 - **Don't invent lenses.** The five are fixed so panels stay comparable and the balance rule stays trivial
   to check. If you find yourself wanting a "security lens" or a "cost lens," fold that concern into the
   `skeptic` (risk) or `minimalist` (cost) charter instead of adding a seat.
-- **Don't run a panel as a gate.** It is never a precondition to advancing. Run it to pressure-test where
+- **Don't treat a panel as a precondition.** It never blocks advancing. Run it to pressure-test where
   you are, take what's useful, and move on.

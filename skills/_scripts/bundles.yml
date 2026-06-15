@@ -11,10 +11,10 @@
 #   - Every `out:` path is written under generated/ (which is action-output only;
 #     never hand-edit it — edit the source files below and re-run the Action).
 #   - Every `parts:` entry MUST resolve to a real on-disk file. The skill layout
-#     is the numeric-prefixed 9-bucket scheme (skills/01-intake-outcomes/... ..
-#     skills/09-portfolio/...); the pattern library is foldered by category
-#     (patterns/<category>/<human-readable-kebab>.md). Keep these paths in sync
-#     when a skill or pattern is moved/renamed.
+#     is the named-category scheme (skills/<category>/<skill>/, categories:
+#     understand, challenge, architect, panel, deliver, library); the pattern
+#     library is foldered by category (patterns/<category>/<human-readable-kebab>.md).
+#     Keep these paths in sync when a skill or pattern is moved/renamed.
 #   - This manifest intentionally mirrors the built-in DEFAULT_BUNDLES in
 #     concat_skills.py, so the bundles build identically whether the manifest is
 #     present or absent.
@@ -35,9 +35,9 @@ bundles:
       recorded even where the project proceeds. Everything here is advisory: it
       produces findings and a dissent register, not gates or approvals.
     parts:
-      - skills/02-review/red-team-requirements/SKILL.md
-      - skills/04-review-and-panel/design-review-findings/SKILL.md
-      - skills/04-review-and-panel/red-team-and-dissent/SKILL.md
+      - skills/challenge/red-team-requirements/SKILL.md
+      - skills/panel/design-review-findings/SKILL.md
+      - skills/panel/red-team-and-dissent/SKILL.md
 
   # 2. Solution design — the author + reconcile loop, with the frozen-8 reference.
   - out: combined/solution-design.combined.md
@@ -51,9 +51,9 @@ bundles:
       authored design back against the requirement set. Advisory throughout —
       reconcile reports drift, it does not block.
     parts:
-      - skills/05-solution-architecture/synthesise-solution-architecture/SKILL.md
+      - skills/architect/synthesise-solution-architecture/SKILL.md
       - references/frozen-8-sections.md
-      - skills/05-solution-architecture/reconcile-design-vs-requirements/SKILL.md
+      - skills/architect/reconcile-design-vs-requirements/SKILL.md
 
   # 3. Component patterns — the whole catalogue, one entry per category.
   - out: combined/component-patterns.combined.md

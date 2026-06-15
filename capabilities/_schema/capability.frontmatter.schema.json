@@ -1,0 +1,278 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sdlc-agentic-coe/capabilities/_schema/capability.frontmatter.schema.json",
+  "title": "Capability Frontmatter (v1)",
+  "description": "Schema for the YAML frontmatter of a capability — the named middle term between a plain-language need and the component patterns that fulfil it. Validated on every PR that touches a capabilities/ file. Light and advisory: it checks that a capability is well-formed, cite-able, and honest about whether its fulfilments are proven or still candidates — it does not enforce any approval. A human PR review (the CODEOWNERS architect review) is what promotes a capability; this schema only makes sure the reviewer has the fields they need. The proven-vs-candidate distinction lives entirely in fulfilled_by[].confidence + open_questions: a proven fulfilment carries a pattern_key and build evidence; a candidate carries the spike questions that gate its promotion. No agent ever sets approval_status or flips a fulfilment to proven.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "capability_key",
+    "name",
+    "capability_domain",
+    "summary",
+    "need_statement",
+    "aliases",
+    "fulfilled_by",
+    "governance_nfrs",
+    "valid_from",
+    "approval_status"
+  ],
+  "properties": {
+    "capability_key": {
+      "type": "string",
+      "description": "Stable, cite-able key that survives renames. Cited by every requirement that fulfils this capability and by every pattern that back-references it. UPPER-KEBAB after the CAP- prefix, e.g. CAP-OLAP.",
+      "pattern": "^CAP-[A-Z0-9]+(-[A-Z0-9]+)*$",
+      "minLength": 5,
+      "maxLength": 64
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable capability name, e.g. 'Online Analytical Processing (OLAP)'.",
+      "minLength": 3,
+      "maxLength": 120
+    },
+    "capability_domain": {
+      "type": "string",
+      "description": "Top-level family the capability belongs to. Sourced from capabilities/_schema/capability-domains.enum.txt.",
+      "enum": [
+        "data",
+        "compute",
+        "integration",
+        "runtime",
+        "experience",
+        "governance"
+      ]
+    },
+    "summary": {
+      "type": "string",
+      "description": "A short paragraph: what the capability is, at a glance. The body carries the full need, fulfilment options, and governance floor.",
+      "minLength": 20,
+      "maxLength": 1000
+    },
+    "need_statement": {
+      "type": "string",
+      "description": "The technology-free need in 'a system needs to ... so that ...' form. Names the problem, never the product. This is what makes the capability the stable middle term: the need outlives the component that fulfils it.",
+      "minLength": 20,
+      "maxLength": 500
+    },
+    "aliases": {
+      "type": "array",
+      "description": "Lay synonyms a non-expert would type for this need, e.g. 'data warehouse', 'EDW', 'reporting store'. At least 2 are required: this list feeds capabilities/INDEX.md, the alias-searchable lookup a need-first reader is pointed at first. A capability with one alias is hard to find.",
+      "minItems": 2,
+      "items": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120
+      },
+      "uniqueItems": true
+    },
+    "fulfilled_by": {
+      "type": "array",
+      "description": "The components that fulfil this need, each with a confidence. THIS is where proven-vs-candidate lives. A 'proven' entry names a pattern_key and reuses that pattern's build evidence; a 'candidate' entry may name only a vendor component in `note` (no pattern_key yet) and carries the open_questions a spike must answer before it can be promoted. Promotion candidate -> proven is a human PR that attaches spike evidence and flips confidence; no agent ever sets confidence: proven.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["confidence", "note"],
+        "properties": {
+          "pattern_key": {
+            "type": "string",
+            "description": "The fulfilling pattern's cite-able key. REQUIRED when confidence is 'proven'; OPTIONAL when 'candidate' (a candidate may name a vendor in `note` before any PAT- file exists). Must match an existing pattern's pattern_key.",
+            "pattern": "^PAT-[A-Z0-9]+(-[A-Z0-9]+)*$",
+            "maxLength": 64
+          },
+          "confidence": {
+            "type": "string",
+            "description": "'proven' = a built, evidenced pattern fulfils this need today. 'candidate' = a plausible fulfilment that still owes a spike; it is not recommendable until proven. HUMAN-ONLY to set 'proven'; the agent writes 'candidate' and never flips it.",
+            "enum": ["proven", "candidate"]
+          },
+          "note": {
+            "type": "string",
+            "description": "One line on the fulfilment. For a proven entry: why this pattern fulfils the need cleanly. For a candidate: the vendor component being considered and the headline caveat.",
+            "minLength": 5,
+            "maxLength": 600
+          },
+          "evidence": {
+            "type": "array",
+            "description": "Artefacts proving the fulfilment is real. REQUIRED (at least one) when confidence is 'proven' — a proven fulfilment carries build evidence, exactly as a promoted pattern does. Omit for a candidate.",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["title", "url"],
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "description": "What the artefact is.",
+                  "minLength": 2,
+                  "maxLength": 200
+                },
+                "url": {
+                  "type": "string",
+                  "description": "Link to the artefact.",
+                  "format": "uri",
+                  "minLength": 4
+                }
+              }
+            }
+          },
+          "open_questions": {
+            "type": "array",
+            "description": "The spike questions a candidate must answer before it can be promoted to proven. The honest core of a candidate fulfilment: these are what gate promotion. Expected on a candidate; omitted on a proven entry.",
+            "items": {
+              "type": "string",
+              "minLength": 5,
+              "maxLength": 400
+            }
+          }
+        }
+      }
+    },
+    "governance_nfrs": {
+      "type": "array",
+      "description": "The minimum governance bar any fulfilling pattern must meet or honestly waive. Each carries a kind from the SAME closed 11-kind NFR vocabulary the patterns use, a statement, and a testable acceptance_criterion — concrete and measurable, mirroring the quality of an attached pattern NFR. This is the floor a candidate is measured against when a human decides whether a spike's result earns promotion.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "statement", "acceptance_criterion"],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "The NFR family — one of the closed 11 kinds shared with the pattern schema (patterns/_schema/nfr-kinds.enum.txt).",
+            "enum": [
+              "security",
+              "availability",
+              "performance",
+              "data-residency",
+              "observability",
+              "resilience",
+              "cost",
+              "compliance",
+              "scalability",
+              "data-governance",
+              "operations"
+            ]
+          },
+          "statement": {
+            "type": "string",
+            "description": "What the governance bar asserts, e.g. 'PII columns carry policies enforced at query time'.",
+            "minLength": 5,
+            "maxLength": 400
+          },
+          "acceptance_criterion": {
+            "type": "string",
+            "description": "The testable 'done' — measurable, e.g. 'region == declared classification region'. A floor a reviewer cannot check is a wish, not a bar.",
+            "minLength": 5,
+            "maxLength": 400
+          },
+          "measurable_target": {
+            "type": "string",
+            "description": "Optional concrete target, e.g. 'region == declared residency boundary'.",
+            "maxLength": 120
+          }
+        }
+      }
+    },
+    "valid_from": {
+      "type": "string",
+      "description": "ISO date (YYYY-MM-DD) the capability was first authored.",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "validity_check_months": {
+      "type": "integer",
+      "description": "How often (in months) the capability should be re-checked for currency — its candidates may have matured, its need may have shifted. Defaults to 12 if omitted.",
+      "default": 12,
+      "minimum": 1,
+      "maximum": 120
+    },
+    "approval_status": {
+      "type": "string",
+      "description": "Lifecycle state, set by a human in PR review. 'candidate' = proposed, no proven fulfilment yet. 'provisional' = reviewed, has a proven fulfilment with evidence, no production reference build. 'approved' = reviewed and blessed. 'deprecated' = retired; see superseded_by. No agent ever sets this.",
+      "enum": ["candidate", "provisional", "approved", "deprecated"]
+    },
+    "approved_by": {
+      "type": "string",
+      "description": "Who blessed the capability in PR review (name or handle). REQUIRED when approval_status is provisional or approved. A human-owned fact.",
+      "minLength": 2,
+      "maxLength": 120
+    },
+    "approved_at": {
+      "type": "string",
+      "description": "ISO date (YYYY-MM-DD) of the human approval. REQUIRED when approval_status is provisional or approved.",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "superseded_by": {
+      "type": "string",
+      "description": "The capability_key that replaces this one. REQUIRED when approval_status = deprecated, so a reader is never dead-ended.",
+      "pattern": "^CAP-[A-Z0-9]+(-[A-Z0-9]+)*$"
+    }
+  },
+  "allOf": [
+    {
+      "$comment": "approval_status in {provisional, approved} requires the human approval trail.",
+      "if": {
+        "properties": {
+          "approval_status": { "enum": ["provisional", "approved"] }
+        },
+        "required": ["approval_status"]
+      },
+      "then": {
+        "required": ["approved_by", "approved_at"]
+      }
+    },
+    {
+      "$comment": "A deprecated capability must name its successor so a reader is never dead-ended.",
+      "if": {
+        "properties": {
+          "approval_status": { "const": "deprecated" }
+        },
+        "required": ["approval_status"]
+      },
+      "then": {
+        "required": ["superseded_by"]
+      }
+    },
+    {
+      "$comment": "Every proven fulfilment must name a pattern_key and carry build evidence — mirrors the pattern schema's evidence-required-once-promoted rule. A candidate needs neither.",
+      "if": {
+        "properties": {
+          "fulfilled_by": {
+            "type": "array",
+            "contains": {
+              "type": "object",
+              "properties": {
+                "confidence": { "const": "proven" }
+              },
+              "required": ["confidence"]
+            }
+          }
+        },
+        "required": ["fulfilled_by"]
+      },
+      "then": {
+        "properties": {
+          "fulfilled_by": {
+            "type": "array",
+            "items": {
+              "if": {
+                "properties": {
+                  "confidence": { "const": "proven" }
+                },
+                "required": ["confidence"]
+              },
+              "then": {
+                "required": ["pattern_key", "evidence"],
+                "properties": {
+                  "evidence": { "minItems": 1 }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
