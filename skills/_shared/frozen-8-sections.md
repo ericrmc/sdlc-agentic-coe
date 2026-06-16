@@ -8,34 +8,21 @@
 
 ## Who relies on this
 
-These skills all read the same eight keys in the same order. Keeping the list in one file
-is what keeps them consistent — a section a generator emits, a reconcile check looks for,
-and an import re-homes must all mean the same thing.
+All read the same eight keys in the same order; keeping the list in one file keeps them
+consistent:
 
-- **`synthesise-solution-architecture`** — writes the eight sections from the project's
-  real material.
-- **`reconcile-design-vs-requirements`** — checks each section against requirements/outcomes
-  and raises *questions* (never verdicts) about drift, gaps, and orphans.
-- **`import-external-design`** — takes an externally-authored design (markdown) and merges it
-  onto these eight sections so it becomes authoritative in the same shape.
-- **`reconcile-as-built`** — diffs an as-built write-up against these eight as-designed
-  sections to surface matches, gaps, additions, and drift.
+- **`synthesise-solution-architecture`** — writes the eight sections from the real material.
+- **`reconcile-design-vs-requirements`** — checks each against requirements/outcomes, raising questions.
+- **`import-external-design`** — merges an external design onto these eight in the same shape.
+- **`reconcile-as-built`** — diffs an as-built write-up against these eight as-designed.
 
 ## Why the set is frozen
 
-The set is **fixed at eight, in a fixed order, and not per-project configurable.** Freezing
-it is what makes everything downstream deterministic: every reconcile check has a precise
-target, every import knows exactly where each fact lands, and every as-built diff has a
-stable thing to compare against. If the set could drift per project, none of those could be
-written once and reused.
-
-The shape is a deliberate hybrid: **Background & context, then a bent BDAT** (Business /
-Application architecture), with **two textbook departures** — NFRs and key decisions are
-pulled out into their **own first-class sections** rather than buried inside "Technology"
-(they are the keystone outputs of the method, so hiding them would defeat the point), and an
-**estimate/plan** section plus an **open-questions** section are appended (both are durable,
-both fall out of work already done). Deployment/infrastructure is intentionally **out of
-scope** — there is no physical-tier section.
+Fixed at eight, fixed order, not per-project configurable — that is what makes everything
+downstream deterministic (a precise reconcile target, a known landing place for each imported
+fact, a stable as-built comparator). The shape is a bent BDAT after Background & context, with
+NFRs and key decisions pulled into their own first-class sections and an estimate/plan plus
+open-questions appended; deployment/infrastructure is deliberately out of scope.
 
 ---
 
@@ -71,24 +58,18 @@ open_questions
 
 These three rules are the contract. Break one and a downstream skill silently misbehaves.
 
-1. **Each fact lives in exactly one section.** The pattern's NFRs render in `quality_nfrs`
-   and **nowhere else** — not also in `application_architecture`. The pattern's *identity,
-   summary, and provenance* render in `application_architecture` and not in `quality_nfrs`.
-   This single-home rule is what makes a reconcile check like "is this NFR addressed?"
-   answerable: there is exactly one place an NFR is supposed to appear, so its absence there
-   is a real signal rather than noise. When synthesising or importing, place each fact once
-   and resist the urge to repeat it for emphasis.
+1. **Each fact lives in exactly one section** (the table's "Built from" column is the home).
+   Pattern NFRs render in `quality_nfrs` only; pattern identity/summary/provenance in
+   `application_architecture` only — single-home is what makes "is this NFR addressed?" a real
+   signal. Place each fact once; do not repeat for emphasis.
 
-2. **Every section always renders — emptiness is stated, not skipped.** A sparse project does
-   not yield a missing section; it yields a section whose body carries a plain reason line
-   ("no decisions have been ratified yet", "no estimate has been produced yet", "every outcome
-   is accepted"). An empty estimate section is **honest output, not a gap**. Never drop a
-   section because its inputs are thin, and never fabricate content to fill it.
+2. **Every section always renders — emptiness is stated, not skipped.** A thin section carries
+   a plain reason line ("no decisions ratified yet"), which is honest output, not a gap. Never
+   drop a section, never fabricate to fill one.
 
 3. **Fixed order, fixed names, fixed count.** Always eight, always these keys, always this
-   order. Do not localise the titles, do not merge two sections, do not add a ninth. If a
-   project genuinely needs something that has no home here, it belongs in `open_questions`
-   as a carried item — not as a new section.
+   order — no localised titles, no merged sections, no ninth. Anything with no home here goes
+   into `open_questions` as a carried item.
 
 ---
 
@@ -117,21 +98,7 @@ genuinely comparable.
 ## Drift guard
 
 If you are editing a consuming skill and find yourself about to hard-code the section list
-inline, **stop and link here instead.** The failure mode this file prevents is four skills
-each carrying their own slightly-different copy of the eight sections, which then disagree
-about a key spelling or an ordering and quietly break reconcile.
-
-Quick self-check before relying on the list:
-
-- All eight keys present, spelled exactly as in the code block above? ✔
-- In the order `background_context → … → open_questions`? ✔
-- NFRs homed only in `quality_nfrs`; pattern identity only in `application_architecture`? ✔
-- Every section accounted for, even the empty ones? ✔
-
-If any check fails in a consuming skill, fix the skill to match this file — this file is the
-authority.
-
----
-
-*Light and advisory by design. Nothing here blocks a project; it is a shared vocabulary so
-the solution-architecture skills speak the same eight words.*
+inline, **stop and link here instead.** The failure this prevents is four skills each carrying
+a slightly-different copy that then disagrees on a key spelling or ordering and quietly breaks
+reconcile. Before relying on a consuming skill's copy, confirm its keys match the code block
+above byte-for-byte and in order; if not, fix the skill — this file is the authority.

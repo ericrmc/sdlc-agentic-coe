@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://sdlc-agentic-coe/capabilities/_schema/capability.frontmatter.schema.json",
   "title": "Capability Frontmatter (v1)",
-  "description": "Schema for the YAML frontmatter of a capability — the named middle term between a plain-language need and the component patterns that fulfil it. Validated on every PR that touches a capabilities/ file. Light and advisory: it checks that a capability is well-formed, cite-able, and honest about whether its fulfilments are proven or still candidates — it does not enforce any approval. A human PR review (the CODEOWNERS architect review) is what promotes a capability; this schema only makes sure the reviewer has the fields they need. The proven-vs-candidate distinction lives entirely in fulfilled_by[].confidence + open_questions: a proven fulfilment carries a pattern_key and build evidence; a candidate carries the spike questions that gate its promotion. No agent ever sets approval_status or flips a fulfilment to proven.",
+  "description": "Validates the YAML frontmatter of a capability (the named middle term between a need and its fulfilling patterns) on every PR. Advisory: checks well-formedness, not the approval gate (a human PR review promotes a capability); see DESIGN.md §7. The proven-vs-candidate rule lives on the confidence field + the allOf block.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -68,7 +68,7 @@
     },
     "fulfilled_by": {
       "type": "array",
-      "description": "The components that fulfil this need, each with a confidence. THIS is where proven-vs-candidate lives. A 'proven' entry names a pattern_key and reuses that pattern's build evidence; a 'candidate' entry may name only a vendor component in `note` (no pattern_key yet) and carries the open_questions a spike must answer before it can be promoted. Promotion candidate -> proven is a human PR that attaches spike evidence and flips confidence; no agent ever sets confidence: proven.",
+      "description": "The components that fulfil this need, each with a confidence (proven or candidate; see the confidence field). minItems 1.",
       "minItems": 1,
       "items": {
         "type": "object",
@@ -94,7 +94,7 @@
           },
           "evidence": {
             "type": "array",
-            "description": "Artefacts proving the fulfilment is real. REQUIRED (at least one) when confidence is 'proven' — a proven fulfilment carries build evidence, exactly as a promoted pattern does. Omit for a candidate.",
+            "description": "Artefacts proving the fulfilment is real. REQUIRED (at least one) when confidence is 'proven' (see allOf); omit for a candidate.",
             "minItems": 1,
             "items": {
               "type": "object",
@@ -118,7 +118,7 @@
           },
           "open_questions": {
             "type": "array",
-            "description": "The spike questions a candidate must answer before it can be promoted to proven. The honest core of a candidate fulfilment: these are what gate promotion. Expected on a candidate; omitted on a proven entry.",
+            "description": "The spike questions a candidate must answer before promotion to proven. Expected on a candidate; omitted on a proven entry.",
             "items": {
               "type": "string",
               "minLength": 5,
@@ -130,7 +130,7 @@
     },
     "governance_nfrs": {
       "type": "array",
-      "description": "The minimum governance bar any fulfilling pattern must meet or honestly waive. Each carries a kind from the SAME closed 11-kind NFR vocabulary the patterns use, a statement, and a testable acceptance_criterion — concrete and measurable, mirroring the quality of an attached pattern NFR. This is the floor a candidate is measured against when a human decides whether a spike's result earns promotion.",
+      "description": "The minimum governance bar any fulfilling pattern must meet or honestly waive — the floor a candidate is measured against at promotion. Each carries a kind from the same closed 11-kind NFR vocabulary the patterns use, a statement, and a testable acceptance_criterion.",
       "minItems": 1,
       "items": {
         "type": "object",
@@ -162,7 +162,7 @@
           },
           "acceptance_criterion": {
             "type": "string",
-            "description": "The testable 'done' — measurable, e.g. 'region == declared classification region'. A floor a reviewer cannot check is a wish, not a bar.",
+            "description": "The testable, measurable 'done', e.g. 'region == declared classification region'.",
             "minLength": 5,
             "maxLength": 400
           },
@@ -189,7 +189,7 @@
     },
     "approval_status": {
       "type": "string",
-      "description": "Lifecycle state, set by a human in PR review. 'candidate' = proposed, no proven fulfilment yet. 'provisional' = reviewed, has a proven fulfilment with evidence, no production reference build. 'approved' = reviewed and blessed. 'deprecated' = retired; see superseded_by. No agent ever sets this.",
+      "description": "Lifecycle state, set only by a human in PR review (never an agent). Per-value meanings: capabilities/README.",
       "enum": ["candidate", "provisional", "approved", "deprecated"]
     },
     "approved_by": {
@@ -206,7 +206,7 @@
     },
     "superseded_by": {
       "type": "string",
-      "description": "The capability_key that replaces this one. REQUIRED when approval_status = deprecated, so a reader is never dead-ended.",
+      "description": "The capability_key that replaces this one. REQUIRED when approval_status = deprecated (see allOf).",
       "pattern": "^CAP-[A-Z0-9]+(-[A-Z0-9]+)*$"
     }
   },

@@ -63,29 +63,13 @@ drift check compares bytes between the markers.
 ```
 
 A skill's own frontmatter still declares its `output_kinds:` (a subset of
-`[proposal, question, menu, halt]`); the quoted block is the shared *prose* every
-skill shares so the discipline reads identically everywhere.
+`[proposal, question, menu, halt]`); the quoted block is the shared *prose* every skill shares.
 
-## Why a quoted copy and not an import
+## Pointers
 
-This is a markdown library meant to run in **any** LLM workflow that can read a file —
-Claude Code, a plain prompt, a CI step. There is no import mechanism to rely on at
-read time, and a skill that references a rule it does not contain ships broken when
-copied alone. So each skill carries the rule **in its own bytes**, and the drift check
-keeps the copies honest without a runtime dependency. The trade is deliberate:
-redundancy on disk, zero coupling at use time, one canonical source for edits.
-
-## Relationship to the rest of the library
-
-- The **full rationale** — why the four-kinds rule is *safe* without enforcement, the
-  forbidden-output catalogue with concrete ❌ examples, and the frontmatter contract —
-  lives in `skills/_contract/target-rule-output-kinds/SKILL.md`. That file *explains*;
-  this file is the *byte-stable quotable*. The wording here is the subset both agree on.
-- The **lint** that checks `output_kinds:` against the closed enum and greps for
-  forbidden-output tells is `skills/_scripts/lint_skill_target_rule.py`
-  (`validate-skill-frontmatter` Action).
-- The **drift check** that pins quoted copies to this file is
-  `skills/_scripts/check_shared_stub_drift.py` (`check-shared-stub-drift` Action).
-- Both Actions are **advisory CI**: they comment and fail the check to prompt a human
-  fix. Neither blocks a downstream project. Consistent with the library's keep-it-light
-  stance — the machine catches the *shape*; a human still owns every call.
+- The full rationale — why four-kinds is safe without enforcement, the forbidden-output
+  catalogue with ❌ examples, the frontmatter contract — lives in
+  `skills/_contract/target-rule-output-kinds/SKILL.md`. That file explains; this is the
+  byte-stable quotable.
+- The lint for `output_kinds:` and forbidden-output tells — `skills/_scripts/lint_skill_target_rule.py`.
+- Pinned to this file by `check-shared-stub-drift` (advisory CI).

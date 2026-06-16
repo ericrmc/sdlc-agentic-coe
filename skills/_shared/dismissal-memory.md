@@ -17,18 +17,9 @@ That is the whole convention. Everything below is how to make it portable and
 mechanical so that "unchanged" and "changed" are decided by a stable key, not by a
 model's mood on a second pass.
 
-### Why it exists
-
-Experts work by recognition, so these skills surface *cues* (questions,
-observations, proposals) — never commands. A cue is only useful if it is
-**dismissible in one action and stays dismissed**. A cue that re-nags every run
-against evidence the human already looked at and waved off trains the reader to
-ignore the channel, and a channel that is ignored is worse than no channel.
-
-The failure this prevents is the unconditional re-propose: a skill that recomputes
-its findings each run and re-emits every one, so the same "Requirement REQ-014 has no
-acceptance criterion — how will it be tested?" question reappears after the human
-has deliberately deferred it — a wall of repeated notes that buries the one new thing.
+It prevents the unconditional re-propose: a dismissible cue must stay dismissed in one action,
+or the channel re-nags against evidence the human already waved off and trains the reader to
+ignore it.
 
 ## The memory key — what makes a cue "the same cue"
 
@@ -65,13 +56,9 @@ portable between skills and across re-runs.
 | **red-team-and-dissent** | `(target_id, line_of_attack)` — what is attacked + the angle | the target's content changes, or a new line of attack is raised against it |
 | **advisory-governance-checklist** | `(check_id, scope_handle)` — which check, over which item | the scoped item changes such that the check would now read differently |
 
-> **reconcile's key is derived from STABLE handles + a derived message only.** Build
-> the `message` from `check_kind` + the cited handles (and, where needed, a stable
-> item id) — **never** from the item's free-text statement/title. That keeps the key
-> distinct between two items that share a handle, and stable across a "why" edit to
-> either item. Reconcile follows this discipline: its proposals
-> carry `(check_kind, section_key, req_key, message)` where `message` is composed from
-> handles, so a reworded requirement does not resurrect a dismissed proposal.
+> **reconcile's `message` is composed from handles, never free text.** Build it from
+> `check_kind` + the cited handles (plus a stable item id where needed) so the key stays
+> distinct between two items sharing a handle and stable across a "why" edit to either.
 
 ## How it is kept — portably, in the downstream repo
 
@@ -91,18 +78,9 @@ Recommended location and format — a JSONL ledger, one dismissal per line:
 {"skill":"red-team-and-dissent","key":["pattern:event-sourcing","operational-complexity"],"dismissed_on":"2026-06-13","by":"sanjay","note":"team has ops bandwidth; dissent recorded, not blocking"}
 ```
 
-A markdown table is an equally valid carrier if humans edit it by hand:
-
-```markdown
-<!-- .coe/dismissals.md — dismissed cues; a skill will not re-surface these against unchanged evidence -->
-| skill | key | dismissed_on | by | note |
-|---|---|---|---|---|
-| reconcile | requirement_no_acceptance_criterion · REQ-014 · requirements_acceptance | 2026-06-13 | erica | deferred to phase 2 |
-| triage | "vendor renamed the auth endpoint" | 2026-06-13 | erica | cosmetic; no design impact |
-```
-
-Pick one carrier per repo and keep it. JSONL is preferred for machine round-tripping;
-markdown is fine for human-first teams.
+A hand-edited markdown table (`.coe/dismissals.md`, same fields, `key` `·`-joined) is an
+equivalent carrier. Pick one per repo and keep it — JSONL for machine round-tripping, markdown
+for human-first teams.
 
 ### Fields
 
@@ -151,40 +129,22 @@ Two portable techniques, in order of preference:
   on a content change — so prefer it only for cues whose evidence rarely changes
   silently, or pair it with step 4's reasoning pass.
 
-## Re-arming — the sanctioned exception
-
-Dismissal memory is **not** permanent suppression. The whole point is that it re-arms
-when the world moves. A cue must return when:
-
-- a **new** item enters scope that the cue would now cite (a fresh conflicting
-  requirement, a newly-added NFR);
-- an item the cue was dismissed against **fires** — e.g. an assumption flips to
-  *invalidated* or a risk flips to *realised* (reconcile's rework findings), or a
-  roadblock's cited source is revised;
-- the **candidate text** in triage is materially different from the dismissed one;
-- the human explicitly **removes the line** from the ledger.
-
-Re-arming is honest, not noisy: re-surface with a one-line "why I'm raising this
-again", so the reader sees it is a *change*, not a re-nag.
+Re-arming (step 4) is the sanctioned exception to "stay dismissed": a cue returns when a new
+item enters scope it would now cite, when an item it was dismissed against *fires* (an
+assumption flips to invalidated, a risk to realised, a roadblock's source is revised), when
+triage's candidate text materially differs, or when the human removes the line — always with a
+one-line "why I'm raising this again", per the table's re-arms-when column.
 
 ## Anti-patterns
 
-- **Keying off free text.** If the key includes a requirement's prose or a risk's
-  title, a typo fix resurrects a dismissed cue. Key off `req_key` / item id / section
-  label / check kind. Compose any human-readable `message` from those handles.
-- **Permanent suppression.** Treating a dismissal as "never show again, ever" hides
-  real change. Always pair the key with an evidence check or the re-arm reasoning pass.
-- **Silent re-arm.** Re-surfacing a previously-dismissed cue *without* saying it was
-  dismissed-and-changed reads as the skill ignoring the human. Always flag the re-raise.
-- **A skill writing its own dismissals.** Dismissal is a **human** action — the skill
-  only *reads* the ledger and *respects* it. The skill never decides on its own that a
-  cue is dismissed; `by` is always a person. The agent proposes and questions; the human
-  owns the disposition.
-- **A central/global store.** Dismissal memory belongs **in the downstream repo** with
-  the work, not in a shared service — so it diffs, travels, and is auditable. Each
-  project owns its own ledger.
-- **Treating it as enforcement.** Dismissal memory must stay advisory. It only affects
-  what is re-surfaced; it never blocks, approves, or records a verdict.
+- **Keying off free text.** A key that includes prose or a title lets a typo fix resurrect a
+  dismissed cue. Key off `req_key` / item id / section label / check kind; compose `message`
+  from those handles.
+- **Permanent suppression / silent re-arm.** Never "show again, ever"; and a re-surface always
+  flags the dismissed-and-changed (step 4), never appears unannounced.
+- **A skill writing its own dismissals.** The skill only *reads* and *respects* the ledger;
+  `by` is always a person (a human owns disposition).
+- **A central/global store.** The ledger lives in the downstream repo so it diffs and travels.
 
 ## Drift guard
 

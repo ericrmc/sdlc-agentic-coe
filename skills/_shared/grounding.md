@@ -8,11 +8,9 @@
 > must change, change it *here first*, then re-quote into every skill in the same PR
 > — never edit a quoted copy in place.
 
-This is the **no-fabrication keystone**. Everything that reads or writes a requirement
-consumes it. A skill that reasons over an input it never actually read is the one failure
-that turns an advisory library into a liability: a clean-looking proposal grounded in
-nothing. The rule below makes the absence of a required input a **typed `halt`**, not a
-silent guess — so a missing input stops the run and asks, instead of being invented.
+The no-fabrication keystone: an absent required input becomes a typed `halt` that asks where
+the input is, never a silent guess. The block below is the source of truth; the wrapper around
+it is author-facing only.
 
 ---
 
@@ -66,17 +64,9 @@ re-case, or re-punctuate it; the drift check compares bytes between the markers.
 ```
 
 Then, in the skill's **Inputs** section, mark each row Required or Optional and add a one-line
-*if-absent* note on every Required row that cites this contract:
-
-```markdown
-## Inputs
-
-- **Accepted requirements file** — *Required.* If absent/unreadable/empty: HALT and ask where it
-  is (per `_shared/grounding.md`); never invent requirements. Readable forms: a markdown file, an
-  xlsx/csv path, a GitHub Project owner+number, a docs folder, or a pasted block.
-- **Project context paragraph** — *Optional.* If absent: proceed and surface the gap as a
-  `question`; never pad it with an invented context.
-```
+*if-absent* note on every Required row citing this contract (HALT and ask where it is; never
+invent) and a proceed-and-surface note on each Optional row. The worked Inputs example lives
+in the canonical exemplar — see Pointers.
 
 ## How the halt path is wired in the body
 
@@ -84,33 +74,18 @@ A skill that declares `halt` in `output_kinds` must contain a real halt step —
 quoted rule. The convention is an early step (usually **STEP 0 — locate / verify inputs**) that
 computes input presence **before the model reasons** and emits the halt when a required input is
 missing. The single canonical halt **exemplar** — a clean halt paired with a WRONG
-verdict-smuggling counter-example — lives in
+verdict-smuggling counter-example, and the Inputs row form — lives in
 `skills/_contract/grounding-no-absent-input/SKILL.md`. Copy that shape; do not re-author it.
 
-## What this contract does NOT do
+It is **not** an enforcement gate, and no static check can stop a model inventing an input
+mid-run — the companion lint (`skills/_scripts/lint_skill_grounding.py`) only checks that the
+stub is cited and that a `halt`-declaring skill wires a halt path.
 
-- It does **not** add an enforcement gate. The halt is an advisory output kind like any other;
-  the human is the one who supplies the missing input and re-runs.
-- It does **not**, by itself, prevent a model from inventing an input mid-run — that is runtime
-  behaviour no static check can catch. The companion lint
-  (`skills/_scripts/lint_skill_grounding.py`) is honest about this: it checks that the stub is
-  **cited** and that a `halt`-declaring skill **wires a halt path**, not that the model never
-  fabricates. The discipline is the rule + the exemplar; the lint catches the documentation miss.
+## Pointers
 
-## Relationship to the rest of the library
-
-- The **output discipline** that makes `halt` one of exactly four legal kinds —
-  **proposal, question, menu, halt** — and forbids a halt from carrying a verdict is
-  `skills/_shared/target-rule.md` / `skills/_contract/target-rule-output-kinds`.
-- The **rhythm** the halt lives inside — a human supplies the missing input, the agent re-runs
-  and proposes — is `skills/_shared/propose-ratify.md`.
-- The **keys** an ingested or derived artefact is grounded against (read the scheme from the
-  target file; never assume one) are `skills/_shared/req-key-conventions.md`.
-- The **edge** every derived artefact carries back to its accepted upstream node is
-  `skills/_shared/trace-edge.md`.
-- The **drift check** that pins quoted copies to this file is the `check-shared-stub-drift`
-  GitHub Action (advisory). It auto-discovers this stub via `skills/_shared/*.md`; no workflow
-  edit was needed to add it.
-
-Keep it light. Name the required inputs; if a required one is absent, HALT and ask where it is —
-never assume, never invent, never silently proceed. That is the whole rule.
+- The halt is one of exactly four legal output kinds and must carry no verdict —
+  `skills/_shared/target-rule.md`.
+- Keys an artefact is grounded against — `skills/_shared/req-key-conventions.md`.
+- The edge a derived artefact carries to its upstream node — `skills/_shared/trace-edge.md`.
+- The supply-input-then-re-run rhythm — `skills/_shared/propose-ratify.md`.
+- Pinned to this file by `check-shared-stub-drift` (advisory CI; auto-discovers via `*.md`).

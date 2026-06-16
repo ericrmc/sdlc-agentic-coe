@@ -74,25 +74,14 @@ drift check compares bytes between the markers.
 <!-- END req-key-conventions -->
 ```
 
-## Two hard rules, restated for the skill author
+**Author note on the normalisation rule (in-block):** a halt that fires on "no `BO-` keys"
+must compute *file-absent / unreadable / zero-keys-of-any-recognised-scheme* **before the
+model runs** — never argue a project out of its own valid keys — and re-ingest de-dups on the
+preserved `source_ref`, never on the minted key.
 
-1. **Read the scheme from the target file; never assume one.** A halt that fires on
-   "no `BO-` keys" must compute *file-absent / unreadable / zero-keys-of-any-recognised-
-   scheme* before the model runs — never argue a project out of its own valid keys.
-2. **Preserve the source identifier as `source_ref`.** Minting a local `REQ-<n>` is fine;
-   losing what the source called it is not. Re-ingest de-dups on `source_ref`, never on the
-   minted key.
+## Pointers
 
-## Relationship to the rest of the library
-
-- The **edge** these keys are cited across — `derives_from`, walkable both ways — is
-  `skills/_shared/trace-edge.md`. That stub and this one use the **same** prefixes; they
-  are kept in step by hand and by the drift check.
-- The **rhythm** keys live inside — propose → ratify-by-merge — is
-  `skills/_shared/propose-ratify.md`.
-- The **output discipline** that keeps a key a citation and never a verdict is
-  `skills/_shared/target-rule.md`. Every output is one of exactly four kinds —
-  **proposal, question, menu, or halt** — and an agent proposes while a human ratifies.
-
-Keep it light. One prefix per kind, one normalisation rule, every link in a field — that
-is the whole scheme.
+- The edge these keys are cited across, `derives_from` (same prefixes) — `skills/_shared/trace-edge.md`.
+- A key is a citation, never a verdict; the four output kinds — `skills/_shared/target-rule.md`.
+- The propose → ratify-by-merge rhythm keys live inside — `skills/_shared/propose-ratify.md`.
+- Pinned to this file by `check-shared-stub-drift` (advisory CI).

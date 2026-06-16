@@ -1,6 +1,6 @@
 # Portfolio as GitHub Projects
 
-Run a leadership-altitude portfolio view on top of GitHub Projects: one card per downstream project, the phase it sits in, and an advisory red/amber/green verdict flagging what needs attention. Advisory only — it renders facts that live elsewhere; it never blocks, approves, or holds enforcement state.
+Run a leadership-altitude portfolio view on top of GitHub Projects: one card per downstream project, the phase it sits in, and an advisory red/amber/green verdict flagging what needs attention.
 
 New here? Start at `GETTING-STARTED.md`, then `skills/MAP.md`. Need-first lookup: `capabilities/INDEX.md`.
 
@@ -44,9 +44,8 @@ Computed by a scheduled `portfolio-rollup` GitHub Action, written into each card
 - `Reasons` names every failing check — the audit of the verdict.
 - Degrades safely: a missing signal is "no finding," never an error. One bad repo never breaks the board.
 
-Latency: the board is as fresh as the last run, no fresher. State the schedule in the board description so an hour-old green is not mistaken for a real-time guarantee. Anyone needing truth-this-second reads the project's own repo and board.
-
-Advisory exposure facts (open critical risks, PII present, automated-decision present) may ride along as extra board fields for scanning, but are surfaced facts, not verdict drivers, until the org ratifies them as bars.
+- Latency: as fresh as the last run. State the schedule in the board description; anyone needing truth-this-second reads the project's own repo.
+- Advisory exposure facts (open critical risks, PII present, automated-decision present) may ride along as extra board fields, but are surfaced facts, not verdict drivers, until the org ratifies them as bars.
 
 ```text
 for each downstream project:
@@ -74,7 +73,7 @@ gh project field-create "$ORG_PROJECT_NUMBER" --owner "$ORG" \
 gh project field-create "$ORG_PROJECT_NUMBER" --owner "$ORG" \
   --name "RAG" --data-type SINGLE_SELECT --single-select-options "green,amber,red"
 gh project field-create "$ORG_PROJECT_NUMBER" --owner "$ORG" --name "Reasons" --data-type TEXT
-# Optional advisory facts only (never verdict drivers, never per-person):
+# Optional advisory facts only (never verdict drivers):
 gh project field-create "$ORG_PROJECT_NUMBER" --owner "$ORG" --name "Open critical risks" --data-type NUMBER
 gh project field-create "$ORG_PROJECT_NUMBER" --owner "$ORG" \
   --name "PII present" --data-type SINGLE_SELECT --single-select-options "yes,no"

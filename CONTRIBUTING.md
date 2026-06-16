@@ -9,34 +9,15 @@ then [skills/MAP.md](skills/MAP.md) and [capabilities/INDEX.md](capabilities/IND
 
 > **Before a structural change** — a new top-level folder, a schema field, the key
 > scheme, or weakening a gate, the grounding contract, or any invariant — read
-> [RATIONALE.md](RATIONALE.md) first. This guide tells you *how* to add; RATIONALE
-> records *why* each load-bearing decision was made, the alternatives and dissent, and
-> **what breaks if you change it** — so you do not dissolve a load-bearing property by
-> accident. Its §6 guard table maps a tempting change to the invariant it touches.
->
-> The canonical per-decision record lives in [ADR.md](ADR.md), an immutable numbered
-> log holding only the genuinely architectural, contested, or hard-to-reverse decisions
-> (ADR-0001..0015 today) that RATIONALE.md cites — routine schema-field and convention
-> rules live in the schema descriptions and this guide, where the linter is their guard.
-> **A new architectural decision adds the next ADR-NNNN; reversing one supersedes it
-> (`Status: Superseded by ADR-NNNN`) — you never edit or delete an accepted record.**
+> [RATIONALE.md](RATIONALE.md) §6 guard table first; it maps a tempting change to the
+> invariant it touches and what breaks. Per-decision records are immutable [ADR.md](ADR.md)
+> entries: a new decision adds the next ADR-NNNN, a reversal supersedes it — you never edit
+> or delete an accepted record. Routine schema-field and convention rules live in the schema
+> descriptions and this guide, where the linter is their guard.
 
-## The rules that hold everywhere
-
-- **Propose, then ratify.** An agent opens a PR adding or editing markdown; a human
-  merges it. The merge is the ratification — git history is the record. No separate
-  approval artefact.
-- **An agent authors, never blesses.** An agent may write any file end-to-end, but
-  every output is a proposal a human takes, edits, or drops. An agent never sets a
-  `status`, `verdict`, `score`, `ranking`, `approval_status` beyond `candidate`,
-  `approved_by`, `approved_at`, `maturity`, or `adoption_count`.
-- **One structural human gate.** `CODEOWNERS` routes `patterns/**` and
-  `capabilities/**` to the architect team; branch protection requires that review
-  before merge. Everything else is advisory.
-- **CI is advisory.** Validation Actions annotate the PR. A red check is a strong
-  signal, not a lock; a human may merge over it with a reason.
-- **Code computes, models do not.** Maturity, adoption counts, and validity dates are
-  computed from `adoptions/ledger.jsonl` and history — never authored.
+The invariants that hold everywhere (propose→ratify, agent-authors-never-blesses, the one
+CODEOWNERS structural gate, advisory CI, code-computes-not-models) are stated once in
+[DESIGN.md §2](DESIGN.md#2-core-invariants). This guide is the *how-to*.
 
 ## Add a skill
 
@@ -55,10 +36,6 @@ in any markdown-reading agent, no tool or provider assumed.
    rule and shared-stub-drift checks, and pastes the results. A CODE maintainer reviews
    and ratifies by merging.
 
-Every step a skill instructs produces exactly one of four kinds — `proposal`,
-`question`, `menu`, `halt`. There is no kind for a status, verdict, score, maturity
-grade, or judgement of a person: those are human-owned or computed in an Action.
-
 Write skills **tight**: a skill is loaded whole every run, so state each rule once at its
 point of enforcement and cite it elsewhere — never re-narrate the frontmatter or a quoted
 stub (see [ADR.md](ADR.md) ADR-0016; the advisory density check flags an over-long body).
@@ -72,11 +49,9 @@ and [patterns/README.md](patterns/README.md) for the full field set.
 
 1. An agent writes `patterns/<category>/<slug>.md` with `approval_status: candidate`.
    The filename is human-readable lower-kebab; the cite-able `pattern_key` is
-   UPPER-KEBAB (`^PAT-[A-Z0-9]+(-[A-Z0-9]+)*$`) and need not equal it. Required floor:
-   `pattern_key`, `name`, `category` ∈ {deployment, integration, data}, `intent`,
-   `deployment_topology`, `data_placement`, `summary`, `valid_from`, and at least one
-   `attached_nfrs` entry (each `{kind, statement, acceptance_criterion}`; `kind` from
-   the closed 11 in [`patterns/_schema/nfr-kinds.enum.txt`](patterns/_schema/nfr-kinds.enum.txt)).
+   UPPER-KEBAB (`^PAT-[A-Z0-9]+(-[A-Z0-9]+)*$`) and need not equal it. The required floor
+   is the schema's `required[]` (see [`patterns/_schema/pattern.frontmatter.schema.json`](patterns/_schema/pattern.frontmatter.schema.json)
+   and [patterns/README.md](patterns/README.md) §Anatomy).
 2. An agent runs the linter — `python3 skills/_scripts/lint_pattern_frontmatter.py
    patterns/<category>/<slug>.md` — then opens a PR with the pattern template
    (`?template=pattern.md`), populating every field from the file it authored.
@@ -97,10 +72,9 @@ requirement adds `fulfils_capability: CAP-…`, and the capability names the pat
 that fulfil it. See [capabilities/INDEX.md](capabilities/INDEX.md) and
 `skills/library/author-capability`.
 
-1. An agent writes `capabilities/<domain>/<slug>.md` (`capability_key` `^CAP-`, `name`,
-   `capability_domain` ∈ {data, compute, integration, runtime, experience, governance},
-   a technology-free `need_statement`, ≥2 `aliases`, `fulfilled_by` entries, a
-   `governance_nfrs` floor reusing the closed 11 NFR kinds) and adds its alias rows to
+1. An agent writes `capabilities/<domain>/<slug>.md` against the schema's required floor
+   (see [`capabilities/_schema/capability.frontmatter.schema.json`](capabilities/_schema/capability.frontmatter.schema.json)
+   and [capabilities/README.md](capabilities/README.md)) and adds its alias rows to
    `capabilities/INDEX.md`.
 2. An agent opens a PR (the new-capability issue can seed it). A CODEOWNER architect
    reviews (`capabilities/**` is gated like patterns) and ratifies by merging.

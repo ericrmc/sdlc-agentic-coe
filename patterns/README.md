@@ -1,6 +1,6 @@
 # The Pattern Library
 
-A PR-reviewed set of solution shapes that have actually been built, captured as one markdown file per pattern. Each pattern recommends a shape, attaches the non-functional requirements (NFRs) it implies, names the constraints it costs, and carries the evidence it is real. The library is advisory: it recommends; adopting a pattern and checking its acceptance criteria is the adopting team's job.
+A PR-reviewed set of solution shapes that have actually been built, one markdown file per pattern; advisory, not enforced — the Anatomy table below gives each field's role.
 
 Front doors: [`../GETTING-STARTED.md`](../GETTING-STARTED.md) · [`../skills/MAP.md`](../skills/MAP.md) · [`../capabilities/INDEX.md`](../capabilities/INDEX.md) (need-side sibling).
 
@@ -43,8 +43,7 @@ Every `attached_nfrs[].kind` is one of: `security`, `availability`, `performance
 
 | Rule | Detail |
 | --- | --- |
-| Human-only promotion | A CODEOWNERS architect review is the one structural human gate — only a human advances status, sets `approved_by`/`approved_at`, and attaches `evidence`. |
-| `provisional` vs `approved` | `provisional` = reviewed, use with care, evidence attached. `approved` = trusted fast-path with a production reference build. |
+| Human-only promotion | A CODEOWNERS architect review is the one structural human gate — only a human advances status, sets `approved_by`/`approved_at`, and attaches `evidence` (required from `provisional` up). |
 | Validity & sunset | `valid_from` + `validity_check_months` let an Action compute a next-review date; it warns, never blocks. `sunset_at` (optional) = stop adopting for new work after this date. |
 | Supersede, don't orphan | Replacement adds `supersedes: <old_key>`; the old pattern adds `superseded_by: <new_key>` and moves to `deprecated`. |
 | Never delete an adopted pattern | A pattern adopted even once is provenance someone relied on; deprecate and supersede, never remove. |
@@ -53,17 +52,11 @@ The authoritative who/what/when of review lives in [`../CONTRIBUTING.md`](../CON
 
 ## Maturity is computed, never asserted
 
-| Fact | Source |
-| --- | --- |
-| Adoptions | One append-only line per real adoption in [`../adoptions/ledger.jsonl`](../adoptions/ledger.jsonl), including teams that evaluated and chose otherwise (non-adoption is signal). |
-| `maturity` (`experimental` → `emerging` → `battle-tested`) | COMPUTED from the adoption count by an Action into `generated/`. Never hand-written. Same for `adoption_count` and `next_review_at`. |
-| Adopted-by-zero | A new `candidate` with no ledger entries shows as `experimental` / adopted-by-0, shown honestly rather than padded. |
-
-A tool may read `maturity` to narrate a recommendation; it never authors it. Approval is human; maturity is arithmetic over the ledger.
+`maturity` (`experimental` → `emerging` → `battle-tested`), `adoption_count`, and `next_review_at` are COMPUTED by an Action from the [`../adoptions/ledger.jsonl`](../adoptions/ledger.jsonl) tally into `generated/` — never hand-written (the schema forbids the fields; see [`../DESIGN.md`](../DESIGN.md) §6). A new `candidate` with no ledger entries shows as `experimental` / adopted-by-0, honestly. The ledger records teams that evaluated and chose otherwise too — non-adoption is signal.
 
 ## Fulfilling a capability
 
-Patterns are the component side; [`../capabilities/`](../capabilities) is the need side. A capability resolves a plain-language need (e.g. "data warehouse") to a fulfilling pattern via [`../capabilities/INDEX.md`](../capabilities/INDEX.md). A capability cites `fulfilled_by: [{pattern_key, confidence: proven|candidate, …}]`; a pattern MAY cite `fulfils: [CAP-…]` back. `confidence: proven` carries build evidence; `candidate` carries the spike questions that gate promotion.
+[`../capabilities/`](../capabilities) is the need side: a capability resolves a plain-language need to a fulfilling pattern via `fulfilled_by[]`, and a pattern MAY cite `fulfils: [CAP-…]` back. The edge model is in [capabilities/README.md](../capabilities/README.md).
 
 ## Authored patterns
 

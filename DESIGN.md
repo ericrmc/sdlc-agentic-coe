@@ -44,16 +44,17 @@ Hold these when you author or run anything here.
 
 | Invariant | Statement |
 |---|---|
-| Four output kinds | Every output is exactly one of `proposal \| question \| menu \| halt` — never a status, verdict, score, colour, ranking, or disposition. Outputs cannot self-approve, so the library needs no enforcement. |
+| Four output kinds | Every output is exactly one of `proposal \| question \| menu \| halt` — never a status, verdict, score, colour, ranking, or disposition. |
 | Propose → ratify | Human supplies → agent proposes → human ratifies/edits/overrides. The only ratify act is a human merging the PR. |
-| Deterministic base + model step | Every skill names a no-LLM path (checklist/regex/skeleton) plus a one-line model swap, so it produces a usable scaffold with no model wired. |
+| Deterministic base + model step | Every skill names a no-LLM path (checklist/regex/skeleton) plus a one-line model swap. |
 | Accept-high / derive-low | Humans accept the few commitments (outcomes, solution shape, contested calls); agents derive everything beneath, each item threaded by a `derives_from` key citation (a markdown link). A rejected outcome visibly orphans its subtree. |
-| Projections, not persistence | Rollups, RAG verdicts, release notes, maturity tallies are recomputed on read or in an Action, never stored as a field that can rot. "Is this section stale?" is answered by `git diff`/`blame`. |
+| Projections, not persistence | Rollups, RAG verdicts, release notes, maturity tallies are recomputed on read or in an Action, never stored as a field that can rot. |
 | Provider-agnostic tiers | No model ids anywhere; `suggested_tier` carries `frontier \| mid \| light` only, mapped by the running harness. |
 | Anti-fatigue | Delta-since-last-green; untouched = defer; dismissal-memory re-arms only on changed evidence; no acceptance-rate / throughput / per-person metric anywhere. |
 
 The target-rule lint enforces invariant 1 on PR (advisory): a skill declaring an output kind outside the
-closed set, or a pattern carrying an agent-set `approval_status`, fails the check.
+closed set, or a pattern carrying an agent-set `approval_status`, fails the check. RATIONALE.md §2 records why
+each invariant is load-bearing; ADR.md holds the per-decision record.
 
 ---
 
@@ -73,10 +74,9 @@ closed set, or a pattern carrying an agent-set `approval_status`, fails the chec
 `skills/MAP.md` shows these as a category table and an end-to-end flow (ingest → understand → challenge →
 architect → panel → deliver, with library as a side-store and capabilities as the requirements→components
 bridge): a map, not a track. **meta** sits outside that line: `meta/navigator` is how an agent *enters* the flow
-(it asks what you want and walks the engagement one stage at a time, routing only to skills that exist on disk
-and halting between stages for the human to ratify — its deterministic fallback is the GETTING-STARTED persona
-table plus the MAP category table); `meta/author-a-skill` is the off-ramp for contributing a new skill, pattern,
-or capability. `ENTRYPOINT.md` (repo root) is the thin pointer naming both. Conventions live in
+(see its SKILL and GETTING-STARTED.md for the behaviour; its deterministic fallback is the GETTING-STARTED
+persona table plus the MAP category table); `meta/author-a-skill` is the off-ramp for contributing a new skill,
+pattern, or capability. `ENTRYPOINT.md` (repo root) is the thin pointer naming both. Conventions live in
 `skills/_contract/` (target-rule-output-kinds · propose-ratify-rhythm · explore-one-area-at-a-time ·
 parallel-agents · grounding-no-absent-input).
 
@@ -84,23 +84,10 @@ parallel-agents · grounding-no-absent-input).
 
 ## 4. Automation (GitHub Actions)
 
-You author a pattern, capability, or skill change and open a PR; the pipeline validates it and posts a pass/fail
-summary the reviewer reads. Before opening the PR, run the matching `skills/_scripts/` script locally and paste
-the result. Everything below is advisory — no Action blocks a merge; CODEOWNERS is the only structural gate.
-
-| Action | Trigger | What it does for you |
-|---|---|---|
-| `validate-patterns` | PR touching `patterns/**` | Lints pattern frontmatter against `patterns/_schema/`; sticky PR comment lists any field left wrong or missing. |
-| `validate-capabilities` | PR touching `capabilities/**` | Lints capability frontmatter (need-statement, ≥2 aliases, governance NFRs over the closed 11 kinds, fulfilment confidence) so a candidate enters clean. |
-| `validate-skill-frontmatter` | PR touching `skills/**`, `patterns/**`, `capabilities/**`, `references/**` | Target-rule lint (no output kind outside the closed four; no agent-set `approval_status`, verified by blame) plus map-link, references, and capability-index checks. |
-| `concat-patterns` | push to `main`; PR labelled `build:combined` | Combines related patterns and skills into `generated/` bundles so an agent loads one file instead of many. On a labelled PR it uploads the bundle as an artefact; on `main` it commits the rebuilt bundles. |
-| `pattern-lifecycle` | weekly schedule; on demand | Recomputes `maturity` and `adoption_count` from the adoption ledger, opens revalidation issues when `validity_check_months` elapses, flags pattern past `sunset_at`. Never deletes a pattern that has adoptions. |
-| `portfolio-rollup` | weekday schedule; on demand | Writes an advisory RAG verdict + `Reasons` per project to the org Project board (`docs/portfolio-github-projects.md`). Recomputed each run; the cell caches a derived value, never a stored score. |
-| `check-shared-stub-drift` | PR touching `skills/**` | Flags when a quoted `skills/_shared/` convention drifted from its canonical copy. |
-
-Each Action runs a thin step over a script in `skills/_scripts/` (`lint_pattern_frontmatter.py`,
-`lint_skill_target_rule.py`, `lint_map_links.py`, `lint_skill_references.py`, `concat_skills.py`). Run any of
-them locally to self-check before the PR.
+The seven Actions, their triggers, and what each does are tabled in [README.md](README.md#automation-github-actions);
+everything is advisory and CODEOWNERS is the only structural gate. The architecture-relevant fact: each Action is
+a thin runner of a script in `skills/_scripts/` (`lint_pattern_frontmatter.py`, `lint_skill_target_rule.py`,
+`lint_map_links.py`, `lint_skill_references.py`, `concat_skills.py`) — run any locally to self-check before the PR.
 
 ---
 
@@ -129,14 +116,11 @@ A pattern is one markdown file at `patterns/<category>/<pattern_key>.md`; its YA
 Closed NFR kinds (11): `security, availability, performance, data-residency, observability, resilience,
 cost, compliance, scalability, data-governance, operations`. Shared by patterns and capabilities.
 
-**`reference_implementations[]` vs `evidence[]`** — they answer different questions. `evidence[]` is
-retrospective ("was this BUILT?") and is REQUIRED from `provisional` up; it is the only thing the promotion
-gate reads. `reference_implementations[]` is a forward pointer ("what working artefact do I clone or scaffold
-from?") and is **advisory only** — additive, optional, validates without it, and **never relaxes the gate**. A
-reference implementation that *is* a real build is also listed under `evidence` (and *that* entry promotes the
-pattern, through the existing door — zero new gate logic). An agent may propose a candidate entry but never
-blesses one: a CODEOWNER confirms the URL and sets `last_verified`. `lint_pattern_frontmatter.py` validates the
-`kind` enum and an advisory `last_verified` staleness note, and adds nothing to the promotion rules.
+**`reference_implementations[]` vs `evidence[]`** — `evidence[]` is retrospective ("was this BUILT?"), REQUIRED
+from `provisional` up, and the only thing the promotion gate reads; `reference_implementations[]` is an advisory
+forward pointer ("what artefact do I clone or scaffold from?") that never relaxes the gate (an agent proposes a
+candidate entry, a CODEOWNER confirms the URL). The full distinction is on the schema's
+`reference_implementations` field description; ADR-0014 records why it stays out of the gate.
 
 **Loop:** propose (`new-pattern` issue → PR at `candidate`) → validate (advisory schema lint) → ratify (a human
 architect merges via CODEOWNERS branch protection; `approval_status: approved` is written in the human commit,
@@ -195,16 +179,11 @@ purpose) · `aliases` (synonyms for findability) · `output_kinds` (⊆ the clos
 
 ## 9. Honest trade-offs
 
-- **PR-is-ratify is a forced fit for in-session iteration.** Intra-session work happens on the working branch
-  with no ceremony; the merge ratifies a logical unit. "A human always disposes" is review culture, not code.
-- **Advisory CI can let a malformed pattern merge if a reviewer ignores a red check.** CODEOWNERS is the backstop
-  for patterns/capabilities; `validate-patterns` may be flipped to required for `patterns/**` only.
-- **Maturity depends on downstream projects appending their adoption line.** If they don't, the tally
-  under-counts; an org-repo scan upgrade is deferred.
-- **No vector index** — skills read pattern/capability files directly. Fine for tens of files; a known ceiling
-  that needs an index Action at hundreds.
-- **Duplication is the price of zero-dependency portability.** Shared conventions are quoted into each skill;
-  `check-shared-stub-drift` guards in-repo copies, but a skill copied out loses that guard.
-- **Large surface area.** The category map, the `GETTING-STARTED.md` persona table, and `meta/navigator` (which
-  reads both and walks an engagement stage by stage) mitigate discovery cost; a "core 10" subset could be marked
-  for a lighter first adoption.
+[RATIONALE.md §5](RATIONALE.md) holds these in full with their ADR pointers. In brief:
+
+- PR-is-ratify is a forced fit for in-session iteration (§2.2, ADR-0004).
+- Advisory CI can let a malformed pattern merge past an ignored red check; CODEOWNERS is the backstop (§2.3, ADR-0002).
+- Computed maturity under-counts if downstream projects don't append their adoption line; an org-repo scan is deferred (ADR-0013).
+- No vector index — fine for tens of files, a known ceiling at hundreds.
+- Duplication is the price of zero-dependency portability; `check-shared-stub-drift` guards in-repo copies only (ADR-0010).
+- Large surface area, mitigated by the map + persona table + `meta/navigator`, not eliminated.

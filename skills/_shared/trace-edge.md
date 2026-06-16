@@ -10,8 +10,10 @@
 
 In a file-based library there are no rows and no database, so the edge is **a citation,
 not a foreign key** — a stable `req_key` written into a sibling artefact, optionally as a
-markdown link. It is the keystone thread that makes deriving-low-from-accepted-high
-*safe*: every derived thing visibly points at the accepted thing above it.
+markdown link. That trade is deliberate: referential integrity is given up (a cited key can
+stop existing — that is an *orphan*, and it should be visible) for an edge that survives
+`grep`, diff, and PR review. The block below is the source of truth; the wrapper around it
+is author-facing only.
 
 ---
 
@@ -95,17 +97,7 @@ drift check compares bytes between the markers.
 <!-- END trace-edge -->
 ```
 
-## Worked example — one edge, both walks
-
-An intake produces an outcome and the platform derives the technical view beneath it. Each
-file carries its own `req_key` and, if derived, a `derives_from:` citation:
-
-```markdown
-<!-- outcomes/OUTCOMES.md -->
-## BO-1 — Search returns relevant results in under two seconds
-req_key: BO-1
-fulfils_capability: [CAP-CUSTOMER-SELF-SERVICE](../capabilities/CAPABILITIES.md#cap-customer-self-service)   <!-- serves the self-serve discovery capability -->
-```
+## Worked example (one edge, both walks)
 
 ```markdown
 <!-- requirements/REQUIREMENTS.md -->
@@ -115,66 +107,16 @@ classify: functional
 derives_from: [BO-1](../outcomes/OUTCOMES.md#bo-1)
 ```
 
-```markdown
-<!-- patterns adopted; NFRs flow in as derived requirements -->
-## REQ-12 — Cache layer (from adopted pattern)
-req_key: REQ-12
-classify: non-functional
-derives_from: [PAT-WEBAPP-PG](../patterns/containerised-web-managed-postgres.md)   <!-- PAT-WEBAPP-PG is itself adopted under BO-1 -->
-```
+The walk is plain `grep`, no tooling: **down** — `grep -rn 'derives_from:.*BO-1'` lists every
+artefact synthesised beneath `BO-1`; **up** — read `REQ-7`'s `derives_from:` to `BO-1` to name
+the outcome it serves (and on to its `fulfils_capability:`); **reject `BO-1`** — that same down
+set is now orphaned (flagged, not deleted).
 
-- **Downward from `BO-1`:** grep the repo for `derives_from:.*BO-1` → `REQ-7`, the adopted
-  `PAT-WEBAPP-PG`, and (transitively) `REQ-12`. That is the decomposition of the outcome.
-- **Upward from `REQ-12`:** read its `derives_from:` → `PAT-WEBAPP-PG` → read *its*
-  `derives_from:` → `BO-1` → `fulfils_capability:` → `CAP-CUSTOMER-SELF-SERVICE`. If
-  `REQ-12`'s cache breaks, the impact walk lands on outcome `BO-1` and capability
-  `CAP-CUSTOMER-SELF-SERVICE`. That is the impact answer, computed from citations, not asserted.
-- **Reject `BO-1`:** `REQ-7`, `PAT-WEBAPP-PG`, and `REQ-12` are now orphans (their chain leads
-  to a rejected node). They are flagged, not deleted.
+## Pointers
 
-In a file-based library, "walk the edge" is literally `grep -rn 'derives_from'` plus
-following the cited keys. No tool is required; any agent or human can do it with a search.
-
-## Who quotes / relies on this edge
-
-This stub is a shared dependency. Each of these **quotes the canonical block** and relies on
-the edge being present and stable:
-
-| Skill | How it uses the edge |
-|---|---|
-| `understand/decompose-intake-to-outcomes` | **Writes** the edge — every derived requirement it emits carries a `derives_from:` to its accepted outcome (or capability). This is where edges are born. |
-| `architect/propagate-pattern-nfrs` | On pattern adopt, emits each `attached_nfr` as a derived requirement with `derives_from:` the pattern key `PAT-<SLUG>` — so adopted NFRs join the same graph. |
-| `architect/validate-solution-vs-requirements` | **Walks upward** from each compromised/violated requirement to name the outcome and capability that degrade; reports impact by citation, never as a status. |
-| `challenge/necessity-check` | Poses "necessary for which outcome?" by reading a component's `derives_from:` chain — answerable *only because* the edge exists; names both keys, hands the cut/keep call to the human. |
-| `deliver/triage-backlog-and-defer` | Detects **orphans** (edges whose chain leads to a rejected/absent key) and leads the handoff with them; sorts the delta by deterministic edge facts, never by a recommended disposition. |
-
-If you add a skill that derives, validates, cuts, or surfaces anything against an upstream
-commitment, it should quote this block too.
-
-## Why a citation and not a foreign key
-
-A foreign-key id column distinct from a version chain is correct *for a database*. This
-library runs in **any** LLM workflow that can read a file — Claude Code, a plain prompt, a CI
-step, a coding agent pointed at the repo — so there is no row to reference and no id to
-dereference at read time. A `req_key` citation survives being copied, diffed, PR-reviewed, and
-grepped; a foreign key does not survive leaving its database. The trade is deliberate:
-referential-integrity enforcement is given up (a key can be cited that no longer exists — that
-is exactly an *orphan*, and it should be visible), in exchange for a portable edge that works
-with `grep` and merges cleanly in a PR.
-
-## Relationship to the rest of the library
-
-- The **rhythm** these edges live inside — propose → ratify-by-merge — is
-  `skills/_shared/propose-ratify.md`. An edge is proposed by an agent in a branch and
-  ratified when the PR merges; a re-derivation is a fresh proposal, not a mutation.
-- The **output discipline** that keeps the edge a citation and never a verdict is
-  `skills/_shared/target-rule.md`. The edge targets the **RECORD** (it structures for
-  reuse and impact-tracing); it must never be dressed up as a JUDGMENT.
-- The **drift check** that pins quoted copies to this file is the
-  `check-shared-stub-drift` GitHub Action.
-- Both Actions are **advisory CI**: they comment and fail the *check* to prompt a human
-  fix. Neither blocks a downstream project. The machine catches a broken or drifted edge;
-  a human still owns every accept, cut, and override.
-
-Keep it light. One stable key, one `derives_from:` line, walkable both ways — that is the
-whole edge.
+- Quoted by skills that **write** the edge (intake decomposition, pattern-NFR propagation) and
+  that **walk** it (solution validation, necessity check, backlog triage / orphan detection);
+  each declares the dependency in its own frontmatter.
+- The edge targets the **RECORD**, never a verdict — `skills/_shared/target-rule.md`.
+- The propose → ratify-by-merge rhythm an edge lives inside — `skills/_shared/propose-ratify.md`.
+- Pinned to this file by `check-shared-stub-drift` (advisory CI).

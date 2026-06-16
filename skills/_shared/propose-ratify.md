@@ -31,21 +31,15 @@ Where a skill wants to mark a natural pause — a point where a person really sh
 
 > **Checkpoint (advisory): a human should confirm _X_ before proceeding.**
 
-Concrete examples a skill might emit:
-
-> Checkpoint (advisory): a human should confirm the requirement set reflects the business outcomes before deriving the technical view.
-
-> Checkpoint (advisory): a human should confirm the recommended pattern (or record an override + reason) before writing the solution architecture.
-
-> Checkpoint (advisory): a human should confirm the panel's findings have been read before sign-off.
-
-These are prompts. They never return an error, never set a status, never refuse to continue. They are a nudge to look, owned by a person who can choose to proceed anyway.
+e.g. *"...confirm the requirement set reflects the business outcomes before deriving the
+technical view."* These are prompts — they never error, set a status, or refuse to continue;
+a person can proceed past an unread checkpoint and own that.
 
 ## PR-merge IS the ratify
 
-In a GitHub-native repo, **the pull request is the ratification surface.** When an agent produces work, it lands as a proposal in a branch / PR. The human review and the **merge of that PR is the ratify step** — that is where a person accepts, edits, or overrides the proposal, in the open, with history.
-
-This maps the rhythm onto GitHub mechanics with no extra machinery:
+In a GitHub-native repo **the pull request is the ratification surface** — the agent's work
+lands as a proposal in a branch/PR, and **merging that PR is the ratify step**, in the open,
+with history. No extra machinery:
 
 | Rhythm step | GitHub-native mechanic |
 |---|---|
@@ -55,13 +49,8 @@ This maps the rhythm onto GitHub mechanics with no extra machinery:
 | **proceed** | **merging the PR** — the merge is the ratify |
 | deviation captured as data | the PR description / review thread / an `override:` note in the merged file |
 
-The same applies to **component patterns**: a pattern only becomes part of the library when a human reviews and **merges** its PR — that merge carries the human validation, the evidence/artefacts, and the validity dates. The agent can open the PR; only a person merges it.
-
-## What this is NOT
-
-- It is **not** enforced ordering. There is no "you cannot run this skill until that one passed."
-- It is **not** a blocking step. Nothing blocks. A checkpoint is advisory; a person can proceed past an unread checkpoint and own that.
-- It is **not** a governance disposition. There is no `pass` / `pass_with_conditions` / `send_back` machinery. Red-teaming and panel findings are *inputs a human weighs*, not verdicts that hold the project.
-- It is **not** one-shot. Skills are revisitable freely; re-running a skill simply produces a fresh proposal to ratify by merge.
+The same applies to **component patterns**: a pattern joins the library only when a human
+merges its PR — the agent opens it, only a person merges. Re-running a skill simply produces a
+fresh proposal to ratify by merge.
 
 Keep it light. Propose, then ratify-by-merge.

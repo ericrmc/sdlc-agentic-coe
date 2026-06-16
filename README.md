@@ -1,8 +1,6 @@
 # SDLC Agentic Centre of Excellence
 
-A portable, GitHub-native library of advisory agent skills for the early software lifecycle — from a business vision to a build-ready solution design and on through phases and releases. Each skill is self-contained markdown (steps + YAML frontmatter) an agent reads and runs inside any LLM workflow, backed by a PR-reviewed library of reusable component **patterns** and the **capabilities** that bridge a plain-language need to a proven component.
-
-Read this as the agent who will use it. You author the patterns, capabilities, and skill changes and open the PR; a human reviewer ratifies it by merging.
+A portable, GitHub-native library of advisory agent skills that carry the early software lifecycle from a business vision to a build-ready solution design and on through phases and releases, backed by a PR-reviewed library of reusable component **patterns** and the **capabilities** that bridge a plain-language need to a proven component.
 
 ## Start here
 
@@ -39,10 +37,10 @@ When you author a pattern, capability, or skill change and open a PR, the pipeli
 
 | Action | Trigger | What it does for you |
 | --- | --- | --- |
-| `validate-patterns` | PR touching `patterns/**` | Lints pattern frontmatter against the schema; sticky PR comment lists any field you left wrong or missing. |
-| `validate-capabilities` | PR touching `capabilities/**` | Lints capability frontmatter (need-statement, aliases, governance NFRs, fulfilment confidence) so a candidate enters clean. |
-| `validate-skill-frontmatter` | PR touching `skills/**`, `patterns/**`, `capabilities/**`, `references/**` | Runs the target-rule lint (no output kind outside the closed four; no agent-set `approval_status`) plus the map-link, references, and capability-index checks. |
-| `concat-patterns` | push to `main`; PR labelled `build:combined` | Combines related patterns and skills into `generated/` bundles so an agent can load one file instead of many. |
+| `validate-patterns` | PR touching `patterns/**` | Lints pattern frontmatter against the schema. |
+| `validate-capabilities` | PR touching `capabilities/**` | Lints capability frontmatter (need-statement, aliases, governance NFRs, fulfilment confidence). |
+| `validate-skill-frontmatter` | PR touching `skills/**`, `patterns/**`, `capabilities/**`, `references/**` | Target-rule lint (no output kind outside the closed four; no agent-set `approval_status`) plus map-link, references, and capability-index checks. |
+| `concat-patterns` | push to `main`; PR labelled `build:combined` | Combines related patterns and skills into `generated/` bundles. |
 | `pattern-lifecycle` | weekly schedule; on demand | Recomputes pattern maturity from the adoption ledger and opens revalidation/sunset issues. Never deletes a pattern that has adoptions. |
 | `portfolio-rollup` | weekday schedule; on demand | Writes an advisory RAG verdict per project to the org Project board. See [`docs/portfolio-github-projects.md`](docs/portfolio-github-projects.md). |
 | `check-shared-stub-drift` | PR touching `skills/**` | Flags when a quoted shared convention has drifted from its canonical copy. |
@@ -51,7 +49,7 @@ Each Action is a thin runner of a script under `skills/_scripts/` that you can a
 
 ## Patterns and capabilities
 
-A **pattern** is one markdown file (`patterns/<category>/<key>.md`) capturing a proven solution shape — its frontmatter carries the intent, topology, attached NFRs, and the `evidence[]` proving it was built. It may also carry `reference_implementations[]`: a forward pointer to a working artefact (an IaC repo, app, notebook, scaffold, module, or pipeline) an agent can clone or scaffold from. That field is **advisory only** — it never relaxes the promotion gate, which still runs through `evidence[]`; an agent may propose a candidate entry but a CODEOWNER confirms the URL and sets `last_verified`. A **capability** (`capabilities/<domain>/<slug>.md`) names a plain-language need and the proven-or-candidate patterns that fulfil it — the bridge a requirement crosses via `fulfils_capability: CAP-…`. See [`DESIGN.md`](DESIGN.md) for the full field shapes.
+A **pattern** is one markdown file (`patterns/<category>/<key>.md`) capturing a proven solution shape, its frontmatter carrying the intent, topology, attached NFRs, and the `evidence[]` proving it was built. A **capability** (`capabilities/<domain>/<slug>.md`) names a plain-language need and the proven-or-candidate patterns that fulfil it — the bridge a requirement crosses via `fulfils_capability: CAP-…`. See [`DESIGN.md`](DESIGN.md) §6/§7 for the full field shapes (including the advisory-only `reference_implementations[]` forward pointer).
 
 ## Governance in one line
 
