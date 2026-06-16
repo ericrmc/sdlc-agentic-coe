@@ -1,0 +1,10 @@
+{
+  "id": "routing-architect",
+  "category": "navigation",
+  "description": "A need-first architect (a data-warehouse / OLAP capability, technology unknown) is routed to the capability index and the component-recommendation skill.",
+  "allowed_tools": ["Read", "Glob", "Grep"],
+  "assert": {
+    "contains_any": ["capabilities/INDEX", "OLAP", "databricks", "recommend-component-patterns"],
+    "regex": ["capabilit"]
+  }
+}

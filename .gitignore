@@ -23,6 +23,11 @@ __pycache__/
 /security/skillspector/reports/
 /security/skillspector/.venv/
 
+# --- Eval run artefacts -------------------------------------------------------
+# evals/run.py writes agent transcripts + report.json here on every run; they are
+# reproduced by re-running and are not part of the library (see evals/README.md).
+/evals/results/
+
 # --- OS / editor cruft --------------------------------------------------------
 .DS_Store
 *.swp

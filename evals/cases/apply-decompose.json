@@ -1,0 +1,16 @@
+{
+  "id": "apply-decompose",
+  "category": "skill-execution",
+  "description": "A cold agent navigates to decompose-intake-to-outcomes and applies it to a vision, producing the skill's exact output shape: BO-/REQ- keys, derives_from edges, GIVEN/WHEN/THEN acceptance, and a measurable NFR target.",
+  "allowed_tools": ["Read", "Glob", "Grep"],
+  "assert": {
+    "contains": ["decompose-intake-to-outcomes"],
+    "regex": [
+      "BO-\\d",
+      "REQ-\\d",
+      "derives_from",
+      "GIVEN[\\s\\S]{0,80}WHEN[\\s\\S]{0,80}THEN",
+      "\\d+\\s?(s\\b|sec|second|ms|kbps|%|percent)"
+    ]
+  }
+}

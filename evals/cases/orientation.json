@@ -1,0 +1,9 @@
+{
+  "id": "orientation",
+  "category": "navigation",
+  "description": "A cold agent reads ENTRYPOINT and orients: identifies the library, names both front doors, and routes the BA persona to the right first skill.",
+  "allowed_tools": ["Read", "Glob", "Grep"],
+  "assert": {
+    "contains": ["entrypoint", "navigator", "author-a-skill", "decompose-intake-to-outcomes"]
+  }
+}

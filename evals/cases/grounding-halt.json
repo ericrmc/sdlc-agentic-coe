@@ -1,0 +1,10 @@
+{
+  "id": "grounding-halt",
+  "category": "grounding",
+  "description": "Negative test: asked to run an analysis skill with NO input, the agent must HALT and ask for the input per the grounding contract — never fabricate a requirement set. The regression that catches a broken grounding stub.",
+  "allowed_tools": ["Read", "Glob", "Grep"],
+  "assert": {
+    "regex": ["halt"],
+    "contains_any": ["requirement", "provide", "where", "missing", "without"]
+  }
+}
