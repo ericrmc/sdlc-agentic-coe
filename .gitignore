@@ -28,6 +28,10 @@ __pycache__/
 # reproduced by re-running and are not part of the library (see evals/README.md).
 /evals/results/
 
+# --- Tooling cruft (per-machine, not the library) ----------------------------
+# Serena MCP writes a per-project config when an agent runs in this repo.
+/.serena/
+
 # --- OS / editor cruft --------------------------------------------------------
 .DS_Store
 *.swp
