@@ -33,7 +33,8 @@ in any markdown-reading agent, no tool or provider assumed.
    runs Purpose → When to use → Inputs → numbered Steps → Output format → Notes, with a
    deterministic base first and the model step marked plainly.
 2. An agent opens a PR with the skill template (`?template=skill.md`), runs the target-
-   rule and shared-stub-drift checks, and pastes the results. A CODE maintainer reviews
+   rule, shared-stub-drift, and security (`python3 security/skillspector/scan.py
+   skills/<category>/<skill>`) checks, and pastes the results. A CODE maintainer reviews
    and ratifies by merging.
 
 Write skills **tight**: a skill is loaded whole every run, so state each rule once at its

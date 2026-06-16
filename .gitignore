@@ -17,6 +17,12 @@ __pycache__/
 # the rollup JSON.
 /generated/portfolio-rollup.json
 
+# --- Security scan run artefacts ----------------------------------------------
+# SkillSpector reports are regenerated on every scan; the local build venv is
+# disposable. Never committed (see security/skillspector/README.md).
+/security/skillspector/reports/
+/security/skillspector/.venv/
+
 # --- OS / editor cruft --------------------------------------------------------
 .DS_Store
 *.swp

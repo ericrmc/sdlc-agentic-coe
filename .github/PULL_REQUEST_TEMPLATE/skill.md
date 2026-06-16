@@ -4,10 +4,11 @@
   For a component pattern use ?template=pattern.md; for anything else the default.
 
   AGENT: you authored the skill; populate every field below FROM THE FILE YOU WROTE.
-  Two advisory Actions run on this PR — validate-skill-frontmatter (checks the target
-  rule and frontmatter shape) and check-shared-stub-drift (pins any quoted shared block
-  to skills/_shared/). They comment and may fail their own check; neither blocks the
-  merge. The human reviewer ratifies by merging.
+  Three advisory Actions run on this PR — validate-skill-frontmatter (checks the target
+  rule and frontmatter shape), check-shared-stub-drift (pins any quoted shared block to
+  skills/_shared/), and skill-security-scan (static SkillSpector scan for injection /
+  malicious patterns). They comment and may fail their own check; none blocks the merge.
+  The human reviewer ratifies by merging.
 -->
 
 ## What this skill does
@@ -20,6 +21,10 @@
 > AGENT: tick each box only after you have verified it against the file you wrote.
 > These are honest self-checks the human reviewer relies on; they are not a gate. Note
 > next to any box you leave unchecked why.
+
+### Security scan (advisory)
+
+- [ ] Ran `python3 security/skillspector/scan.py skills/<category>/<skill>` and reviewed any findings. A static finding is a prompt for review, not proof of malice (e.g. `Hidden Instructions` over-flags skills that discuss instruction-handling) — note below what was flagged and why it is safe.
 
 ### The target rule — target the model, the record, or the blind spot, never the judgment
 

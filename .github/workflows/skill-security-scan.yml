@@ -1,0 +1,87 @@
+# skill-security-scan — advisory static security scan of changed skills (ADR: trust).
+#
+# Runs NVIDIA SkillSpector's STATIC analyzers (`--no-llm`) over the skills a PR touches:
+# prompt-injection, data-exfiltration, privilege-escalation, supply-chain, tool-misuse and
+# ~12 more categories, via pattern + YARA + AST + taint + OSV checks. NO API key, NO model.
+#
+# ADVISORY (continue-on-error throughout): it annotates the PR + uploads SARIF to the
+# Security tab, but NEVER blocks a merge — consistent with every other Action here. The
+# deeper SEMANTIC analyzers (which need an LLM) are deliberately NOT run in CI; a contributor
+# runs them locally on their own harness — see security/skillspector/README.md.
+#
+# SkillSpector is pinned to an immutable commit in security/skillspector/scan.py and built
+# from source via uv (it is not on PyPI). The runner is the same one contributors run locally.
+
+name: skill-security-scan
+
+on:
+  pull_request:
+    paths: ["skills/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write   # for the SARIF upload to the Security tab
+
+concurrency:
+  group: skill-security-scan-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history for the PR diff base)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv (fetches a pinned Python 3.12 + builds the scanner)
+        uses: astral-sh/setup-uv@v4
+
+      - name: SkillSpector static scan (advisory — never blocks)
+        id: scan
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            ARGS="--base origin/${{ github.base_ref }}"
+          else
+            ARGS="--all"
+          fi
+          python3 security/skillspector/scan.py $ARGS | tee scan-out.txt
+          echo "rc=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload SARIF to the Security tab (advisory)
+        if: ${{ hashFiles('security/skillspector/reports/skillspector.sarif') != '' }}
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: security/skillspector/reports/skillspector.sarif
+          category: skillspector
+
+      - name: Upload raw per-skill reports (artifact)
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: skillspector-reports
+          path: security/skillspector/reports/
+          if-no-files-found: ignore
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## SkillSpector static scan (advisory)"
+            echo ""
+            echo "Static analyzers only (\`--no-llm\`, no API key). A flagged finding is a"
+            echo "prompt for human review, not proof of malice — and this never blocks a merge."
+            echo ""
+            echo '```'
+            cat scan-out.txt 2>/dev/null || echo "(no scan output)"
+            echo '```'
+            echo ""
+            echo "Findings (if any) are in the **Security** tab and the \`skillspector-reports\` artifact."
+            echo "For the deeper semantic check, run it locally: \`security/skillspector/README.md\`."
+          } >> "$GITHUB_STEP_SUMMARY"
