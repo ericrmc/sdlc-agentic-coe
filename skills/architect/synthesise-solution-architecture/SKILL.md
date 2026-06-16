@@ -18,16 +18,7 @@ Author the durable solution-design document for a project as a fixed set of eigh
 
 ## Purpose
 
-Write the living **solution-design document** — not as one monolithic doc, but as a **fixed set of eight independently-versioned markdown sections**. Read the codebase plus the project's recorded outcomes, requirements, pattern, decisions, estimate, and open risks, then write each section grounded *only* in its own slice of that material.
-
-The output is a **proposal**: a faithful synthesis a human reviews, edits, and re-runs. It issues no verdict and approves nothing. It is "here is the design, written down honestly, with traceability intact."
-
-The discipline that makes it trustworthy is mechanical, not stylistic:
-
-- The section set is **frozen** (the same eight, in the same order, every time). A frozen set is what makes a later *reconcile* deterministic — every check has a precise target, every downstream projection knows exactly what it reads.
-- **Each fact lives in exactly one section.** A pattern's NFRs render in `quality_nfrs` and nowhere else. If a fact could plausibly go in two sections, the frozen layout already decided which one — follow it.
-- **Keys are preserved verbatim.** Every requirement / outcome key shown in the material (backtick-quoted `REQ-1`, `REQ-7`, `BO-1`) is carried through unchanged so traceability survives the synthesis.
-- **Thin material is stated plainly, never padded.** A sparse project produces honest "nothing recorded yet" lines, not invented content.
+A **proposal**, not a verdict: a faithful synthesis a human reviews, edits, and re-runs. Four mechanical disciplines make it trustworthy — frozen section set, each fact in exactly one section, keys preserved verbatim, thin material stated plainly. They are enforced by the frozen-8 table and method clauses below; this section only names them.
 
 ## When to use
 
@@ -66,11 +57,7 @@ The user (or the orchestrator) supplies a **project-graph slice** — the assemb
 
 ## Grounding (quoted)
 
-This skill reads the codebase plus the project's outcomes, requirements, decisions, and
-acceptance criteria, so it carries the no-fabrication keystone — see
-`skills/_contract/grounding-no-absent-input`. The existing "ground every claim in the provided
-material; add no facts of your own; thin material is stated plainly, never padded" discipline
-is one **instance** of this contract.
+Carries the no-fabrication keystone (`skills/_contract/grounding-no-absent-input`).
 
 <!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
 
@@ -119,9 +106,7 @@ These eight sections, **in this fixed order, with these stable keys**, are the w
 | 7 | `estimate_plan` | Estimate & delivery plan | Sized effort and confidence for the real build, with its evidential basis. | current / accepted estimate (effort, low / high, confidence, basis); confirmed comparator rows cited as basis. |
 | 8 | `open_questions` | Open questions & risks | What is unresolved or carried as a known risk — never tidied away. | orphaned requirements; deferred outcomes; pattern override; open roadblocks; open requirement challenges; space-expansions; live risks & assumptions. |
 
-The layout is a **hybrid of Background & context + BDAT** (Business / Data / Application / Technology), deliberately bent so each section maps onto data the project already holds. Two departures from textbook BDAT: NFRs and decisions are pulled out into their own first-class sections (they are the keystone — NFRs flow from the pattern, decisions are the contested calls — so burying them inside "Technology" would hide them); and an estimate section and an open-questions section are appended (both are durable and produced upstream).
-
-Note the **single-home rule made concrete**: the adopted pattern's identity, topology, and provenance belong to section 4 (`application_architecture`); the same pattern's *NFRs* belong to section 5 (`quality_nfrs`) and must not also appear in section 4. Keeping each fact in one place is exactly what lets a later "is this NFR addressed?" reconcile check have one unambiguous target.
+The layout is a hybrid of Background & context + BDAT, bent so each section maps onto data the project already holds: NFRs and decisions are pulled out as first-class sections (rather than buried in Technology), and estimate + open-questions are appended. Single-home rule (method clause 5): the pattern's identity/topology/provenance is section 4's alone; its NFRs are section 5's alone.
 
 ## The method
 
@@ -176,7 +161,7 @@ This skill is the **composition root** for two reusable mechanics:
 - **`skills/_contract/parallel-agents`** — fan out **one parallel agent per section**. Each agent gets exactly one section's slice and its grounding prompt, authors that one body, and returns it. Because each fact lives in one section and each section is grounded only in its own slice, the eight authoring jobs are genuinely independent and parallelise cleanly. Reassemble the returned bodies into the frozen order.
 - **`skills/_contract/explore-one-area-at-a-time`** — the **`section_key` is the routing edge**. It is the stable identifier that says which slice of the assembled graph an agent sees and which section it writes. Routing by `section_key` is what keeps each agent inside its lane and stops facts leaking across section boundaries.
 
-> **Multi-agent option (advisory).** This step deepens with independent parallel agents: launch one sub-agent per section, at most 4 at a time, each a separate sub-agent. A failed sub-agent returns nothing and is never fatal — the deterministic base stands; merge what succeeded. (Claude Code: use the Task tool / subagents. Other tools: launch parallel model calls; or a matrix-strategy CI job.) Never required — it adds coverage and cuts single-pass bias. See `skills/_contract/parallel-agents`.
+The per-section fan-out is advisory (never required — the deterministic base stands; merge what succeeded); for the agent count, failure handling, and runner mapping see `skills/_contract/parallel-agents`.
 
 Ship a **grounding prompt per section** in `references/section-prompts/` (eight files, named by `section_key`). Each is a thin specialisation of the shared authoring prompt, naming the one section, its title, and the slice it is grounded in. The shared template's invariant clause — *"This is the ONLY source material. Do NOT invent … If the material for this section is empty or thin, say so plainly … Preserve every backtick-quoted key verbatim … Plain professional house style, no product / codenames"* — is repeated in every one.
 
@@ -255,11 +240,5 @@ Each section is **individually exportable** as `<section_key>.md`, and all eight
 
 ## Notes / anti-patterns
 
-- **Do not reorder, merge, drop, or add sections.** The frozen eight in fixed order is the contract. A "this project doesn't need decisions" instinct is wrong — render the section with its honest empty line.
-- **Do not let a fact appear twice.** The classic leak is rendering the pattern's NFRs in both `application_architecture` and `quality_nfrs`. Section 4 is identity / topology / provenance only; NFRs are section 5's alone. Duplication makes a later "is this addressed?" check ambiguous.
-- **Do not fabricate to fill space.** Thin material is a true fact about the project. "No comparators were confirmed" is a better section than an invented comparator. Add no facts not in the material.
-- **Do not rename or paraphrase keys.** `REQ-1` stays `REQ-1`, backticked. The whole value of the document is the preserved thread from outcome to requirement to acceptance criterion.
-- **Do not assemble per-section.** Read and reshape the graph once; route slices to sections. Re-reading per section is how facts and keys drift between sections.
-- **Do not editorialise or import codenames.** Plain solution-architect prose, grounded strictly in the slice. No product names or internal jargon in any rendered string.
 - **Do not treat the output as approval.** This is advisory synthesis. It proposes the written design; it blocks nothing and signs off nothing. If something is unresolved, it belongs in section 8 — surfaced, not tidied away.
 - **Prefer the deterministic floor over a bad guess.** If the model step is unavailable or a slice is unclear, ship the skeleton with honest empty lines. A correct, sparse document beats a confident, invented one.

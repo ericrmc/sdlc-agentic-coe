@@ -22,13 +22,7 @@ This step **only enumerates and cites. It never resolves, dismisses, or sets a s
 
 A roadblock is advisory. It does not block the pipeline or demand sign-off. It is a cited, standing warning: *while this evidence holds, this specific option is off the table.* It surfaces what the evidence forbids **before** a human commits to a choice, so the choice is made with eyes open.
 
-Each roadblock answers three questions and nothing more:
-
-- **What is constrained** — the activity, choice, or capability under constraint.
-- **What evidence says so** — a *real* citation, or an honest `unverified — needs spike:` flag.
-- **What choice it invalidates** — the concrete option a human must not take while the roadblock stands.
-
-This step produces these. A human reads them, and a human alone **disposes** of each one (see [`references/disposition-vocab.md`](references/disposition-vocab.md)). The agent assigns **no status, no severity, no verdict**.
+Each roadblock answers three questions and nothing more — `constrains` / `cited_evidence` / `invalidates_choice`, specified in Step 3. This step produces these; a human alone **disposes** of each one (see [`references/disposition-vocab.md`](references/disposition-vocab.md)). The agent assigns **no status, no severity, no verdict**.
 
 ## When to use
 
@@ -53,9 +47,7 @@ The user supplies, as markdown or pasted context:
 3. **The evidence pool to cite from** — *Required.* Whatever is real and available: ratified requirement ids, governance/red-team evidence items, design-review findings (with severity), named NFR targets (e.g. RPO/RTO), a residency or data-boundary requirement, named doc sections. If absent/unreadable/empty: HALT and ask where the evidence lives (per `_shared/grounding.md`); never invent a citation. The richer and more specifically-identified this pool, the stronger the citations. (A *thin-but-present* pool is not absent — proceed and lean on `unverified — needs spike:`; see below.)
 4. **The prior roadblock register** — *Optional* (re-run only). If absent: this is a first run — proceed with an empty prior set. When present, prior human dispositions and dismissal-memory carry forward (Step 6).
 
-A *thin* evidence pool (present but sparse) is **not** an absent input: proceed, say so in the output, and lean on `unverified — needs spike:` rather than inventing a citation. An **absent** evidence pool (none supplied at all) HALTs — "I read nothing" and "the evidence is thin" are different outputs; see the grounding rule.
-
-This skill folds its no-fabrication discipline into one contract: see `skills/_contract/grounding-no-absent-input` — an absent required input HALTs and asks, never an invented hypothetical; the "do not invent a citation" rule in Step 3 is an instance of it, not a private restatement.
+No-fabrication discipline is the contract `skills/_contract/grounding-no-absent-input`; the "do not invent a citation" rule in Step 3 is an instance of it.
 
 ## Grounding (quoted)
 
@@ -114,7 +106,7 @@ Which one, and where? (And which phase — design or decisions? Once you point m
 I'll enumerate + cite the roadblocks — nothing is assumed or invented until then.)
 ```
 
-When some required inputs are present and others are not, name exactly what is missing and ask — never run on the partial set, never back-fill the gap with a plausible-looking constraint. The halt copies the canonical exemplar in `skills/_contract/grounding-no-absent-input`; it names what is missing and asks where it is, and carries **no** finding, severity, or disposition.
+The halt copies the canonical exemplar in `skills/_contract/grounding-no-absent-input` (partial input → name exactly what is missing, never run on the part you have).
 
 ### Step 1 — Pick the phase scaffold (DETERMINISTIC)
 
@@ -160,13 +152,7 @@ Render the roadblocks in the output template below. Every row leaves the **Sever
 
 ### Step 5 — Hand off to the human for disposition
 
-The human reads the register and, per roadblock, records a **disposition** drawn from the controlled vocabulary in [`references/disposition-vocab.md`](references/disposition-vocab.md):
-
-- **`spike_agreed`** — accept the `unverified — needs spike:` flag; a benchmark/spike will confirm or kill the constraint.
-- **`resolved_direction`** — the human has chosen a direction that retires this constraint; record what direction.
-- **`accepted_as_grey`** — the constraint stands and is consciously accepted, carried with an **advisory severity**: `BLOCK` (nothing downstream is safely buildable until resolved), `CAUTION` (shapes the design — decide before committing), or `NOTE` (acknowledge and bound).
-
-A disposition only **flags drift**; it never silently re-opens or closes anything downstream. A human ratifies whether a status change re-opens any prior decision.
+The human reads the register and, per roadblock, records a **disposition** drawn from the controlled vocabulary — `spike_agreed` / `resolved_direction` / `accepted_as_grey`, with the advisory severity `BLOCK` / `CAUTION` / `NOTE` carried only on `accepted_as_grey` — defined in [`references/disposition-vocab.md`](references/disposition-vocab.md). A disposition only **flags drift**; it never silently re-opens or closes anything downstream.
 
 ### Step 6 — Re-run discipline: preserve dispositions + dismissal-memory (DETERMINISTIC)
 
@@ -174,9 +160,7 @@ When this step is re-run for the same project + phase:
 
 - **(a) Replace only the open set.** Clear the prior *open* (agent-sourced, undispositioned) roadblocks for this project+phase and re-enumerate, so a re-run **replaces** rather than **appends** (no duplicates).
 - **(b) Preserve every human disposition.** Any roadblock the human moved to `spike_agreed` / `resolved_direction` / `accepted_as_grey` is **never deleted** by a re-run.
-- **(c) Dismissal-memory.** Do **not** re-create a freshly-enumerated roadblock that matches one the human already dispositioned, keyed on **`cited_evidence`** (the constraint's evidentiary basis) for this phase. If the evidence has not changed, do not re-nag a constraint the human already resolved or accepted-as-grey. Note in the output how many freshly-enumerated roadblocks were **suppressed by dismissal-memory**.
-
-> Dismissal-memory keys on `cited_evidence` on purpose: a constraint is "the same constraint" when it rests on the same evidence. If new evidence appears (a spike result, a new finding, a ratified requirement), the key differs and the constraint legitimately re-surfaces for fresh disposition.
+- **(c) Dismissal-memory.** Do **not** re-create a freshly-enumerated roadblock that matches one the human already dispositioned, keyed on **`cited_evidence`** for this phase — a constraint is "the same constraint" when it rests on the same evidence, so unchanged evidence does not re-nag, but new evidence (a spike result, a new finding, a ratified requirement) changes the key and legitimately re-surfaces it for fresh disposition. Note in the output how many freshly-enumerated roadblocks were **suppressed by dismissal-memory**.
 
 ### Step 7 — The enumerate prompt (verbatim, for any LLM)
 
@@ -267,12 +251,9 @@ A human then fills the two right-hand columns using the disposition vocabulary.
 
 ## Notes / anti-patterns
 
-- **Never set a status or severity.** If a row leaves the agent's hands with `BLOCK` or `resolved_direction` already filled, the skill has failed. The invariant is: the agent *enumerates + cites*; the human *disposes*.
-- **Never resolve, soften, or route around a roadblock.** No "here's how to fix it." That is solution design and belongs downstream.
-- **Cite real sources or flag honestly.** A fabricated requirement id is worse than `unverified — needs spike:`. When in doubt, flag the spike.
+(Status/resolution/citation discipline lives in Step 3; re-run keying in Step 6. These add only what the steps do not already enforce.)
+
 - **Cite findings with their severity.** "Design finding F3 (HIGH)" is a stronger guardrail than "a design concern."
 - **`invalidates_choice` must be a concrete option, not a vague worry.** "Cross-project reads may be slow" is a worry; "do not serve the portfolio view from per-project synchronous fan-out reads" is a roadblock.
 - **One constraint surface, one roadblock.** Don't bundle a data-boundary constraint and a performance constraint into one row — they cite different evidence and dispose differently.
 - **Empty is a valid answer.** If the phase + material genuinely support no roadblocks, emit none. Do not pad the register to look thorough.
-- **Re-runs key on `cited_evidence`.** Same evidence ⇒ same constraint ⇒ don't re-nag. New evidence (a spike result, a new finding) legitimately re-surfaces a constraint for fresh disposition — that is the feature, not a bug.
-- **A disposition flags drift; it does not block.** A human deciding `accepted_as_grey / CAUTION` does not freeze a state or demand sign-off. This step is advisory by construction.

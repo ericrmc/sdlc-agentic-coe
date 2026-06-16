@@ -27,42 +27,16 @@ scope, never sets or changes any requirement's status. A human triages every cha
 
 ## Purpose
 
-Given a project's current requirement set, produce **one dismissible challenge per
-genuine issue**, each tagged with exactly one `kind` from a **closed 9-kind taxonomy**.
-A challenge names the offending requirement(s) by their `REQ-<n>` key, states the problem
-concretely, and proposes an action — but the verdict is always left to the human.
+Given a project's requirement set, produce **one dismissible challenge per genuine
+issue**, each tagged with exactly one `kind` from the closed 9-kind taxonomy (see **The
+method**). A challenge names the offending `REQ-<n>` key(s), states the problem, and
+proposes an action — the verdict is always left to the human. The mental model: a sharp
+reviewer who annotates the margin with pointed questions, then hands it back without
+holding the pen.
 
-What this skill does:
-
-- Reads the live requirement set (proposed + accepted `REQ-<n>` rows; edited/rejected are
-  settled history and out of scope).
-- Emits challenges of exactly nine kinds — no others. See **The method** below for the
-  precise definitions and `references/challenge-kinds.md` for the closed vocabulary.
-- Is **conservative on `conflicting` and `gold_plated`**: precision over recall. A false
-  conflict or false gold-plating corrodes trust in the channel, so these only fire on a
-  hard signal and stay silent on mere ambiguity.
-
-What this skill **never** does:
-
-- Pick a winner between two conflicting requirements. It *poses the disambiguation
-  question* and names both REQ-<n> keys.
-- Delete, reject, or down-scope a requirement. For `gold_plated` it *asks whether the
-  extra scope is justified*; it never removes it.
-- Set, change, or advance any requirement's `status` / disposition / version. It only
-  produces challenges; a human dismisses or addresses each one.
-- Invent requirements that are not in the supplied set.
-
-The mental model: a sharp, sceptical reviewer who annotates someone else's requirement
-list in the margin with pointed questions, then hands it back — without holding the pen
-on the requirements themselves.
-
-> **Multi-agent option (advisory).** This step deepens with independent parallel agents:
-> launch one sub-agent per objection (or per requirement cluster), at most 4 at a time,
-> each a separate sub-agent. A failed sub-agent returns nothing and is never fatal — the
-> deterministic base stands; merge what succeeded. (Claude Code: use the Task tool /
-> subagents. Other tools: launch parallel model calls; or a matrix-strategy CI job.)
-> Never required — it adds coverage and cuts single-pass bias. See
-> `skills/_contract/parallel-agents`.
+Multi-agent fan-out (one sub-agent per objection or requirement cluster) deepens this
+pass; it is never required and a failed sub-agent is never fatal. See
+`skills/_contract/parallel-agents`.
 
 ---
 
@@ -118,10 +92,8 @@ REQ-21  (functional)     Provide a Kafka topic for downstream consumers.   (deri
 REQ-27  (functional)     The triage screen should be intuitive and easy to use.
 ```
 
-This skill's no-fabrication discipline is one contract: see `skills/_contract/grounding-no-absent-input`
-— an absent required input HALTs and asks, never an invented hypothetical. The "Don't invent
-requirements — only critique what is in the supplied set" rule below is an instance of it, and an
-absent requirement set is its halt case (not an empty challenge list).
+No-fabrication discipline is one contract (`skills/_contract/grounding-no-absent-input`):
+an absent requirement set HALTs and asks, never an empty challenge list or invented row.
 
 ## Grounding (quoted)
 
@@ -168,43 +140,23 @@ treat it as a softer steer.
 
 Both layers emit the **same nine kinds and the same JSON shape**, so their outputs merge.
 
-### The closed nine-kind taxonomy (reproduce these definitions precisely)
+### The closed nine-kind taxonomy
 
-`kind` MUST be exactly one of these nine values — use no others:
+`kind` MUST be exactly one of these nine values — no others. The authoritative
+definitions live in the model critique prompt below (and as a reference card in
+`references/challenge-kinds.md`); this is the index:
 
-- **`vague`** — references a control/term (e.g. CORS, an origin, a role) without naming
-  the exact value, so it cannot be measured as written.
-- **`unquantified`** — a non-functional goal stated with NO number/target (e.g. "fast",
-  "secure", "scalable").
-- **`untestable`** — a subjective quality ("user-friendly", "intuitive", "seamless",
-  "easy to use") with no observable acceptance criterion.
-- **`solution_shaped`** — names a mechanism/product/technology rather than the underlying
-  need (solutioneering).
-- **`orphan_value`** — no business outcome can be inferred; the requirement is not linked
-  to value.
-- **`conflicting`** — two requirements genuinely contradict: contradictory quantified
-  targets on the same subject, mutually-exclusive constraints (e.g. on-prem vs
-  cloud-only), OR a LITERAL OPPOSITE / negation (one forbids what the other requires on
-  the same subject, e.g. "must purge logs after 30 days" vs "must not purge logs"), OR
-  heavy semantic overlap that is actually contested. Name BOTH keys: set `requirement_id`
-  to the LOWER `REQ-<n>` and `contests` to the OTHER (higher) `REQ-<n>`. POSE the
-  disambiguation question; NEVER choose a winner. Watch for SCOPED prohibitions that are
-  NOT a true conflict (e.g. "must not retain logs CONTAINING card numbers" does not
-  conflict with "retain logs 90 days") — do not flag those.
-- **`gold_plated`** — reaches for extra scope ("nice to have", "ideally", "as well as",
-  "stretch goal") with no business outcome to justify it. ASK whether the extra
-  capability is required; do not drop scope.
-- **`missing_nfr`** — a SET-LEVEL gap: an entire NFR category is uncovered. Set
-  `requirement_id` to null. Use ONLY these category names: `security`, `availability`,
-  `performance`, `data_residency`, `maintainability`, `scalability`.
-- **`off_vision`** — a requirement introduces a direction NOT reflected in the PROJECT
-  VISION (the foreword) or the rest of the set — a possible unintended drift by someone
-  who cannot see the whole picture. ADVISORY only: flag it as a light steer to confirm
-  against the north star; it never blocks acceptance. Only emit this when a vision is
-  present and the drift is real.
-
-The full closed vocabulary — with the `requirement_id` / `contests` rules per kind —
-is reproduced as a reference card in `references/challenge-kinds.md`.
+| kind | fires when |
+|------|-----------|
+| `vague` | references a control/term without naming the exact value |
+| `unquantified` | a non-functional goal with NO number/target |
+| `untestable` | a subjective quality with no observable acceptance criterion |
+| `solution_shaped` | names a mechanism/product/technology, not the need |
+| `orphan_value` | no business outcome can be inferred |
+| `conflicting` | two requirements genuinely contradict (see rules below) |
+| `gold_plated` | reaches for extra scope with no outcome to justify it |
+| `missing_nfr` | a SET-LEVEL gap: an entire NFR category uncovered (see below) |
+| `off_vision` | a direction not reflected in the vision or the rest of the set |
 
 ### The `conflicting` rules (read these carefully — this is where trust is won or lost)
 
@@ -257,17 +209,13 @@ an entire NFR **category** is uncovered by the whole set. Therefore:
 
 ### Conservatism on `conflicting` and `gold_plated`
 
-Precision over recall. **A false conflict corrodes trust** — and so does false
-gold-plating. For both kinds:
-
-- Fire only on a specific, hard signal.
-- Stay **silent on mere ambiguity**. If you are unsure whether two requirements conflict,
-  do not emit a `conflicting` challenge — at most note a heavy *overlap* as advisory.
-- For `gold_plated`, only fire when there is explicit discretionary language ("nice to
-  have", "ideally", "would be great", "as well as", "stretch goal", "if possible", …)
-  AND, for purely *additive* reach ("as well as", "also support", "additionally
-  support"), only when there is **no** captured `derives_from` outcome to back the extra
-  scope. A well-grounded broad requirement stays silent.
+Precision over recall — a false flag of either kind corrodes trust. Fire only on a hard
+signal; stay silent on mere ambiguity (for `conflicting`, the hard-trigger spec and the
+overlap-as-advisory fallback are the rules above). For `gold_plated`, only fire on
+explicit discretionary language ("nice to have", "ideally", "would be great", "as well
+as", "stretch goal", "if possible", …) AND, for purely *additive* reach ("as well as",
+"also support", "additionally support"), only when **no** `derives_from` outcome backs the
+extra scope. A well-grounded broad requirement stays silent.
 
 ### Step by step
 
@@ -295,8 +243,7 @@ Which one, and where? (Once you point me at it, I'll read it and emit the challe
 nothing is assumed until then.)
 ```
 
-The halt copies the canonical exemplar in `skills/_contract/grounding-no-absent-input`; it names
-the missing input and asks where it is, carrying no challenge, finding, or status.
+(The halt copies the exemplar in `skills/_contract/grounding-no-absent-input`.)
 
 **Step 1 — Scope the live set.** Take only requirements whose status is `proposed` or
 `accepted`. Ignore edited/rejected rows. This is the set the critic reasons over for
@@ -461,67 +408,19 @@ The critic never picks a winner, drops scope, or changes any requirement's statu
 | 6 | missing_nfr | (set-level) | No requirement addresses DATA RESIDENCY. | Add an NFR for data residency, or confirm it is out of scope for this project. |
 ```
 
-And the machine-readable form (one object per challenge):
-
-```json
-{
-  "challenges": [
-    {
-      "kind": "conflicting",
-      "message": "Requirements REQ-8 and REQ-14 are direct opposites — REQ-8 requires purging audit logs after 30 days; REQ-14 forbids purging audit logs. Which holds, or do they apply to different scopes?",
-      "suggested_action": "Reconcile the two (pick the binding rule or scope each). The agent does not choose a winner.",
-      "requirement_id": "REQ-8",
-      "contests": "REQ-14"
-    },
-    {
-      "kind": "unquantified",
-      "message": "Requirement REQ-12 states a non-functional goal with no number.",
-      "suggested_action": "Add a target (e.g. p95 <= 500 ms) and the consequence of breach.",
-      "requirement_id": "REQ-12"
-    },
-    {
-      "kind": "missing_nfr",
-      "message": "No requirement addresses DATA RESIDENCY.",
-      "suggested_action": "Add an NFR for this category, or confirm it is out of scope.",
-      "requirement_id": null
-    }
-  ]
-}
-```
-
-Field contract:
-- `kind` — exactly one of the nine values.
-- `message` — specific, references the real REQ-<n> key(s), never boilerplate.
-- `suggested_action` — concrete, and always leaves the verdict to the human.
-- `requirement_id` — the real REQ-<n> key, or `null` for a set-level challenge.
-- `contests` — present (the partner's REQ-<n> key) **only** for `conflicting`; omitted/null
-  otherwise. For a conflict, `requirement_id` is the LOWER REQ-<n> and `contests` the higher.
+The machine-readable form is the `{"challenges": [...]}` JSON the critique prompt emits
+verbatim (its shape and field rules are authoritative): `kind`, `message`,
+`suggested_action`, `requirement_id` (or null for a set-level challenge), plus `contests`
+**only** for `conflicting` (`requirement_id` = LOWER REQ-<n>, `contests` = higher).
 
 ---
 
 ## Notes / anti-patterns
 
-- **Never pick a winner.** For a `conflicting` challenge, pose "which holds, or do they
-  apply to different scopes?" — do not assert which requirement is correct.
-- **Never drop scope.** For `gold_plated`, *ask* whether the extra capability is
-  justified by an outcome. Removing it is a human decision, taken elsewhere.
-- **Never touch status.** This skill emits challenges only. It does not accept, reject,
-  ratify, or advance any requirement — challenges are advisory annotations a human
-  triages at their discretion.
+(These are the failure modes not already guarded by a step or the rules above.)
+
 - **Stay inside the closed vocabulary.** Only the nine kinds. If something doesn't fit a
   kind, it is probably not a challenge — resist inventing a tenth.
-- **Conservatism beats coverage on `conflicting`/`gold_plated`.** A single false conflict
-  teaches the human to ignore the channel. When unsure, downgrade to an advisory
-  "overlap — may be duplicative or contested" note, or stay silent.
-- **Respect the scoped-prohibition guard.** A prohibition qualified by *containing /
-  when / unless / except / older than / raw / only / if* is scoped, not a blanket
-  opposite — do not flag it as a conflict. (`examples/conflicting-vs-scoped.md`.)
-- **`off_vision` needs a real vision.** If the project context is terse or absent, do not
-  fire it — every NFR would look like a "new direction". Only flag genuine drift, and
-  only as a light steer.
-- **`missing_nfr` is the only null-target kind.** Don't attach it to a single
-  requirement, and don't invent a category outside the six.
 - **Idempotent re-runs.** Clear the prior *open* challenges and re-emit a fresh set;
-  preserve the human's addressed/dismissed history. The same text should always produce
-  the same challenges.
-- **Don't invent requirements.** Only critique what is in the supplied set.
+  preserve the human's addressed/dismissed history. The same text always produces the
+  same challenges.

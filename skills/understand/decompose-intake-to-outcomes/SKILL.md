@@ -18,29 +18,11 @@ Read a project's free-text business intake (vision, business case, context) and 
 
 ## Purpose
 
-Structure intake into **outcomes -> derived requirements** under one discipline:
-
-**Accept HIGH, derive LOW.**
-
-- The **business** speaks in *outcomes* — benefit and capability statements a
-  human stakeholder can read and ratify. These sit HIGH. A human accepts them.
-- *Technical requirements* are derived beneath each outcome. These sit LOW. They
-  are proposals an analyst or agent auto-applies, and a human can edit or reject
-  — but they never float free of an outcome.
-
-The payoff: every requirement is traceable to a business benefit *by
-construction*. There are no orphan requirements, because a requirement that
-derives from nothing was never created. When scope is questioned six months
-later, every line of work points back up the tree to "why the business wanted
-it."
-
-This skill produces **markdown a human ratifies by merging a PR**. The output is
-a *proposal* — advisory by design. Every output of this skill is one of four
-kinds: a **proposal**, a **question**, a **menu**, or a **halt**. On the happy
-path it emits a **proposal**; when its one Required input (the intake text) is
-absent it emits a **halt** that asks where the intake is (STEP 0); when only an
-Optional input is missing it proceeds and notes the gap as a **question**. It
-never invents intake it was not given.
+**Accept HIGH, derive LOW.** Outcomes (benefit/capability statements) sit HIGH
+and a human ratifies them; technical requirements are derived LOW beneath an
+outcome and never float free of one. Every requirement is therefore traceable to
+a business benefit *by construction* — no orphan exists because a requirement
+that derives from nothing was never created.
 
 ## When to use
 
@@ -65,13 +47,9 @@ The user supplies, as markdown or plain text. Each row is marked **Required** or
 | **Business case** | *Optional.* If absent: proceed and note the gap as a `question`; never invent a driver. | Why this is worth doing — the value or driver. |
 | **Context / constraints** | *Optional.* If absent: proceed; never pad with invented limits. | Light-touch grounding: known limits, environment, stakeholders. **Not** solution detail. |
 
-Stay grounded in what is supplied. **Do not invent scope the text does not
-imply.** If the intake is thin, produce fewer outcomes — do not pad. This skill
-names its required input and grounds every outcome and requirement in supplied
-text; it follows the no-fabrication contract
-`skills/_contract/grounding-no-absent-input`. The "do not invent scope" /
-"grounded-in-intake" rules throughout this skill are an instance of that
-contract, not a separate rule.
+Every "do not invent scope" / "grounded-in-intake" rule in this skill is an
+instance of the no-fabrication contract `skills/_contract/grounding-no-absent-input`,
+not a separate rule.
 
 ## Grounding (quoted)
 
@@ -118,11 +96,9 @@ present. This is a file-level fact computed *before* the model reasons:
 - **unreadable** — it was supplied but cannot be parsed/opened in a usable form;
 - **empty** — it opens but contains no usable description.
 
-Any of those three → emit the clean HALT below and **stop**. Do not decompose a hypothetical
-project, do not infer scope from a bare project name, and do not return an empty skeleton as if
-the intake had been read (the empty skeleton in [Deterministic fallback](#deterministic-fallback)
-is for the *no-model* case, **not** the *no-intake* case). Copy the exemplar shape from
-`skills/_contract/grounding-no-absent-input`:
+Any of those three → emit the clean HALT below and **stop** (the empty skeleton in
+[Deterministic fallback](#deterministic-fallback) is for the *no-model* case, **not** the
+*no-intake* case). Copy the exemplar shape from `skills/_contract/grounding-no-absent-input`:
 
 ```markdown
 HALT — required input missing.
@@ -140,11 +116,8 @@ I can read any of these:
 Which one, and where? (No outcome or requirement is created until you point me at the intake.)
 ```
 
-This halt is a `question`, never a verdict: it names the missing input and the readable
-formats, and stops — no "this looks too thin to be worth doing," no assumed scope. The Optional
-inputs (title, business case, context) never halt: an absent Optional input proceeds honestly
-(derive a title, note the gap as a `question`), per the grounding rule above. With the intake
-present, proceed to Step 1.
+Optional inputs (title, business case, context) never halt — an absent Optional input proceeds
+honestly per the grounding rule above. With the intake present, proceed to Step 1.
 
 ### Step 1 — Choose a flavour
 
@@ -305,9 +278,6 @@ sites with no signal" and "lose an hour re-keying jobs on return."
 ...
 ```
 
-Notice: no `Dockerfile`, no "Postgres", no "use a service worker" — only WHAT.
-The HOW is the next project's problem, guided by the component-pattern skills.
-
 ### Deterministic fallback
 
 If no model is available, emit the empty skeleton plus the quality-bar
@@ -337,24 +307,15 @@ See `references/quality-bar.md` for the full checklist and
 
 ## Notes & anti-patterns
 
-**Anti-patterns — reject these on sight:**
+**Anti-patterns — reject on sight (beyond the five quality-bar tests):**
 
-- **Solutioned outcomes.** "Use a Postgres cache", "deploy on a specific cloud",
-  "build a React SPA." These name a HOW. An outcome is a benefit:
-  *"technicians complete jobs offline."* If an outcome could appear in an
-  architecture diagram, it is not an outcome.
-- **Bundled requirements.** "The system shall sync data, notify the user, and
-  log the event" is three requirements wearing a trenchcoat. Split them.
-- **Orphan requirements.** A requirement with no `derives_from`, or one whose
-  parent is not in your outcomes list. The skeleton makes this structurally
-  impossible — don't defeat it by hand-editing in a parentless row.
-- **Unverifiable NFRs.** "The system shall be fast / secure / reliable." Give a
-  measurable target, or it is not a requirement.
-- **Inventing scope.** Adding outcomes the intake never implies because they
-  "seem like good practice." Stay grounded. Note gaps as questions, not as
-  outcomes.
-- **Padding to a count.** 3-6 outcomes is a range, not a quota. Three strong,
-  grounded outcomes beat six where half are invented.
+- **Bundled requirements.** "Sync data, notify the user, and log the event" is
+  three requirements wearing a trenchcoat. Split them.
+- **Orphan requirements.** No `derives_from`, or a parent not in your outcomes
+  list. The skeleton makes this impossible — don't defeat it by hand-editing in
+  a parentless row.
+- **Padding to a count.** 3-6 outcomes is a range, not a quota. Three grounded
+  outcomes beat six where half are invented.
 
 **Notes:**
 

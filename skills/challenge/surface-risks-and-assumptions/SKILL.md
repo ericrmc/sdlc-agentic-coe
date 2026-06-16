@@ -12,22 +12,11 @@ neighbours: Usually follows challenge/red-team-requirements (conflicts/gaps alre
 
 # Surface Risks and Assumptions — the light RAID register
 
-Surface the small set of load-bearing assumptions a plan depends on, deduped against the register; the agent proposes open items, a human disposes.
-
-A RAID register is the small, honest list of things a plan is *betting on*. Most of those bets are invisible: nobody wrote them down because they felt obvious at the time. This skill drags the load-bearing ones into the light so that, when one turns out to be wrong, it surfaces on purpose instead of by accident.
-
-It is **advisory: it does not block.** Nothing here stops a phase or demands a sign-off. The register sits beside the work and grounds it. The only discipline it enforces is a division of labour: **the agent proposes, the human disposes.**
+A RAID register is the small, honest list of things a plan is *betting on* — bets that are invisible because they felt obvious. It is **advisory: it does not block**; the one discipline it enforces is **the agent proposes, the human disposes**.
 
 ## Purpose
 
-Surface the small genuine set of **load-bearing ASSUMPTIONS** a delivery plan depends on — the things taken to be true that, if wrong, would change the plan. Assumptions are the default kind here, but the register is one kind-discriminated entity, so it also carries:
-
-- **risk** — something that *might* happen (likelihood × impact + a mitigation), and
-- **tech_debt** — a durable carried-forward concern from a design or review.
-
-**Bias hard toward few.** A register with forty assumptions is a register nobody reads. The goal is the handful of genuine, grounded bets — prefer a short list of real ones over a long list of restated requirements. If the inputs are thin, return few or none. An empty register that everyone trusts beats a padded one everyone ignores.
-
-The register stays light: no disposition workflow, no version-bound sign-off, no approval ceremony. There is a markdown file, a derive step, and a human who closes items out.
+Surface the small genuine set of **load-bearing ASSUMPTIONS** a delivery plan depends on (the default kind), in one kind-discriminated register that also carries **risk** (likelihood × impact + mitigation) and **tech_debt** (a durable carried-forward concern). **Bias hard toward few** — a short list of real bets over a long list of restated requirements; thin inputs earn few or none. The register stays light: a markdown file, a derive step, and a human who closes items out — no disposition workflow, sign-off, or approval ceremony.
 
 ## When to use
 
@@ -45,11 +34,9 @@ The user supplies, as markdown or plain context:
 1. **Project title + description** — *Required.* What is being built. If absent/unreadable/empty: HALT and ask where it is (per `_shared/grounding.md`); never invent a project to surface bets for. Readable forms: a markdown file, an xlsx/csv path, a GitHub Project owner+number, a docs folder, or a pasted block.
 2. **Business case** — *Required.* Why; the demand/value/funding story. This is the substrate the assumptions are derived from — without it there is no plan to find the bets underneath. If absent/unreadable/empty: HALT and ask where it is (per `_shared/grounding.md`); never invent a business case. (A *thin-but-present* business case is not absent — proceed and return few or none.)
 3. **Context** — *Optional.* Anything else grounding the plan: constraints, vendors, timelines, staffing. If absent: proceed on the business case alone; never pad the register with invented constraints to look complete.
-4. **The existing register** — *Optional* (present only after a first run) — the current `references/raid-register.template.md` file, including items already **closed out** (validated / invalidated). When present it is essential to the dedupe: it is how the agent avoids re-proposing what was already dealt with. If absent: this is the first run — start from the template in `references/raid-register.template.md` with an empty prior set.
+4. **The existing register** — *Optional* (present only after a first run) — the current `references/raid-register.template.md` file, including items already **closed out** (validated / invalidated). When present it is essential to the dedupe: it is how the agent avoids re-proposing what was already dealt with. If absent: this is the first run — start from the template with an empty prior set.
 
-A *thin* business case (present but sparse) is **not** an absent input: proceed and return few assumptions or none — an empty register everyone trusts beats a padded one. An **absent** business case or project description HALTs: "I read nothing" and "the inputs are thin" are different outputs (see the grounding rule).
-
-This skill's no-fabrication discipline is one contract: see `skills/_contract/grounding-no-absent-input` — an absent required input HALTs and asks, never an invented hypothetical; the "do NOT invent scope" and "do NOT restate requirements as assumptions" rules below are instances of it.
+The no-fabrication discipline is one contract (`skills/_contract/grounding-no-absent-input`): the "do NOT invent scope" and "do NOT restate requirements as assumptions" rules below are instances of it.
 
 ## Grounding (quoted)
 
@@ -89,7 +76,7 @@ The method has a **deterministic base** (the register file and an exact-match de
 
 ### Step 0 — DETERMINISTIC, pre-model: locate and verify the required inputs
 
-Before deriving anything, check the required inputs as file-level facts: a project title + description and a business case. If **either is absent, unreadable, or empty**, emit the clean halt below and **stop** — do not invent a plan to find bets underneath, and do not return an empty register (a silent-empty reads as "this plan bets on nothing", a silent-proceed failure):
+Before deriving anything, check the required inputs as file-level facts: a project title + description and a business case. If **either is absent, unreadable, or empty**, emit the clean halt below and **stop** (per the grounding rule above):
 
 ```
 HALT — required input missing.
@@ -111,7 +98,7 @@ Which one, and where? (Once you point me at it, I'll derive the assumptions and
 propose them as open items — nothing is assumed or invented until then.)
 ```
 
-A *thin-but-present* business case is not absent: proceed and let the derive step return few or none. The Optional inputs (context, an existing register) being absent never halts. The halt copies the canonical exemplar in `skills/_contract/grounding-no-absent-input`; it names what is missing and asks where it is, and carries no proposed assumption or disposition.
+A *thin-but-present* business case is not absent: proceed and let the derive step return few or none. The Optional inputs (context, an existing register) being absent never halts.
 
 ### Step 1 — DETERMINISTIC: load (or create) the register
 
@@ -148,18 +135,7 @@ Run the derive prompt below over the inputs. Pass in the existing register so th
 > }
 > ```
 
-The seven lenses to think through — they are the whole point of the reasoning step, so do not skip any:
-
-| Lens | Ask yourself |
-|------|--------------|
-| **Market / demand** | Are we assuming the users/volume/appetite are there? |
-| **Budget / licence cost** | Are we assuming funding holds, or that a tool's price stays in range? |
-| **Resource availability** | Are we assuming the people (skills, headcount, time) will be free when needed? |
-| **Vendor / integration availability** | Are we assuming a third party, API, or upstream system exists and behaves? |
-| **Regulatory timelines** | Are we assuming a rule, approval, or compliance date lands when we need it? |
-| **Technical preconditions** | Are we assuming some platform, data, or capability is already in place? |
-
-Each derived item is `{title, statement, category}`. **Be specific and grounded** — anchor every statement in something actually written in the inputs. The hard rule: **do NOT restate requirements as assumptions.** "The system must export to PDF" is a requirement; "we assume the licensed PDF library remains free for commercial use" is an assumption. The first describes what you will build; the second is a bet whose failure changes the plan.
+Think through every lens the prompt names (market/demand, budget/licence cost, resource availability, vendor/integration, regulatory timelines, technical preconditions) — they are the whole point of the reasoning step, so do not skip any. Each derived item is `{title, statement, category}`, anchored in something actually written in the inputs. The hard rule: **do NOT restate requirements as assumptions.** "The system must export to PDF" is a requirement; "we assume the licensed PDF library remains free for commercial use" is an assumption — the first describes what you will build, the second is a bet whose failure changes the plan.
 
 ### Step 3 — DETERMINISTIC: exact-match dedupe backstop
 
@@ -185,30 +161,11 @@ Do **not** make this a fuzzy lexical filter — the model owns semantic dedupe a
 
 ### Step 4 — Agent proposes `open`; the human disposes
 
-Every kept item is written to the register with **`status: open`**. The agent never closes anything out. Disposition is a small, kind-validated vocabulary the **human** owns:
-
-| Kind | Live state | Legal closeouts |
-|------|-----------|-----------------|
-| **assumption** | `open` | `validated` · `invalidated` |
-| **risk** | `open` | `mitigated` · `avoided` · `accepted` · `realised` |
-| **tech_debt** | `open` | `accepted` · `remediated` · `wont_fix` |
-
-A closeout that is illegal for the item's kind is rejected — you cannot mark an assumption `mitigated`. When a human disposes, they append a one-line note and the date; the row is never deleted (history lives in the file). A **fired** closeout — `assumption → invalidated`, `risk → realised` — is a rework signal: surface it against everything that depended on the item.
+Every kept item is written to the register with **`status: open`**; the agent never closes anything out. Disposition is the kind-validated closeout vocabulary the **human** owns — defined once in the template (`references/raid-register.template.md`, "Kinds and their legal closeouts"). A closeout illegal for the kind is rejected, the row is never deleted, and a **fired** closeout (`assumption → invalidated`, `risk → realised`) is a rework signal: surface it against everything that depended on the item.
 
 ### Step 5 — Derived-on-read revisit cadence (no scheduler)
 
-An item can carry a `review_cadence_days`. **Due-ness is computed when you read the register, not pushed by a timer.** There is no scheduler, no cron, no stored "is it due" flag to fall out of sync:
-
-```
-next_review_at = last_reviewed_at + review_cadence_days
-due_for_review = (cadence set) AND (status is open) AND (now >= next_review_at)
-```
-
-Two human actions touch the clock, and they are distinct:
-- **Re-review** re-arms the cadence (`last_reviewed_at = now`) and leaves status **unchanged** — "I looked, it still holds."
-- **Closeout** changes status — "this bet resolved."
-
-And the principle that makes the register honest over time: **a new widening fact retires an assumption and obliges re-proposal.** If something you learn makes an old assumption no longer safe, the human marks it `invalidated` and a fresh derive run (Step 2, with the now-closed item in the existing list) proposes the corrected one. The register tracks not just what you assumed, but what you *learned*.
+An item can carry a `review_cadence_days`. **Due-ness is computed when you read the register, not pushed by a timer** — no cron, no stored "is it due" flag. The formula and the two clock-touching actions (re-review re-arms `last_reviewed_at`, status unchanged; closeout changes status) live once in the template ("Revisit cadence"). The principle that keeps the register honest over time: **a new widening fact retires an assumption and obliges re-proposal** — the human marks it `invalidated`, and a fresh derive run (Step 2, with the now-closed item in the existing list) proposes the corrected one.
 
 ## Output format
 
@@ -228,21 +185,12 @@ A single markdown file: `references/raid-register.template.md`, one table row pe
 | R-1 | risk | Carrier coverage gaps in remote sites | Some inspection sites have no cell coverage; sync may stall for days. | likelihood: med / impact: high — mitigation: queue + manual export fallback | connectivity | open | 30 | 2026-06-15 | human (promoted from roadblock) | — |
 ```
 
-Notes on the output:
-- **id prefixes** (`A-`, `R-`, `T-`) are a light reading aid, not a key — the table is the store.
-- For a **risk**, fold `likelihood / impact / mitigation` into the statement or category cell (assumptions leave them blank — they are risk-only).
-- The **disposed** column holds the human's one-line note plus the ISO date; an open item shows `—`.
-- A1/A2 above were *kept* by the derive run; A3 was already on the register and got **invalidated** by a human, so the next run will not re-propose it (Step 3 backstop + the model seeing it in `existing_assumptions`).
+Column conventions (id prefixes, risk likelihood/impact/mitigation placement, the disposed cell) live once in the template's "## Register" header. What this example shows: A1/A2 were *kept* by the derive run; A3 was already on the register and got **invalidated** by a human, so the next run will not re-propose it (Step 3 backstop + the model seeing it in `existing_assumptions`).
 
 ## Notes / anti-patterns
 
-- **Advisory; it does not block.** If you find yourself blocking a phase on a register item, stop — promote it to a roadblock or just flag it. The register grounds; it does not enforce.
-- **Restating requirements as assumptions** is the single most common failure. "The app must work offline" is a requirement. "We assume offline windows are ≤ 4h" is the bet underneath it. Only the bet belongs here.
-- **Padding the list.** Ten weak assumptions bury the two that matter. Bias toward few; thin inputs earn a short (or empty) register.
-- **The agent closing things out.** The agent proposes `open` and nothing else. A status of `validated`/`invalidated`/`mitigated`/… is a human judgement with a note and a date.
-- **A fuzzy dedupe backstop.** The deterministic guard is exact-match only. The model owns semantic dedupe; a fuzzy filter would swallow genuinely-new items and you would never know.
+- **Restating requirements as assumptions** is the single most common failure. "The app must work offline" is a requirement; "we assume offline windows are ≤ 4h" is the bet underneath it. Only the bet belongs here.
+- **A fuzzy dedupe backstop.** The deterministic guard is exact-match only (Step 3). The model owns semantic dedupe; a fuzzy filter would swallow genuinely-new items and you would never know.
 - **Dropping closed items from the dedupe input.** You must pass *closed-out* items into the derive prompt and the exact-match seen-set, or every run resurrects bets a human already settled.
-- **A scheduler for revisits.** Due-ness is derived on read. Do not add a cron; compute `due_for_review` when you open the file.
-- **A parallel store for roadblocks.** A roadblock becomes a register item only by a human's one-way promotion. No automatic twin, no two-way sync.
 
 Tone throughout: a grounding analyst. Name the bet plainly, anchor it in the evidence, keep the list short, and hand the verdict to the human.

@@ -13,33 +13,15 @@ neighbours: Usually follows architect/surface-solution-options (an explored shap
 
 # author-component-pattern
 
-> A pattern is a promise the library makes to the next project: this shape has
-> been built, here is the evidence, here are the quality bars it carries, and here
-> is exactly when it stops being true. This skill writes that promise as one
-> markdown file. It does **not** make the promise binding — a human reviewer (the
-> CODEOWNERS pattern review) is the one who turns a candidate into something the
-> library will recommend.
-
 ## Purpose
 
-Author **exactly one** reusable component pattern as a single markdown file under
-`patterns/`, with YAML frontmatter validated in CI against
-`patterns/_schema/pattern.frontmatter.schema.json`, and a body of *summary +
-attached NFRs + honest trade-offs*.
-
-The skill **writes the file at `approval_status: candidate`** and stops. It never
-sets `approved`. Ratification is a human act: a reviewer with CODEOWNERS authority
-reads the diff, confirms the evidence is real, and merges the PR — and only then,
-in a follow-up edit the human owns, does the status climb. The frontmatter carries
-the full lifecycle/provenance field set (dates, validity check, sunset/supersede,
-attached NFRs with acceptance criteria, evidence) so the reviewer has everything
-they need *in the diff*. See `CONTRIBUTING.md` for the review flow and CODEOWNERS
-map.
-
-This is light and advisory. A pattern is a recommendation with a track record, not
-a mandate. A downstream project may adopt it, override it out (with a reason), or
-ignore it. The pattern's job is to be honest enough that that choice is
-well-informed.
+Author exactly one reusable component pattern as a markdown file under `patterns/`
+(YAML frontmatter validated in CI against
+`patterns/_schema/pattern.frontmatter.schema.json`; body = summary + attached NFRs +
+honest trade-offs). Light and advisory: a pattern is a recommendation with a track
+record, not a mandate — a project may adopt, override-with-reason, or ignore it. The
+skill writes the file at `approval_status: candidate`; a CODEOWNER PR review ratifies
+it (the keystone enforced at STEP 3 and the COMPUTED/HUMAN-ONLY note below).
 
 ## When to use
 
@@ -92,13 +74,9 @@ repo; the schema validation runs in CI on the PR.
 
 ## Grounding (quoted)
 
-This skill **synthesises the entire pattern from one required input — the chosen
-solution** (STEP 2 drafts the summary, the NFRs, and the trade-offs from it). So it
-carries the no-fabrication keystone — see `skills/_contract/grounding-no-absent-input`.
-The "no built artefact ⇒ no pattern" / "no evidence, no promotion" / "do not fabricate
-links" discipline already woven through this skill is one **instance** of this contract:
-a pattern with no proven solution behind it is an invented claim, exactly what the rule
-forbids.
+This skill synthesises the whole pattern from one required input — the chosen solution
+(STEP 2) — so it carries the no-fabrication keystone (`skills/_contract/grounding-no-absent-input`):
+no built artefact ⇒ no pattern; no evidence ⇒ no promotion; never fabricate a link.
 
 <!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
 
@@ -169,7 +147,7 @@ ever sets, and which the system computes.
 | `sunset_at` | date (ISO) | — | the date the pattern stops being recommendable; a planned end-of-life. |
 | `supersedes` | string (pattern_key) | — | the older pattern this replaces (the forward half of `superseded_by`). |
 | `constraints` | list of `{ statement, enforced }` | — | what the pattern makes you give up; `enforced` ∈ `hard` (cannot be waived) \| `soft` (waiving it is a recorded compromise). Fuel for `architect/validate-solution-vs-requirements`. |
-| `reference_implementations` | list of `{ kind, url, provisions, notes? }` | — | **forward "start here" pointers** — working artefacts an adopting project clones or scaffolds from. `kind` ∈ `iac` \| `app` \| `notebook` \| `scaffold`; `url` a real URI; `provisions` free-text (e.g. `azure`, `aws`); `notes` optional. **DISTINCT from `evidence`, and ADVISORY ONLY:** `evidence` answers "was this built?" and gates promotion; a `reference_implementation` answers "what do I start from?" and **never gates approval**. A real build is *also* listed under `evidence` (kind:repo) — that entry, not this one, promotes the pattern. You may PROPOSE an entry but never bless its URL — if you do not have a real, confirmed repo, write a clearly-marked placeholder (e.g. `https://github.com/ORG/REPLACE-ME-…`) with a `notes` that a CODEOWNER replaces it before approval; never fabricate a real-looking link. |
+| `reference_implementations` | list of `{ kind, url, provisions, notes? }` | — | forward "start here" pointers (`kind` ∈ `iac` \| `app` \| `notebook` \| `scaffold`; real `url`; `provisions` free-text). ADVISORY: answers "what do I start from?", **never gates approval** — distinct from `evidence` ("was this built?"), which does. If you have no confirmed repo, write a marked placeholder (`https://github.com/ORG/REPLACE-ME-…`) for a CODEOWNER to replace; never fabricate a real-looking link. |
 
 ### COMPUTED — NEVER WRITE THESE
 
@@ -178,24 +156,17 @@ ever sets, and which the system computes.
 | `maturity` | adoption count | `experimental` \| `emerging` \| `battle-tested`. An opinion the *evidence* earns, not one you assert. |
 | `adoption_count` | `adoptions/ledger.jsonl` | `COUNT` of real adoptions. The headline "used in N engagements" number — never a model-emitted figure. |
 
-> **The one rule that protects the library's credibility:** the agent writes
-> `approval_status: candidate` and leaves `approved_by` / `approved_at` / `evidence`
-> blank-or-honest unless the human is explicitly promoting and has supplied them.
-> `maturity` and `adoption_count` are *never* written by anyone — they are computed.
-> A pattern that calls itself `approved` or `battle-tested` without a human and a
-> ledger behind it is exactly the lie the PR review exists to catch.
+> **The keystone (enforced at STEP 3):** the agent writes `approval_status: candidate`,
+> never `approved`/`provisional`; leaves `approved_by`/`approved_at`/`evidence` blank-or-honest
+> unless a human is explicitly promoting; and **never** writes `maturity`/`adoption_count`
+> (computed). A pattern that calls itself `approved` or `battle-tested` with no human and no
+> ledger behind it is the lie the PR review exists to catch.
 
 ## The closed NFR `kind` enum
 
-The 11 values, from `nfrs/nfr-kinds.md` (the same vocabulary the authored patterns use):
-
-`security` · `availability` · `performance` · `data-residency` ·
-`observability` · `resilience` · `cost` · `compliance` · `scalability` ·
-`data-governance` · `operations`
-
-If a quality bar does not fit one of these, do not invent a twelfth — pick the
-closest, or raise it with the NFR-catalogue owner. The enum is closed on purpose so
-propagation and coverage-checks stay legible.
+The 11 values live in `nfrs/nfr-kinds.md` and are listed in the STEP 1 template comment.
+The enum is closed: if a quality bar fits none, pick the closest or raise it with the
+NFR-catalogue owner — never invent a twelfth (it breaks propagation/coverage checks).
 
 ## Worked examples to match
 
@@ -311,26 +282,12 @@ Then the body skeleton (headings, ready for STEP 2 to fill):
 
 ### STEP 2 (LLM) — Draft the summary + trade-offs from the chosen solution
 
-This is the judgement step, and the only one that needs a model. From the chosen
-solution you gathered, draft:
-
-- **`summary`** (frontmatter) and **Context / Problem + Solution** (body): what the
-  shape is, the problem it solves, and the topology/data-placement that define it.
-  Ground it in *this* solution — not a generic recitation.
-- **Attached NFRs**: for each governed quality bar, write the `statement` and a
-  **testable** `acceptance_criterion` (e.g. "All inter-tier connections present a
-  cert chain to TLS≥1.2; verified by scan", not "is secure"). One `kind` from the
-  closed enum each.
-- **Trade-offs (the honest cost)**: this is the section that earns the library its
-  trust. **Name the load-bearing NFR honestly and do not oversell.** Every pattern
-  costs something — serverless has cold starts, a gateway is a SPOF, on-prem has
-  single-site failure risk, an event broker demands idempotent consumers. State the
-  one trade-off that most determines whether this pattern is the right choice, and
-  the conditions under which it is the *wrong* one ("do not adopt unless the team
-  has event-sourcing experience"). A pattern with no stated cost is one you have not
-  thought hard enough about.
-
-Use this drafting prompt:
+The judgement step, and the only one needing a model. From the chosen solution, draft
+the `summary` + Context/Problem/Solution body grounded in *this* solution; a testable
+`acceptance_criterion` per governed NFR; and the honest **Trade-offs** — name the one
+load-bearing NFR/cost that most determines fit and the conditions under which the
+pattern is the *wrong* choice. A pattern with no stated cost is incomplete. Use this
+drafting prompt:
 
 ```
 A delivery team built a solution worth reusing. Write the SUMMARY and TRADE-OFFS
@@ -378,124 +335,22 @@ CODEOWNERS map are in `CONTRIBUTING.md`.
 ## Output format
 
 This skill emits one of two kinds. When the chosen solution is missing it emits the
-**`halt`** from STEP 0 (name the missing input, offer the readable forms, stop — never
-a verdict on the solution). When the solution is present it emits its `proposal`:
-
-You write **one file** at `patterns/<category>/<filename-slug>.md` (e.g.
-`patterns/deployment/containerised-web-managed-postgres.md`). Concrete, ready-to-use
-example (a fresh capture, at `candidate`):
-
-```markdown
----
-pattern_key: PAT-WEBAPP-PG
-name: Containerised web + managed Postgres
-category: deployment
-intent: "use WHEN a line-of-business app needs moderate throughput with strict in-region data residency so that you get horizontal scale-out without owning database operations."
-deployment_topology: Single-region container service (Kubernetes/ECS) + managed Postgres instance
-data_placement: In-region managed relational DB; no cross-region replication by default
-summary: >
-  A stateless web tier behind a load balancer fronting a managed relational store.
-  Scale-out is horizontal (container replicas); the DB is the single state authority.
-  Suited to line-of-business apps with moderate throughput and strict data-residency.
-approval_status: candidate
-valid_from: "2026-06-15"
-validity_check_months: 12
-attached_nfrs:
-  - kind: security
-    statement: TLS 1.2+ in transit between tiers and to managed Postgres.
-    acceptance_criterion: All inter-tier connections present a cert chain to TLS≥1.2; verified by scan.
-  - kind: availability
-    statement: 99.9% monthly availability with multi-AZ container placement.
-    acceptance_criterion: Replicas span ≥2 AZs; measured monthly uptime ≥99.9% over the trailing 30 days.
-  - kind: data-residency
-    statement: Data at rest stays in the declared region.
-    acceptance_criterion: Managed Postgres region setting equals the project's declared region; no cross-region replica configured.
-  - kind: scalability
-    statement: Horizontal container scaling with a managed DB connection pool.
-    acceptance_criterion: A connection pooler (e.g. PgBouncer) caps DB connections; load test to target RPS shows no pool exhaustion.
-constraints:
-  - statement: The managed DB is the single write authority; no second source of truth.
-    enforced: hard
-  - statement: No cross-region read replica by default; multi-region read needs an explicit design change.
-    enforced: soft
-# approved_by / approved_at / evidence — filled by a CODEOWNER at promotion
-# maturity, adoption_count — COMPUTED, never written
----
-
-# Containerised web + managed Postgres
-
-## Context / Problem
-Line-of-business apps with moderate throughput and a hard in-region data-residency
-constraint need to scale without the team taking on database operations.
-
-## Solution
-A stateless container web tier behind a load balancer; a managed Postgres instance
-holds all state. Scale-out is horizontal — add replicas; the DB stays the single
-authority. Operational overhead is low because the database is managed.
-
-## Attached NFRs (the governed quality bar)
-The four NFRs above propagate into an adopting project via `architect/propagate-pattern-nfrs`,
-each traced to the outcome it serves. They are the quality bar this pattern promises.
-
-## When to use / When NOT to
-**Use** for an internal/line-of-business service with moderate, predictable load and
-a single-region data requirement. **Do NOT** use when you need cross-region active-
-active writes (the single-DB authority is then a wrong fit) or when load is bursty
-and read-heavy enough that a scale-to-zero serverless shape would be cheaper.
-
-## Trade-offs (the honest cost)
-The load-bearing NFR is **data-residency**: the no-cross-region-replication default
-is what makes residency easy *and* what makes multi-region a non-trivial later
-change. The managed DB is a single write authority — simple, but a scaling ceiling
-you should size for up front. This pattern does **not** by itself satisfy an RPO
-target; backup/recovery is left to the adopting project — surface RPO explicitly in
-the design or it becomes a gap.
-
-## Evidence / artefacts
-<links proving it was built — added/confirmed by a CODEOWNER at promotion>
-
-## Lifecycle (valid_from, review, sunset/supersede)
-valid_from 2026-06-15; re-review by 2027-06-15 (validity_check_months: 12). No
-sunset planned. Supersedes nothing.
-
-## References
-- `architect/recommend-component-patterns` — how this gets retrieved for a project.
-- `architect/propagate-pattern-nfrs` — how its NFRs flow into an adopting project.
-- `CONTRIBUTING.md` — the pattern PR review that ratifies this candidate.
-```
+`halt` from STEP 0. When the solution is present it emits a `proposal`: **one file** at
+`patterns/<category>/<filename-slug>.md` (e.g.
+`patterns/deployment/containerised-web-managed-postgres.md`), shaped by the STEP 1
+frontmatter template + body skeleton and filled by STEP 2. For a complete worked
+target, match `patterns/deployment/containerised-web-managed-postgres.md` (PAT-WEBAPP-PG)
+and the other files in the "Worked examples to match" table above.
 
 ## Notes / anti-patterns
 
-- **The agent stops at `candidate`.** Never write `approval_status: approved` (or
-  `provisional`). Ratification is a human PR-review act with CODEOWNERS behind it.
-  Writing `approved` is the single most damaging thing this skill could do — it
-  would let an unreviewed shape masquerade as a blessed one.
-- **`maturity` and `adoption_count` are computed — never write them.** They are
-  earned from the adoptions ledger, not asserted. A pattern that calls itself
-  `battle-tested` with zero adoptions is lying.
-- **No evidence, no promotion.** A candidate may exist without `evidence`, but it
-  cannot climb past it. The `evidence[]` list is the proof it was *built*, not just
-  imagined — that is the whole reason the library is trustworthy. Do not fabricate
-  links to fill the slot; leave it honestly empty for the human.
-- **Name the load-bearing NFR honestly; do not oversell.** Every authored pattern
-  states its cost. A trade-offs section that reads like marketing is a defect. The
-  most useful sentence in a pattern is often "do NOT adopt this when…".
-- **Stay inside the closed enums.** `category` ∈ {deployment, integration, data};
-  NFR `kind` ∈ the 11 values in `nfrs/nfr-kinds.md`; `approval_status` ∈ {candidate,
-  provisional, approved, deprecated}; `enforced` ∈ {hard, soft}. Inventing a value
-  breaks the schema validation and the downstream propagation/coverage skills.
-- **`pattern_key` is forever.** It is UPPER-KEBAB (`^PAT-[A-Z0-9]+(-[A-Z0-9]+)*$`) and
-  survives renames — it is the stable token every recommendation cites. It is
-  **independent of the filename** (you may rename the file freely; the key must not
-  change). Choose it carefully; changing it later orphans every citation.
-- **One file, then stop.** This skill authors exactly one pattern. A second shape is
-  a second file and a second PR — do not bundle.
-- **Acceptance criteria must be testable.** "Is secure" is not an acceptance
-  criterion; "presents a TLS≥1.2 cert chain, verified by scan" is. An NFR a reviewer
-  cannot check is a wish, not a governed bar.
-- **Deprecate, don't delete.** When a pattern is superseded, set
-  `approval_status: deprecated` + `superseded_by` and point adopters onward — never
-  delete a pattern that has adoptions; the provenance must survive.
-- **Light and advisory.** A pattern is a recommendation with a track record. Nothing
-  is auto-applied and nothing is forced on a project. The PR review is a human
-  quality bar — a person reading the diff and merging — not an automated lock.
+Failure modes not already covered by a STEP or a frontmatter table (the candidate-stop,
+computed-never-write, no-evidence-no-promotion, closed-enum, and testable-AC rules are
+enforced there — see the COMPUTED/HUMAN-ONLY note, STEP 3, the NFR-enum section, and STEP 2):
+
+- **`pattern_key` is forever.** UPPER-KEBAB (`^PAT-[A-Z0-9]+(-[A-Z0-9]+)*$`), survives
+  renames, **independent of the filename** — changing it later orphans every citation.
+- **One file, then stop.** A second shape is a second file and a second PR — do not bundle.
+- **Deprecate, don't delete.** When a pattern is superseded, set `approval_status: deprecated`
+  + `superseded_by` and point adopters onward — never delete a pattern that has adoptions;
+  the provenance must survive.

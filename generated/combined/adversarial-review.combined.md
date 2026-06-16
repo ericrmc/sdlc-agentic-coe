@@ -53,42 +53,16 @@ scope, never sets or changes any requirement's status. A human triages every cha
 
 ### Purpose
 
-Given a project's current requirement set, produce **one dismissible challenge per
-genuine issue**, each tagged with exactly one `kind` from a **closed 9-kind taxonomy**.
-A challenge names the offending requirement(s) by their `REQ-<n>` key, states the problem
-concretely, and proposes an action — but the verdict is always left to the human.
+Given a project's requirement set, produce **one dismissible challenge per genuine
+issue**, each tagged with exactly one `kind` from the closed 9-kind taxonomy (see **The
+method**). A challenge names the offending `REQ-<n>` key(s), states the problem, and
+proposes an action — the verdict is always left to the human. The mental model: a sharp
+reviewer who annotates the margin with pointed questions, then hands it back without
+holding the pen.
 
-What this skill does:
-
-- Reads the live requirement set (proposed + accepted `REQ-<n>` rows; edited/rejected are
-  settled history and out of scope).
-- Emits challenges of exactly nine kinds — no others. See **The method** below for the
-  precise definitions and `references/challenge-kinds.md` for the closed vocabulary.
-- Is **conservative on `conflicting` and `gold_plated`**: precision over recall. A false
-  conflict or false gold-plating corrodes trust in the channel, so these only fire on a
-  hard signal and stay silent on mere ambiguity.
-
-What this skill **never** does:
-
-- Pick a winner between two conflicting requirements. It *poses the disambiguation
-  question* and names both REQ-<n> keys.
-- Delete, reject, or down-scope a requirement. For `gold_plated` it *asks whether the
-  extra scope is justified*; it never removes it.
-- Set, change, or advance any requirement's `status` / disposition / version. It only
-  produces challenges; a human dismisses or addresses each one.
-- Invent requirements that are not in the supplied set.
-
-The mental model: a sharp, sceptical reviewer who annotates someone else's requirement
-list in the margin with pointed questions, then hands it back — without holding the pen
-on the requirements themselves.
-
-> **Multi-agent option (advisory).** This step deepens with independent parallel agents:
-> launch one sub-agent per objection (or per requirement cluster), at most 4 at a time,
-> each a separate sub-agent. A failed sub-agent returns nothing and is never fatal — the
-> deterministic base stands; merge what succeeded. (Claude Code: use the Task tool /
-> subagents. Other tools: launch parallel model calls; or a matrix-strategy CI job.)
-> Never required — it adds coverage and cuts single-pass bias. See
-> `skills/_contract/parallel-agents`.
+Multi-agent fan-out (one sub-agent per objection or requirement cluster) deepens this
+pass; it is never required and a failed sub-agent is never fatal. See
+`skills/_contract/parallel-agents`.
 
 ---
 
@@ -144,10 +118,8 @@ REQ-21  (functional)     Provide a Kafka topic for downstream consumers.   (deri
 REQ-27  (functional)     The triage screen should be intuitive and easy to use.
 ```
 
-This skill's no-fabrication discipline is one contract: see `skills/_contract/grounding-no-absent-input`
-— an absent required input HALTs and asks, never an invented hypothetical. The "Don't invent
-requirements — only critique what is in the supplied set" rule below is an instance of it, and an
-absent requirement set is its halt case (not an empty challenge list).
+No-fabrication discipline is one contract (`skills/_contract/grounding-no-absent-input`):
+an absent requirement set HALTs and asks, never an empty challenge list or invented row.
 
 ### Grounding (quoted)
 
@@ -194,43 +166,23 @@ treat it as a softer steer.
 
 Both layers emit the **same nine kinds and the same JSON shape**, so their outputs merge.
 
-#### The closed nine-kind taxonomy (reproduce these definitions precisely)
+#### The closed nine-kind taxonomy
 
-`kind` MUST be exactly one of these nine values — use no others:
+`kind` MUST be exactly one of these nine values — no others. The authoritative
+definitions live in the model critique prompt below (and as a reference card in
+`references/challenge-kinds.md`); this is the index:
 
-- **`vague`** — references a control/term (e.g. CORS, an origin, a role) without naming
-  the exact value, so it cannot be measured as written.
-- **`unquantified`** — a non-functional goal stated with NO number/target (e.g. "fast",
-  "secure", "scalable").
-- **`untestable`** — a subjective quality ("user-friendly", "intuitive", "seamless",
-  "easy to use") with no observable acceptance criterion.
-- **`solution_shaped`** — names a mechanism/product/technology rather than the underlying
-  need (solutioneering).
-- **`orphan_value`** — no business outcome can be inferred; the requirement is not linked
-  to value.
-- **`conflicting`** — two requirements genuinely contradict: contradictory quantified
-  targets on the same subject, mutually-exclusive constraints (e.g. on-prem vs
-  cloud-only), OR a LITERAL OPPOSITE / negation (one forbids what the other requires on
-  the same subject, e.g. "must purge logs after 30 days" vs "must not purge logs"), OR
-  heavy semantic overlap that is actually contested. Name BOTH keys: set `requirement_id`
-  to the LOWER `REQ-<n>` and `contests` to the OTHER (higher) `REQ-<n>`. POSE the
-  disambiguation question; NEVER choose a winner. Watch for SCOPED prohibitions that are
-  NOT a true conflict (e.g. "must not retain logs CONTAINING card numbers" does not
-  conflict with "retain logs 90 days") — do not flag those.
-- **`gold_plated`** — reaches for extra scope ("nice to have", "ideally", "as well as",
-  "stretch goal") with no business outcome to justify it. ASK whether the extra
-  capability is required; do not drop scope.
-- **`missing_nfr`** — a SET-LEVEL gap: an entire NFR category is uncovered. Set
-  `requirement_id` to null. Use ONLY these category names: `security`, `availability`,
-  `performance`, `data_residency`, `maintainability`, `scalability`.
-- **`off_vision`** — a requirement introduces a direction NOT reflected in the PROJECT
-  VISION (the foreword) or the rest of the set — a possible unintended drift by someone
-  who cannot see the whole picture. ADVISORY only: flag it as a light steer to confirm
-  against the north star; it never blocks acceptance. Only emit this when a vision is
-  present and the drift is real.
-
-The full closed vocabulary — with the `requirement_id` / `contests` rules per kind —
-is reproduced as a reference card in `references/challenge-kinds.md`.
+| kind | fires when |
+|------|-----------|
+| `vague` | references a control/term without naming the exact value |
+| `unquantified` | a non-functional goal with NO number/target |
+| `untestable` | a subjective quality with no observable acceptance criterion |
+| `solution_shaped` | names a mechanism/product/technology, not the need |
+| `orphan_value` | no business outcome can be inferred |
+| `conflicting` | two requirements genuinely contradict (see rules below) |
+| `gold_plated` | reaches for extra scope with no outcome to justify it |
+| `missing_nfr` | a SET-LEVEL gap: an entire NFR category uncovered (see below) |
+| `off_vision` | a direction not reflected in the vision or the rest of the set |
 
 #### The `conflicting` rules (read these carefully — this is where trust is won or lost)
 
@@ -283,17 +235,13 @@ an entire NFR **category** is uncovered by the whole set. Therefore:
 
 #### Conservatism on `conflicting` and `gold_plated`
 
-Precision over recall. **A false conflict corrodes trust** — and so does false
-gold-plating. For both kinds:
-
-- Fire only on a specific, hard signal.
-- Stay **silent on mere ambiguity**. If you are unsure whether two requirements conflict,
-  do not emit a `conflicting` challenge — at most note a heavy *overlap* as advisory.
-- For `gold_plated`, only fire when there is explicit discretionary language ("nice to
-  have", "ideally", "would be great", "as well as", "stretch goal", "if possible", …)
-  AND, for purely *additive* reach ("as well as", "also support", "additionally
-  support"), only when there is **no** captured `derives_from` outcome to back the extra
-  scope. A well-grounded broad requirement stays silent.
+Precision over recall — a false flag of either kind corrodes trust. Fire only on a hard
+signal; stay silent on mere ambiguity (for `conflicting`, the hard-trigger spec and the
+overlap-as-advisory fallback are the rules above). For `gold_plated`, only fire on
+explicit discretionary language ("nice to have", "ideally", "would be great", "as well
+as", "stretch goal", "if possible", …) AND, for purely *additive* reach ("as well as",
+"also support", "additionally support"), only when **no** `derives_from` outcome backs the
+extra scope. A well-grounded broad requirement stays silent.
 
 #### Step by step
 
@@ -321,8 +269,7 @@ Which one, and where? (Once you point me at it, I'll read it and emit the challe
 nothing is assumed until then.)
 ```
 
-The halt copies the canonical exemplar in `skills/_contract/grounding-no-absent-input`; it names
-the missing input and asks where it is, carrying no challenge, finding, or status.
+(The halt copies the exemplar in `skills/_contract/grounding-no-absent-input`.)
 
 **Step 1 — Scope the live set.** Take only requirements whose status is `proposed` or
 `accepted`. Ignore edited/rejected rows. This is the set the critic reasons over for
@@ -487,70 +434,22 @@ The critic never picks a winner, drops scope, or changes any requirement's statu
 | 6 | missing_nfr | (set-level) | No requirement addresses DATA RESIDENCY. | Add an NFR for data residency, or confirm it is out of scope for this project. |
 ```
 
-And the machine-readable form (one object per challenge):
-
-```json
-{
-  "challenges": [
-    {
-      "kind": "conflicting",
-      "message": "Requirements REQ-8 and REQ-14 are direct opposites — REQ-8 requires purging audit logs after 30 days; REQ-14 forbids purging audit logs. Which holds, or do they apply to different scopes?",
-      "suggested_action": "Reconcile the two (pick the binding rule or scope each). The agent does not choose a winner.",
-      "requirement_id": "REQ-8",
-      "contests": "REQ-14"
-    },
-    {
-      "kind": "unquantified",
-      "message": "Requirement REQ-12 states a non-functional goal with no number.",
-      "suggested_action": "Add a target (e.g. p95 <= 500 ms) and the consequence of breach.",
-      "requirement_id": "REQ-12"
-    },
-    {
-      "kind": "missing_nfr",
-      "message": "No requirement addresses DATA RESIDENCY.",
-      "suggested_action": "Add an NFR for this category, or confirm it is out of scope.",
-      "requirement_id": null
-    }
-  ]
-}
-```
-
-Field contract:
-- `kind` — exactly one of the nine values.
-- `message` — specific, references the real REQ-<n> key(s), never boilerplate.
-- `suggested_action` — concrete, and always leaves the verdict to the human.
-- `requirement_id` — the real REQ-<n> key, or `null` for a set-level challenge.
-- `contests` — present (the partner's REQ-<n> key) **only** for `conflicting`; omitted/null
-  otherwise. For a conflict, `requirement_id` is the LOWER REQ-<n> and `contests` the higher.
+The machine-readable form is the `{"challenges": [...]}` JSON the critique prompt emits
+verbatim (its shape and field rules are authoritative): `kind`, `message`,
+`suggested_action`, `requirement_id` (or null for a set-level challenge), plus `contests`
+**only** for `conflicting` (`requirement_id` = LOWER REQ-<n>, `contests` = higher).
 
 ---
 
 ### Notes / anti-patterns
 
-- **Never pick a winner.** For a `conflicting` challenge, pose "which holds, or do they
-  apply to different scopes?" — do not assert which requirement is correct.
-- **Never drop scope.** For `gold_plated`, *ask* whether the extra capability is
-  justified by an outcome. Removing it is a human decision, taken elsewhere.
-- **Never touch status.** This skill emits challenges only. It does not accept, reject,
-  ratify, or advance any requirement — challenges are advisory annotations a human
-  triages at their discretion.
+(These are the failure modes not already guarded by a step or the rules above.)
+
 - **Stay inside the closed vocabulary.** Only the nine kinds. If something doesn't fit a
   kind, it is probably not a challenge — resist inventing a tenth.
-- **Conservatism beats coverage on `conflicting`/`gold_plated`.** A single false conflict
-  teaches the human to ignore the channel. When unsure, downgrade to an advisory
-  "overlap — may be duplicative or contested" note, or stay silent.
-- **Respect the scoped-prohibition guard.** A prohibition qualified by *containing /
-  when / unless / except / older than / raw / only / if* is scoped, not a blanket
-  opposite — do not flag it as a conflict. (`examples/conflicting-vs-scoped.md`.)
-- **`off_vision` needs a real vision.** If the project context is terse or absent, do not
-  fire it — every NFR would look like a "new direction". Only flag genuine drift, and
-  only as a light steer.
-- **`missing_nfr` is the only null-target kind.** Don't attach it to a single
-  requirement, and don't invent a category outside the six.
 - **Idempotent re-runs.** Clear the prior *open* challenges and re-emit a fresh set;
-  preserve the human's addressed/dismissed history. The same text should always produce
-  the same challenges.
-- **Don't invent requirements.** Only critique what is in the supplied set.
+  preserve the human's addressed/dismissed history. The same text always produces the
+  same challenges.
 
 
 ---
@@ -927,45 +826,13 @@ references:
 
 ## Red-team and Preserve-Dissent
 
-Raise the single strongest objection to each emerging proposal, then turn any objection a human declines into a durable record of what was decided **not** to do, and why.
+Two jobs that belong together: from a persona lens raise the **one** strongest objection
+to each emerging proposal (never a verdict, never a kill); when a human *declines* an
+objection, capture it as a durable **dissent record** that feeds dismissal-memory. The
+call always stays with the human — the agent surfaces, the human disposes.
 
-This skill does two jobs that belong together:
-
-1. **Red-team** — from a named persona lens, raise the **one** thing most likely to
-   make an emerging proposal the wrong call. Hard-hitting, specific, grounded — but
-   it **never** delivers a verdict and **never** kills the proposal.
-2. **Preserve-dissent** — when a human *declines* an objection (keeps the proposal),
-   the objection doesn't evaporate. It becomes a durable **dissent record**: a titled
-   "what was decided NOT to do, and why" with a human-owned reason and provenance back
-   to the objection. The register is revisitable and feeds **dismissal-memory** so the
-   same idea is not silently re-proposed later.
-
-The call **always** stays with the human. The agent surfaces; the human disposes.
-
-> **Multi-agent option (advisory).** This step deepens with independent parallel
-> agents: launch one sub-agent per objection lens, at most 4 at a time, each a
-> separate sub-agent. A failed sub-agent returns nothing and is never fatal — the
-> deterministic base stands; merge what succeeded. (Claude Code: use the Task tool /
-> subagents. Other tools: launch parallel model calls; or a matrix-strategy CI job.)
-> Never required — it adds coverage and cuts single-pass bias. See
-> `skills/_contract/parallel-agents`.
-
----
-
-### Purpose
-
-A panel or a fan-out generates *proposals* — a requirement, a decision, a roadblock, a
-gap to close, a shape of the solution. Most of them are fine. A few are quietly wrong:
-they over-reach, under-deliver, or carry a hidden risk that nobody named out loud.
-
-The red-team's job is to name that risk **once, at full strength**, per proposal — and
-then get out of the way. It does not have a kill switch. It produces exactly one
-artefact per proposal: the strongest single objection, framed so a human can decide in
-seconds whether to **keep** the proposal or **record a dissent**.
-
-When the human keeps the proposal *over* an objection, that objection is the most
-valuable thing in the room — the "this was considered and the other way was chosen"
-that a future reader will want. So it is captured.
+> Fan one lens out over N independent agents per `skills/_contract/parallel-agents`
+> (advisory; the deterministic base stands if a sub-agent fails). See Step 3.
 
 ---
 
@@ -993,13 +860,8 @@ pass means "no strong objection surfaced" — not "this is blessed".
 | `grounding` | recommended (optional) | The facts the objection must keep — the proposal's source, prior context, any objection-so-far to *deepen*. *If absent:* object only from the proposal's own stated facts; never back-fill grounding the human did not supply. |
 
 No database, panel, or session state is needed. A proposal pasted into a prompt is
-enough.
-
-**The empty case has two distinct shapes** (per the contract's "I read nothing" vs "I
-cannot read this"): **no proposals supplied at all** is a HALT (Step 0 — ask for them);
-**proposals supplied, but none of them is a genuine emerging proposal** is the honest
-empty case (Step 1 — say so, propose nothing). Never conflate the two; never invent an
-objection to fill either.
+enough. (Two empty cases — no proposals at all vs. proposals that hold no genuine
+proposal — are handled at the Step 0 / Step 1 boundary.)
 
 ### Grounding (quoted)
 
@@ -1033,10 +895,8 @@ from.*
 
 <!-- END grounding -->
 
-Per `skills/_contract/grounding-no-absent-input`: the halt over a missing proposal is
-itself a question, never a verdict — it asks where the proposals are. It must not become
-the very thing this skill forbids elsewhere: a disposition ("nothing here is worth
-red-teaming") dressed as a stop.
+Per `skills/_contract/grounding-no-absent-input`, the missing-proposal halt (Step 0) asks
+where the proposals are — never a disposition dressed as a stop.
 
 #### The persona lenses
 
@@ -1064,7 +924,7 @@ in a row. The others are available when the proposal is clearly in their domain.
 Before identifying emerging proposals, confirm the `proposal(s)` input was actually
 supplied — a file-level fact (absent / unreadable / empty), computed **before** any model
 reasoning. If **nothing** was supplied to red-team, emit the clean HALT below and **stop** —
-do not invent a proposal to object to. A halt is a question, never a verdict.
+do not invent a proposal to object to.
 
 ```markdown
 HALT — required input missing.
@@ -1099,9 +959,8 @@ to) are:
 | `roadblock` | raises a risk that constrains the build | `roadblock` |
 
 If the supplied input held genuine content but **zero** of it is an emerging proposal,
-stop and say so — *the honest empty case*. (This differs from Step 0's HALT: there the
-input was missing entirely; here it was present but proposed nothing.) The honest empty
-case is a result, not a gap — do **not** invent an objection to have something to say.
+stop and say so — *the honest empty case* (the Step 0 boundary above). It is a result,
+not a gap — do **not** invent an objection to have something to say.
 
 Assign each surviving proposal a stable `proposal_ref` (`gap-0`, `req-0`, `decision-0`,
 `roadblock-0`, …) and alternate the lens across the batch (`skeptic`, `minimalist`,
@@ -1167,35 +1026,12 @@ Either way the human owns the outcome. The agent never auto-disposes.
 #### Step 5 — DETERMINISTIC: a declined objection becomes a durable dissent record
 
 When the human declines a proposal (or keeps one but wants the objection on record),
-materialise a **dissent record** using `references/dissent-register.template.md`. The
-shape is:
-
-```yaml
-title:        # one line — what was decided NOT to do
-kind:         # feature | requirement | solution | proposal | other
-source:       # agent  -> recorded from a red-team objection (provenance below)
-              # human  -> a standalone dissent a human added directly
-reason:       # the durable WHY — HUMAN-OWNED, editable, the human owns every word
-status:       # recorded  (default) | revisited  (re-opened for reconsideration)
-provenance:   # only when source=agent
-  objection_summary:  # the stance_summary that triggered this
-  objection_lens:     # which persona raised it
-  proposal_ref:       # the ref from Step 1 (decision-0, req-0, …)
-recorded_on:  # ISO date
-```
-
-Then append the record to the project's **dissent register** (one markdown file or a
-GitHub Issue using the dissent-record issue template — see Notes). Two properties make
-the register trustworthy:
-
-- **The human owns the WHY.** The `reason` (and `title`) are editable forever. The
-  *provenance* — which objection, which lens, which proposal — is **immutable** once
-  recorded. Snapshot semantics: editing the reason never reaches back and mutates the
-  original objection.
-- **Never write-only.** A record can be **revisited** — flip `status: recorded →
-  revisited` to re-open a declined item for reconsideration. The record, its WHY, and
-  its discussion thread are **preserved** across the flip. Decision history is kept,
-  not erased.
+materialise a **dissent record** per `references/dissent-register.template.md` — that
+file owns the full record shape, the two trustworthiness properties (human owns the WHY /
+never write-only), the append-to-register and GitHub-Issue mechanics, and a rendered
+example. The fields the red-team supplies into it are `reason` (human-owned WHY),
+`proposal_kind` → `kind`, and the immutable provenance triple
+`objection_summary` / `objection_lens` / `proposal_ref` (from Step 1).
 
 #### Step 6 — dismissal-memory: don't silently re-propose a dissent
 
@@ -1238,68 +1074,23 @@ freshness. Whether that trade is acceptable is the call to make here, not mine.
 When N lenses are fanned out on one proposal, list the objections under the same
 proposal header, sharpest first, with the agreeing lenses noted.
 
-#### B. A recorded dissent — from `references/dissent-register.template.md`
+#### B. A recorded dissent
 
-```markdown
-## Dissent: Do not co-locate rule evaluation on the read path
-
-- **kind:** solution
-- **source:** agent
-- **status:** recorded
-- **recorded_on:** 2026-06-15
-
-**Why (human-owned):**
-The read-path latency cost is accepted for v1 to ship the rules feature without
-standing up a queue. Revisit if p95 regresses past the NFR target in staging.
-
-**Provenance (immutable):**
-- objection_lens: solution_designer
-- proposal_ref: decision-0
-- objection_summary: "rule evaluation on the read path spends the read-latency headroom"
-```
+Rendered per `references/dissent-register.template.md` (see its "Rendered example") when
+the human disposes via Step 5.
 
 ---
 
 ### Notes / anti-patterns
 
-- **No verdict, ever.** If the output contains "we should not", "rejected", "blocked",
-  a score, or a pass/fail — it has stopped red-teaming. The strongest objection is a
-  *hypothesis about why this could be wrong*, handed to a human. That's the whole
-  contract.
+- **Output a literal verdict-string and you've stopped red-teaming.** "we should not",
+  "rejected", "blocked", a score, a pass/fail — the strongest objection is a *hypothesis*
+  handed to a human (the no-verdict rule is enforced in Step 2).
 - **One objection, full strength.** A list of five mild concerns is weaker than one
   sharp one. If there genuinely are two strong, *distinct* objections, that's a signal
   the proposal is two proposals — say so rather than diluting.
-- **Keep the proposal's facts.** Deepen the objection; don't re-litigate a different
-  point or restate the proposal back. The "objection so far" is given to *sharpen*, not
-  replace.
-- **The honest empty case is a result.** *Proposals present but* zero emerging → zero
-  objections. A lens with no real signal says "no strong objection from this lens" and
-  proposes nothing. Never manufacture an objection to look diligent. (No proposals supplied
-  *at all* is the Step 0 HALT, not this empty case — per
-  `skills/_contract/grounding-no-absent-input`, "I read nothing" and "I cannot read this"
-  are different outputs.)
-- **The human owns the WHY; the agent owns the provenance.** When recording a dissent,
-  the reason/title are the human's words (editable forever); the link back to the
-  objection, lens, and proposal_ref is immutable. Don't let an edit silently rewrite
-  what was originally objected to.
-- **The register is never write-only.** Always offer *revisit* — a recorded "no" must
-  be re-openable. Preserving dissent is about keeping the decision *and the ability to
-  change it*, not freezing it.
-- **Check dismissal-memory before surfacing.** A new proposal that matches a recorded
-  dissent should arrive *with* its prior dissent attached, not fresh. Silently
-  re-proposing a settled "no" is the failure this skill exists to prevent.
-- **Light and advisory.** This skill enforces nothing. It produces objections and
-  records; disposition, ordering, and re-opening are all human moves. There is no
-  approval to grant.
+- **Light and advisory.** This skill enforces nothing; disposition, ordering, and
+  re-opening are all human moves. There is no approval to grant.
 
-#### GitHub-native mechanics (optional)
-
-- **Dissent register as Issues:** use a **dissent-record issue template** so each
-  recorded dissent is a GitHub Issue. `source`/`kind`/`status` become labels
-  (`status:recorded`, `status:revisited`); the immutable provenance goes in a fenced
-  block in the issue body; the human-owned WHY is the editable description; discussion
-  threads naturally as issue comments. "Revisit" = re-open the issue (or flip the
-  status label).
-- **Dismissal-memory as a check:** a lightweight Action on PRs/issues can grep new
-  proposal text against open `status:recorded` dissent issues and post an advisory
-  comment ("this resembles dissent #123") — advisory only, never a required check.
+(The dissent-record / dismissal-memory mechanics, including the GitHub-Issue rendering,
+live in `references/dissent-register.template.md`.)

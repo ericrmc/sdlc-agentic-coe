@@ -13,30 +13,15 @@ neighbours: Often follows library/author-component-pattern (name the need a new 
 
 # author-capability
 
-> A capability is a promise about a need: this need recurs, here is what it means in
-> plain words, here is what fulfils it today (with evidence) or what still owes a
-> spike, and here is the minimum governance bar any fulfilment must clear. This skill
-> writes that promise as one markdown file. It does **not** make it binding — a human
-> reviewer (the CODEOWNERS capability review) turns a candidate into a blessed entry.
-
 ## Purpose
 
-Author **exactly one** capability as a single markdown file under `capabilities/`, with
-YAML frontmatter validated in CI against
-`capabilities/_schema/capability.frontmatter.schema.json`, and a body of *the need +
-fulfilments + governance floor*.
-
-A capability is the named middle term the requirements-to-components chain needs: a
-requirement cites a capability (`fulfils_capability: CAP-…`), and the capability cites the
-pattern that fulfils it (`fulfilled_by[].pattern_key`). It is what lets a reader who can
-name a need but not a technology find a proven shape — or see honestly that none exists yet.
-
-The skill **writes the file at `approval_status: candidate`** and stops. It never sets a
-fulfilment to `confidence: proven` and never advances `approval_status`. Both are human acts
-in a PR review.
-
-This is light and advisory. A capability records a need and its options; nothing is forced
-on a downstream project.
+Author **exactly one** capability as a single markdown file under `capabilities/` (frontmatter
+validated in CI against `capabilities/_schema/capability.frontmatter.schema.json`; body = need +
+fulfilments + governance floor). It is the named middle term between a requirement
+(`fulfils_capability: CAP-…`) and the pattern that fulfils it (`fulfilled_by[].pattern_key`) —
+how a reader who can name a need but not a technology finds a proven shape, or sees honestly that
+none exists yet. Light and advisory; nothing is forced on a downstream project. The agent writes
+`approval_status: candidate` (the keystone honesty rule — see the frontmatter table) and stops.
 
 ## When to use
 
@@ -89,13 +74,8 @@ validation runs in CI on the PR.
 
 ## Grounding (quoted)
 
-This skill **synthesises the entire capability from one required input — the need** (STEP 2
-drafts the `need_statement`, the aliases, the fulfilment read, and the governance floor from
-it). So it carries the no-fabrication keystone — see
-`skills/_contract/grounding-no-absent-input`. The "be honest about the gap" /
-"never fabricate a proven fulfilment" / "an all-candidate capability is a valid record"
-discipline already woven through this skill is one **instance** of this contract: a capability
-authored for a need nobody stated is an invented claim, exactly what the rule forbids.
+The need is the one required input STEP 2 synthesises the whole capability from, so this skill
+carries the no-fabrication keystone — see `skills/_contract/grounding-no-absent-input`.
 
 <!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
 
@@ -301,25 +281,9 @@ Then the body skeleton (headings, ready for STEP 2 to fill):
 
 ### STEP 2 (LLM) — Draft the need, aliases, fulfilment honesty, and governance floor
 
-The judgement step, the only one needing a model. From the context you gathered, draft:
-
-- **`need_statement` + The need (body)** — the need, technology-free. Strip every product
-  name out of the *need*; products belong only in `fulfilled_by`. A reader who has never
-  heard of the eventual component should still recognise their problem here.
-- **`aliases`** — at least two, ideally more — the plain words a non-expert types. These are
-  the difference between a findable capability and a buried one. Think of every job title
-  that would describe this need in a different vocabulary.
-- **`fulfilled_by[]` — honest proven-vs-candidate** — for a proven fulfilment, name the
-  pattern and why it fits and reuse its evidence. For a candidate, name the vendor in `note`,
-  set `confidence: candidate`, and write the **`open_questions` a spike must answer** before
-  it could be promoted. Be honest: if nothing is proven, say so — an all-candidate capability
-  is a legitimate, valuable record of an unmet need.
-- **`governance_nfrs` — the measurable floor** — each a `kind` + `statement` + **testable
-  `acceptance_criterion`** ("region == declared classification region", not "is compliant").
-  Mirror the quality of a strong pattern's attached NFRs: concrete and checkable. This floor
-  is what a future spike result is judged against.
-
-Use this drafting prompt:
+The judgement step, the only one needing a model. From the context you gathered, draft the
+`need_statement` + body, `aliases`, honest `fulfilled_by[]`, and the measurable
+`governance_nfrs` floor. Use this drafting prompt:
 
 ```
 A recurring system need should become a first-class capability. Write the NEED
@@ -347,12 +311,7 @@ Write:
 Be honest about gaps. An all-candidate capability is a valid record of an unmet need.
 ```
 
-> **Multi-agent option (advisory).** This step deepens with independent parallel agents: launch one sub-agent per candidate fulfilment, at most 4 at a time, each a separate sub-agent. A failed sub-agent returns nothing and is never fatal — the deterministic base stands; merge what succeeded. (Claude Code: use the Task tool / subagents. Other tools: launch parallel model calls; or a matrix-strategy CI job.) Never required — it adds coverage and cuts single-pass bias. See `skills/_contract/parallel-agents`.
-
-One agent per candidate probes that candidate's `open_questions` against the governance
-floor in parallel, then a synthesis produces a per-candidate proven-or-still-candidate read
-for a human to ratify. Preserve dissent on lock-in: a fulfilment that meets the need but
-couples you to one vendor is a recorded trade-off, not a silent disqualifier.
+> **Multi-agent option (advisory).** Optionally fan out one sub-agent per candidate fulfilment to probe its `open_questions` against the governance floor, then synthesise; preserve dissent on lock-in (a fulfilment that couples you to one vendor is a recorded trade-off, not a silent disqualifier). See `skills/_contract/parallel-agents`.
 
 Merge STEP 2's prose into the STEP 1 skeleton and write the file with the `Write` tool at
 `capabilities/<domain>/<filename-slug>.md`.
@@ -375,43 +334,24 @@ governance floor) or `approval_status` advance, in a commit the CODEOWNER owns. 
 
 ## Output format
 
-This skill emits one of two kinds. When the need is missing it emits the **`halt`** from
-STEP 0 (name the missing input, offer the readable forms, stop — never a verdict on whether
-the need is worth a capability). When the need is present it emits its `proposal`:
-
-You write **one file** at `capabilities/<domain>/<filename-slug>.md`, plus the matching index
+This skill emits one of two kinds: the **`halt`** from STEP 0 when the need is missing, else a
+`proposal` — **one file** at `capabilities/<domain>/<filename-slug>.md` plus the matching index
 rows. The capability files under `capabilities/data/` and `capabilities/runtime/` are the
 gold standard for tone and honesty — read them before authoring. `CAP-OLAP` shows a clean
 proven fulfilment; `CAP-AGENT-RUNTIME` shows the all-candidate, spikes-owed shape.
 
 ## Notes / anti-patterns
 
-- **The agent stops at `candidate`.** Never write `approval_status: approved`/`provisional`
-  and never write a fulfilment's `confidence: proven`. Both need a human and (for proven) a
-  spike with evidence. Writing `proven` is the single most damaging thing this skill could do.
-- **The need is technology-free.** Product names belong in `fulfilled_by`, never in
-  `need_statement`. A need stated as a product is a recommendation in disguise and ages with
-  the product.
-- **Aliases are the findability seed — give at least two, ideally many.** A capability with
-  one alias is one a non-expert never finds. Every job title that describes this need in a
-  different vocabulary is a candidate alias.
-- **Be honest about the gap.** An all-candidate capability with no proven fulfilment is a
-  valid, valuable record of an unmet need with the spikes it owes. Do not fabricate a proven
-  fulfilment to make a capability look finished.
-- **Governance floor is measurable.** "Is compliant" is not an acceptance criterion; "region
-  == declared classification region" is. The floor exists so a future spike result is
-  judged, not asserted.
-- **Stay inside the closed enums.** `capability_domain` ∈ the six in
-  `capabilities/_schema/capability-domains.enum.txt`; NFR `kind` ∈ the 11 in
-  `patterns/_schema/nfr-kinds.enum.txt`; `confidence` ∈ {proven, candidate};
-  `approval_status` ∈ {candidate, provisional, approved, deprecated}.
-- **`capability_key` is forever.** UPPER-KEBAB after `CAP-`, independent of the filename, the
-  stable token every requirement and pattern cites. Changing it orphans every citation.
-- **One file, then stop.** This skill authors exactly one capability. A second need is a
-  second file and a second PR.
-- **Keep the index in sync.** Every alias must appear in `capabilities/INDEX.md` pointing at
-  a real `capability_key`; the advisory index linter fails if an alias is missing or an index
-  entry points nowhere.
-- **Light and advisory.** A capability records a need and its options; nothing is forced. The
-  CODEOWNERS capability review is a human reading the diff and merging — the one structural
-  human review — not an automated lock.
+(The candidate-not-proven keystone, technology-free need, ≥2 aliases, honest-gap, and
+measurable-floor rules are enforced at their sites above — the frontmatter table and STEPS 1-3.
+The failure modes not stated in a step:)
+
+- **A need stated as a product is a recommendation in disguise** and ages with the product —
+  why product names live only in `fulfilled_by`.
+- **`capability_key` is forever** (the stable token every requirement and pattern cites);
+  changing it orphans every citation.
+- **Closed enums live in one place each** — `capability_domain` in
+  `capabilities/_schema/capability-domains.enum.txt`; NFR `kind` in
+  `patterns/_schema/nfr-kinds.enum.txt` (the 11 reproduced above); `confidence` ∈ {proven,
+  candidate}; `approval_status` ∈ {candidate, provisional, approved, deprecated}.
+- **One file, then stop.** A second need is a second file and a second PR.

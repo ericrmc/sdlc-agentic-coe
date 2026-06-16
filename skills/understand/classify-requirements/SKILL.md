@@ -14,13 +14,11 @@ neighbours: |
 
 # classify-requirements — annotate the shape of each requirement
 
-Describe the *shape* of each requirement so a human can see it at a glance. For every requirement, emit six fields: `layer`, `stated_as`, `quantified`, `value_outcome`, a `suggested_rewrite` (only when the requirement is solution-shaped), and a **derived-on-read `source_staleness`** that re-surfaces an upstream source's age/unverified-export caveat at this first analysis hop (computed from the requirement's own provenance, never invented).
+Per-requirement fields and their controlled values are defined once at their Steps (1–4b). This skill is **advisory and non-destructive**: it describes, it never decides, and it never changes a requirement's status, source, version, ID, or wording — it only attaches annotations beside the existing text for a human to act on.
 
-This skill is **advisory and non-destructive**. It describes; it never decides. It does **not** change a requirement's status, source, version, ID, or wording. It only attaches annotations alongside the existing text. A human reads the annotations and chooses what to act on.
+Each requirement is cited as `REQ-<n>` — the canonical requirement key. Functional vs non-functional is `layer`/`stated_as` metadata (Step 1/2), **never part of the key**: there is no `F-`/`NF-` key. The machine-readable block may key a row by a bare integer `requirement_id` as a stable internal index, but the human-facing citation is always `REQ-<n>`.
 
-Each requirement is cited as `REQ-<n>` — the canonical requirement key. Functional vs non-functional is **`layer`/`stated_as` classify metadata, never part of the key**: there is no `F-`/`NF-` key. This skill is the canonical home of that functional/non-functional distinction, and it lives in the `layer` field, not in the identifier. The machine-readable block may keep a bare integer `requirement_id` as a stable internal index, but the citation key a human sees is always `REQ-<n>`.
-
-The point is to make three failure modes jump off the page:
+The point is to make these failure modes jump off the page:
 
 - **Solutioneering** — a requirement that names a mechanism/product instead of the underlying need (`stated_as = solution`).
 - **Unmeasurability** — a requirement with no number/target, so you can't tell when it's met (`quantified = false`).
@@ -54,10 +52,7 @@ The user supplies, as markdown or plain context. Each row is marked **Required**
   `skills/ingest/`). Used only to derive `source_staleness` (STEP 4b). If absent:
   `source_staleness = unknown` — recorded as an explicit null, never inferred from the text.
 
-This skill **names its required inputs and grounds every annotation in supplied text**; it
-follows the no-fabrication contract `skills/_contract/grounding-no-absent-input`. The
-pre-existing "never invent" / "cite only real keys" rules below are an instance of that
-contract, not a separate rule.
+The "never invent" / "cite only real keys" rules above are instances of the no-fabrication contract `skills/_contract/grounding-no-absent-input`, quoted below.
 
 ## Grounding (quoted)
 
@@ -111,17 +106,7 @@ The model reasoning step **is** the method. The deterministic keyword/precedence
 
 ### STEP 0 — locate the requirement set (deterministic, pre-model; the halt path)
 
-Before any classification, confirm the one Required input — the **requirement set** — is
-present. This is a file-level fact computed *before* the model reasons:
-
-- **absent** — no requirements file/source/paste was supplied;
-- **unreadable** — it was supplied but cannot be parsed/opened in a usable form;
-- **empty** — it opens but contains zero requirement rows.
-
-Any of those three → emit the clean HALT below and **stop**. Do not classify a hypothetical
-set, and do not return an empty classification (a silent-empty reads downstream as "there were
-no requirements," which is a silent-proceed failure). Copy the exemplar shape from
-`skills/_contract/grounding-no-absent-input`:
+Before any classification, confirm the one Required input — the **requirement set** — is present (a file-level fact computed *before* the model reasons). If it is **absent / unreadable / empty** (the grounding-block trichotomy), emit the clean HALT below and **stop** — never classify a hypothetical set, never return an empty result. Copy the exemplar shape from `skills/_contract/grounding-no-absent-input`:
 
 ```markdown
 HALT — required input missing.
@@ -139,11 +124,7 @@ I can read any of these:
 Which one, and where? (Nothing is classified until you point me at it.)
 ```
 
-This halt is a `question`, never a verdict: it names the missing input and the readable
-formats, and stops — it carries no finding, no "this set looks too thin," no assumption. The
-Optional inputs (project context/title, provenance) never halt: an absent Optional input
-proceeds honestly (a `question` or an explicit null), per the grounding rule above. With the
-requirement set present, proceed to Step 1.
+The Optional inputs (project context/title, provenance) never halt — an absent Optional input proceeds honestly (a `question` or an explicit null), per the grounding rule above. With the requirement set present, proceed to Step 1.
 
 ### Step 1 — `layer`: business or technical
 
@@ -180,32 +161,13 @@ This flags unmeasurability: a `need`-shaped requirement with `quantified = false
 
 ### Step 4b — `source_staleness`: derived-on-read, never invented
 
-`source_staleness` re-surfaces — at this first analysis hop — a caveat that ingestion already
-stamped onto the requirement's **provenance** (see `skills/ingest/`). It is **derived on read**
-from the provenance fields the requirement carries (`received_at`, `exported_at` / `snapshot`,
-`staleness-unverified`), **not** a fresh judgement and **never** inferred from the requirement
-text. There is no persisted staleness score and no scheduler — the field is computed each time
-classify runs, from whatever provenance is present *now*.
+`source_staleness` is **derived on read** from the provenance fields the requirement carries (`received_at`, `exported_at` / `snapshot`, `staleness-unverified`; see `skills/ingest/`) — **never** inferred from the requirement text, with no persisted score and no scheduler. Emit exactly one controlled value:
 
-Emit exactly one controlled value per requirement:
+- `current` — provenance carries a recent, verified snapshot/export.
+- `stale` — provenance shows an old snapshot, or ingestion stamped a `staleness-unverified` caveat (e.g. a SharePoint export with `exported_at: unknown`, or a GitHub board read without a pinned snapshot).
+- `unknown` — **the default and the honest null:** no provenance to derive from (an absent Optional input). An explicit null, never a guess.
 
-- `current` — the requirement carries provenance with a recent, verified snapshot/export.
-- `stale` — the provenance shows an old snapshot, or ingestion stamped a `staleness-unverified`
-  caveat (e.g. a SharePoint export with `exported_at: unknown`, or a GitHub board read without a
-  pinned snapshot).
-- `unknown` — **the default and the honest null.** The requirement carries no provenance to
-  derive from (an Optional input that was absent). This is an explicit null, never a guess.
-
-This field is **advisory and read-only**, exactly like the others: it surfaces, it does not
-decide. A non-`current` value is reported as a `question` in the digest ("this row came from a
-source that may be out of date — re-verify before relying on it"), **never** as a verdict,
-score, or a flip of the requirement's status. Resolving staleness (re-export, re-ingest) is a
-separate human action; classify only makes the caveat visible so it does not die at ingest.
-
-> Why here: the downstream consumers (`nfr-coverage-check`, `challenge/red-team-requirements`,
-> `architect/recommend-component-patterns`) read requirement *text* only. Without this re-surface,
-> a stale Excel row would launder into a clean-looking requirement two skills later. Classify is
-> the first hop, so the caveat re-appears here.
+A non-`current` value surfaces as a `question` in the digest ("re-verify before relying on it"), never a verdict, score, or status flip. This is the first analysis hop, so the caveat re-appears here rather than laundering into a clean-looking requirement downstream (the downstream consumers read requirement *text* only).
 
 ### Step 5 — Deterministic backstop (optional, NOT the primary method)
 
@@ -222,7 +184,7 @@ Where the backstop and the model disagree, prefer the model and note the diverge
 
 ## Idempotency
 
-The same requirement text classifies the same way every time. The five shape fields (`layer`, `stated_as`, `quantified`, `value_outcome`, `suggested_rewrite`) are a function of the text (plus stable project context), with no dependence on run order, prior runs, or other requirements in the batch. `source_staleness` is **derived-on-read** — a pure function of the requirement's provenance *at read time* — so it carries no stored state either; it changes only when the underlying provenance changes (a re-export, a re-ingest), never on a re-run over identical inputs. Re-running over an unchanged set with unchanged provenance yields identical annotations, so it is safe to run on every change.
+The same requirement text classifies the same way every time. The five shape fields (`layer`, `stated_as`, `quantified`, `value_outcome`, `suggested_rewrite`) are a function of the text (plus stable project context), with no dependence on run order, prior runs, or other requirements in the batch. `source_staleness` carries no stored state either (it is derived-on-read per Step 4b), changing only when the underlying provenance changes. Re-running over an unchanged set with unchanged provenance yields identical annotations, so it is safe to run on every change.
 
 ## Output format
 
@@ -297,12 +259,8 @@ Flags for adversarial review:
 
 ## Notes / anti-patterns
 
-- **Advisory only.** Never mutate status, source, version, id, or the requirement text. Emit annotations beside the text; the human decides.
+Rules stated at their Steps (controlled enums, the `solution > constraint > symptom > need` precedence, `value_outcome ≤ 4 words`, advisory/never-mutate, the model-step-is-the-method) are enforced there and not repeated here. The genuinely additional rules:
+
 - **One row per requirement.** Exactly one classification per input `REQ-<n>` (or its integer index). Do not skip, merge, duplicate, or renumber.
-- **Controlled values only.** `layer ∈ {business, technical}`; `stated_as ∈ {need, solution, constraint, symptom}`; `source_staleness ∈ {current, stale, unknown}`. No new categories, no compound values.
-- **`source_staleness` is derived, never invented.** Read it from the requirement's provenance fields; if there is no provenance, it is `unknown` (the honest null), never guessed from the text. A non-`current` value surfaces as a `question`, never a verdict or a status change.
 - **`suggested_rewrite` is gated.** It is non-null **iff** `stated_as = solution`. A non-null rewrite on a non-solution row is a bug.
-- **Respect the precedence.** `solution > constraint > symptom > need`. Don't pick the "nicest" label — pick the highest one that applies.
-- **Keep `value_outcome` ≤ 4 words.** It is a display label, not a sentence. If you can't name an outcome in four words, it is probably `null` — and that null is the signal.
-- **The model step is the method.** The keyword tables are a backstop, not the source of truth. Don't downgrade to substring matching just because it's deterministic; use it to cross-check.
 - **Don't over-flag `technical`.** A business outcome phrased with one incidental tech noun is still `business`. `technical` is for requirements whose substance is a technical concern.

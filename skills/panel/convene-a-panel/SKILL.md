@@ -20,14 +20,7 @@ Pressure-test a design, a requirement set, or a feature brief with a balanced pa
 
 ## Purpose
 
-Convene a balanced panel of five fixed lenses, point each lens at a real artefact (a solution design, a requirement set, or a free-text feature brief), and let the panel argue the design with itself. The panel aggregates **real findings** — gaps, tensions, orphaned value, over-reach, open risks — into **proposals a human accepts on their own terms**.
-
-Two rules make the output trustworthy rather than theatre:
-
-- **It never promises a verdict.** Every contribution and every proposal is advisory. The panel surfaces; the human accepts, dismisses, or records a dissent. There is no path by which the panel resolves its own findings.
-- **A genuine affirmative-vs-adversarial split is not auto-resolved.** When the affirmative side wants something and the adversarial side objects on the *same* node, the skill does **not** pick a winner. It emits both positions as the two options of a single human-owned decision. The panel could not agree, so the human decides.
-
-The value is the *balance* and the *grounding*. A one-sided panel is worthless; a panel that fabricates findings is worse. Both are made structurally impossible here (see Balance rule and Honesty rule below).
+Point five fixed lenses at a real artefact (a solution design, a requirement set, or a free-text feature brief) and let the panel argue the design with itself, aggregating real findings — gaps, tensions, orphaned value, over-reach, open risks — into proposals a human accepts on their own terms. Two invariants make it trustworthy not theatre: it never returns a verdict, and a genuine affirmative-vs-adversarial split is not auto-resolved — both are enforced structurally in *The two governing rules* below.
 
 ## When to use
 
@@ -35,9 +28,7 @@ The value is the *balance* and the *grounding*. A one-sided panel is worthless; 
 - You have a **requirement set** with outcomes and derived requirements and want the gaps, tensions, and gold-plating surfaced as a balanced argument, not a one-voice critique.
 - You have a **free-text feature brief** ("add SSO with SCIM provisioning") and want a fast, balanced read across completeness / risk / alternatives / necessity before writing a single requirement.
 
-Run it at any time. It is read-only and advisory — there is no precondition, no state it must be in, no approval it produces. Re-run it freely as the design changes.
-
-> **Multi-agent option (advisory).** This step deepens with independent parallel agents: launch one sub-agent per `(persona, question)` pair, at most 4 at a time, each a separate sub-agent. A failed sub-agent returns nothing and is never fatal — the deterministic base stands; merge what succeeded. (Claude Code: use the Task tool / subagents. Other tools: launch parallel model calls; or a matrix-strategy CI job.) Never required — it adds coverage and cuts single-pass bias. See `skills/_contract/parallel-agents`.
+Run it at any time. It is read-only and advisory — there is no precondition, no state it must be in, no approval it produces. Re-run it freely as the design changes. It deepens with independent parallel agents (one per `(persona, question)` pair); the fan-out convention, failure handling, and concurrency cap live in `skills/_contract/parallel-agents`, wired in Step 3.
 
 ## Inputs
 
@@ -59,7 +50,7 @@ Supply a context bundle. Two modes. **At least one substantive panel subject is 
 
 **Feature-brief mode** (`scope: feature`) — supply only `feature_brief: "<free text>"` (*Required* in this mode; absent it, fall to the HALT above). The skill skips signal-gating and asks the four fixed questions below.
 
-An absent or empty *Optional* artefact context key is fine — the lens that reads it honestly says "no open signal for this lens" rather than invent one (this is the contract's absent-optional-input rule: surface the gap honestly, never pad it; per `skills/_contract/grounding-no-absent-input`). The skill degrades gracefully from a fully-instrumented project to a bare feature brief. What it never does is run with **no** subject at all — that is the HALT, not a degrade.
+An absent or empty *Optional* artefact context key is fine — the lens reads it and says "no open signal for this lens" rather than invent one (the absent-optional-input rule in the grounding stub below). The skill degrades from a fully-instrumented project to a bare feature brief; what it never does is run with **no** subject — that is the HALT, not a degrade.
 
 ## Grounding (quoted)
 
@@ -93,8 +84,6 @@ from.*
 
 <!-- END grounding -->
 
-This contract (`skills/_contract/grounding-no-absent-input`) is what keeps the panel honest at its *entry*: the Honesty rule below keeps a seated lens from fabricating a finding; the grounding contract keeps the skill from running at all on a subject it never actually received.
-
 ## The roster (fixed, balanced, 5 lenses)
 
 The roster is **fixed and closed** — five persona kinds, never more, never fewer. A fixed set keeps the balance rule trivial to enforce and the output legible. Three affirmative lenses build the case for the design; two adversarial lenses attack it.
@@ -115,13 +104,11 @@ The roster is the deterministic fallback. Even with no model, the panel casts th
 
 ### Balance rule — at least one affirmative AND at least one adversarial
 
-A seated panel must always hold `>= 1 affirmative` lens AND `>= 1 adversarial` lens (the default holds 3 + 2). This is not a hope; it is the first thing the deterministic step asserts before it runs. A one-sided panel — all affirmative, or all adversarial — is **unrepresentable**. A panel that came back all-affirmative would rubber-stamp the design; a panel that came back all-adversarial would be a hit-job. The invariant makes both impossible, which is what lets a human trust the output without re-deriving it.
+A seated panel must always hold `>= 1 affirmative` lens AND `>= 1 adversarial` lens (the default holds 3 + 2). This is the first thing the deterministic step asserts before it runs (Step 1). A one-sided panel — all affirmative (a rubber-stamp), or all adversarial (a hit-job) — is **unrepresentable**.
 
 ### Honesty rule — a no-signal lens says so, never fabricates
 
-When a lens reads its bound node and finds nothing — no open challenge, no orphaned requirement, no thin section — it emits exactly one contribution: *"No open signal for this lens — nothing to push back on here,"* with signal `concurs`. It does **not** invent a finding to look busy. This is what keeps an empty project from producing a wall of fabricated objections. A clean design should produce a quiet panel, and "the panel found nothing to push back on" is an honest, valuable result — not a gap to be filled.
-
-These two rules together are the whole contract: the panel is always balanced, and it never lies. Everything else is mechanics.
+When a lens reads its bound node and finds nothing — no open challenge, no orphaned requirement, no thin section — it emits exactly one contribution: *"No open signal for this lens — nothing to push back on here,"* with signal `concurs`. It does **not** invent a finding to look busy. A clean design produces a quiet panel, and "the panel found nothing to push back on" is an honest result, not a gap to fill.
 
 ## The method (numbered steps)
 
@@ -186,7 +173,7 @@ The four fixed questions map to lenses: completeness → pragmatic_engineer; ris
 
 For each `(persona, question)` pair whose lens speaks to that question kind, produce **one** contribution `{persona_kind, question_index, stance_summary, body_md, signal}`. With ~5 lenses over ~5 questions this is roughly 20 contributions — a genuinely longer session.
 
-**Fan out one parallel agent per pair.** Wrap the deterministic base (which already did the binding and applied the honesty rule) and launch one independent model call per real-signal contribution, so each persona deepens its own argument in its own voice without waiting on the others. A failed call falls back to the deterministic body — the base always stands. No-signal (`concurs`) contributions are not fanned out; they stay verbatim per the honesty rule. See `skills/_contract/parallel-agents` for the fan-out convention.
+**Fan out one parallel agent per real-signal pair** (convention, concurrency cap, and failure fallback in `skills/_contract/parallel-agents`): each persona deepens its own argument in its own voice; a failed call falls back to the deterministic body. No-signal (`concurs`) contributions are not fanned out — they stay verbatim per the honesty rule.
 
 Each contribution carries a **signal** — a structured hint the synthesiser clusters on so it never has to parse prose:
 
@@ -316,10 +303,8 @@ empty result, not a gap. Nothing to propose.
 
 ## Notes / anti-patterns
 
-- **Never return a verdict.** "The panel approves this design" is a banned output. The panel surfaces proposals; the human accepts, dismisses, or records a dissent. If you find yourself writing a conclusion, convert it to a proposal or a human-owned decision.
-- **Never auto-resolve a genuine split.** Affirmative-wants-X vs adversarial-objects-to-X on the same node is a decision the human owns, with both positions as options — not a call the panel makes by counting voices.
-- **Never fabricate a finding to fill a lens.** A no-signal lens says so. A quiet panel over a clean design is a real result. Inventing objections to look thorough destroys the trust the balance rule buys you.
-- **Never seat a one-sided panel.** Always `>= 1` affirmative AND `>= 1` adversarial. With only one side, you have a critique or a cheer, not a panel.
+The verdict, split, fabrication, and one-sided-panel failure modes are governed above (*The two governing rules*, and Step 5's split rule). The rest:
+
 - **Keep the agenda small (4-7).** More than seven questions and the session becomes a stampede no human will read. Bind to the nodes that actually matter; drop the rest.
 - **Bind before you argue.** Every question and contribution cites the real node it came from. An ungrounded contribution ("I worry this might not scale") with no `surfaced_from` node is noise — make it cite the roadblock or NFR it actually reads, or drop it.
 - **The deterministic base is not a hollow placeholder.** Even with no model, the bindings and the four proposal channels are fully real — the human accepts genuine, provenance-stamped proposals. Only the depth of the argument waits on the model, and that gap is labelled, never hidden.

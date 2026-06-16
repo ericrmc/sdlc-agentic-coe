@@ -14,21 +14,11 @@ neighbours:
 
 # Triage Backlog and Defer
 
-Backlog triage with memory. Turn a raw, messy backlog into structured **parked items** — each carrying the business outcome it would serve, an honest size, and a priority — while preserving the **why-not** for everything you decline so it is never re-litigated against the same evidence.
-
-This skill is light and advisory. It produces **suggestions and menus**, never verdicts or status changes. A human owns every disposition: which items get parked, which get promoted into delivery, and which get declined. You propose; the human decides.
+Backlog triage with memory. Advisory only — suggestions and menus, never verdicts or status changes (per `skills/_shared/target-rule.md`); a human owns every disposition (park / promote / decline).
 
 ## Purpose
 
-A raw backlog is a pile of half-formed asks: "dark mode", "bulk re-assign approvals", "faster export", "SSO maybe". Most of it will never be built, some of it is gold, and almost none of it is honestly sized or traced to anything the business actually agreed to deliver.
-
-Triage turns that pile into three honest signals per item:
-
-1. **What outcome does it serve?** — the trace edge. If an item serves one of the agreed business outcomes, say which one (verbatim key). If it serves *none*, that is not a failure of analysis — it is a finding. An untraced item is a **scope-creep flag**, and an honest `null` is better than a forced trace.
-2. **How big is it, really?** — an honest size in person-days, grounded in what comparable past work actually cost. A single backlog feature is a *small fraction* of a whole-project effort. Do not let "small" become "free".
-3. **How much does it matter?** — a priority that *falls out of* the trace, not out of enthusiasm. Traced items carry more priority; untraced flags carry less. Stay honest; do not inflate.
-
-And critically: triage **remembers**. When a human declines an item, that decision is durable. The item is never re-proposed against unchanged evidence — the why-not is preserved: a record of what was decided *not* to do, and why.
+Turn a raw backlog into three honest signals per item — the outcome it serves (Step 1 `derives_from`), an honest size (`est_effort_days`), a priority that falls out of the trace (`suggested_priority`) — and **remember** every decline so the why-not is never re-litigated against unchanged evidence (Step 5).
 
 ## When to use
 
@@ -48,9 +38,7 @@ The user supplies, as markdown or pasted context:
 3. **Effort reference** — *Optional* (but strongly preferred). Comparable past projects whose *actual* effort is known, so you can size honestly. May be sparse. If absent: proceed but mark sizes as unsizable (`null`); never invent a number.
 4. **Decline memory** — *Optional.* Items already declined, with the evidence they were declined against. Used so you do not re-propose them. If absent: proceed (nothing is suppressed).
 
-The change from prior phrasing is deliberate: a missing outcome set now **HALTs and asks** rather than continuing on a guessed trace — an absent Required input is named and stopped on, not patched. A *present-but-sparse* outcome set still proceeds (sparse ≠ absent). A missing effort reference is an Optional gap → unsizable nulls, not a halt.
-
-This skill reads a backlog and accepted outcomes to trace and size, so it follows the GROUNDING contract — an absent **Required** input HALTs and asks; the **Optional** inputs degrade to explicit nulls and are never invented. See `skills/_contract/grounding-no-absent-input`.
+This skill has Required inputs, so it follows the GROUNDING contract quoted below (`skills/_contract/grounding-no-absent-input`): an absent Required input HALTs and asks; Optional inputs degrade to explicit nulls.
 
 ## Grounding (quoted)
 
@@ -106,7 +94,7 @@ I can read any of these:
 Which one, and where? (With no agreed outcome set every trace is a guess and every item looks like scope creep, so nothing is sized or traced until you point me at both.)
 ```
 
-The halt names the missing input and stops; it carries no parked item, no size, no priority, and no verdict. With both Required inputs present, proceed to Step 1.
+With both Required inputs present, proceed to Step 1.
 
 ### Step 1 — DETERMINISTIC: build the park/size/prioritise table
 
@@ -124,14 +112,14 @@ This table is the **deterministic fallback**: if no LLM is available, ship it as
 
 ### Step 2 — LLM: triage and refine
 
-Now apply judgement the token-overlap table cannot. Run the triage prompt (below) over the candidates, outcomes, and effort reference. The LLM may:
+Run the triage prompt (below) over the candidates, outcomes, and effort reference to apply judgement the token-overlap table cannot. The LLM may override the Step-1 floor in exactly these ways:
 
-- **Correct a trace** the token-match got wrong (a real semantic link the words missed, or a spurious overlap that is not a genuine link). When in doubt, prefer the honest `null` — a forced trace is worse than an admitted gap.
-- **Adjust a size** where the flat 20% is clearly wrong for *this* item (a trivial config toggle vs. a cross-cutting feature), staying grounded in the comparators. Never inflate to look impressive; never deflate to make something look cheap.
-- **Lift priority to `high`** — but only for a traced item, and only with a one-line reason naming the outcome and the urgency. Untraced items stay `low`; you do not promote scope creep to high.
-- **Write an honest rationale** — one or two sentences. When traced: name the outcome and how you sized it. When `null`: say plainly that no accepted outcome backs it, so it is parked as a low-priority flag.
+- **Correct a trace** the token-match got wrong (a semantic link the words missed, or a spurious overlap). When in doubt, prefer the honest `null`.
+- **Adjust a size** where the flat 20% is wrong for *this* item (a config toggle vs. a cross-cutting feature), staying grounded in comparators.
+- **Lift priority to `high`** — only for a traced item, only with a one-line reason naming the outcome and urgency. Untraced items stay `low`.
+- **Write an honest rationale** — see the prompt's per-field rules below.
 
-The output is a set of **deferral suggestions** with status `parked`. You are still only proposing — the human parks, promotes, or declines.
+Output: deferral suggestions with status `parked`.
 
 ### Step 3 — PARK (human action)
 
@@ -160,16 +148,13 @@ Decline ≠ delete. A declined item is remembered, not erased — keep the rejec
 
 ## GitHub-native mapping
 
-Triage maps cleanly onto a **GitHub Project backlog**, so teams run it with native mechanics:
+Triage maps onto a **GitHub Project backlog** — each field becomes native mechanics:
 
-- **Parked item** → a card in the **Backlog** column of the project's GitHub Project (or a `Backlog`-status issue).
-- **derives_from** → a label like `outcome:BO-3`, or a linked issue to the outcome. An untraced item carries a `scope-creep` label instead.
-- **est_effort_days** → a numeric Project field (e.g. `Est (days)`).
-- **suggested_priority** → labels `priority:high` / `priority:medium` / `priority:low`.
-- **Promote** → move the card to a **Ready / In a release** column and open the corresponding `add` change against the target release (a PR or a release-tracking issue), carrying the `outcome:` label forward.
-- **Decline** → move to a **Declined / Won't do** column and **keep it there** with a `declined` label and a short comment recording the why and the evidence — that comment *is* the dismissal-memory. Do not close-and-delete; the record is the point.
+- **parked item** → card in the **Backlog** column; **derives_from** → `outcome:BO-3` label (or `scope-creep` label when `null`); **est_effort_days** → numeric `Est (days)` field; **suggested_priority** → `priority:*` label.
+- **promote** → move to a **Ready** column + open the `add` change against the target release, carrying the `outcome:` label forward (Step 4).
+- **decline** → move to a **Won't do** column, keep it there with a `declined` label + a comment recording why+evidence (that comment *is* the dismissal-memory, Step 5).
 
-A light GitHub Action can validate that every non-`scope-creep` card carries an `outcome:` label and a non-empty estimate before it leaves the backlog — advisory (a check annotation), never blocking.
+A light GitHub Action may validate every non-`scope-creep` card carries an `outcome:` label and an estimate before leaving the backlog — advisory annotation, never blocking.
 
 ## Output format
 
@@ -266,10 +251,4 @@ Return ONLY a JSON object of this shape, no prose, no markdown fence:
 
 ## Notes / anti-patterns
 
-- **An honest null beats a forced trace.** The whole value of triage is finding the items that serve *nothing agreed*. Don't reach for the nearest outcome to make an item look legitimate — `null` *is* the finding. Two shared meaningful tokens is the floor for claiming a trace; below that, it's scope creep.
-- **Don't inflate sizes or priorities.** "Small" is not "free", and "exciting" is not "high". A size grounded in actuals and a priority that falls out of the trace are what make the menu trustworthy. The moment you optimise the numbers to win an argument, the triage is worthless.
-- **Never block.** This is advisory. You produce a menu; the human parks, promotes, or declines. No approval step, no blocking. The only "enforcement" is a soft, annotating CI check that *informs* — it never stops anyone.
-- **Promotion carries the trace; it does not invent one.** Promoting an untraced item lands an `add` with no outcome, which gets flagged downstream. That is correct behaviour, not a bug — promotion is not a laundromat for missing traces.
-- **Decline is memory, not deletion.** Declined items stay on record with the evidence they were declined against. Re-proposing a declined item against unchanged evidence is the anti-pattern — it wastes the team's attention and erases the why-not. Only resurface when the evidence genuinely changes.
-- **Sparse inputs are normal.** Sparse outcomes → more honest nulls. No comparators → unsizable (`null`) sizes, not guesses. Don't paper over thin evidence with confident-looking fabrication. (This skill's instance of the library GROUNDING rule — `skills/_contract/grounding-no-absent-input`: a *sparse* Required input proceeds to honest nulls, but an *absent* Required input — no backlog, or no outcomes at all — halts and asks per Step 0.)
-- **The human owns the source field.** Agent-suggested items are proposals; parking, promoting, and declining are human acts (`source = human`). Keep the line between "the agent proposed" and "the human decided" visible at all times.
+- **Sparse ≠ absent.** A *sparse* Required input proceeds to honest nulls (sparse outcomes → more nulls; no comparators → unsizable `null` sizes, never guesses); an *absent* Required input (no backlog, or no outcomes at all) halts and asks per Step 0. This is the skill's instance of `skills/_contract/grounding-no-absent-input`.

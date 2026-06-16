@@ -15,17 +15,11 @@ neighbours: |
 
 # derive-capabilities — tag each requirement with the capability it fulfils
 
-Annotate each grounded requirement with the **capability** it serves, exactly the way its
-sibling `classify-requirements` annotates each requirement's *shape*. The output is a
-per-requirement `fulfils_capability: CAP-…` tag plus a menu of needs the library does not
-yet name. This skill closes the one open edge in the chain: `recommend-component-patterns`
-resolves a need to a capability and then to a pattern, but **no skill emits the
-`fulfils_capability` tag onto a requirement** — this is where that edge is born.
-
-This skill is **advisory and non-destructive**. It describes; it never decides. It does
-**not** write a capability file, flip a `confidence`, or advance an `approval_status`. It
-attaches a tag alongside the requirement (MATCHED) or routes a stub to the
-CODEOWNERS-ratified contribution flow (PROPOSED-NEW). A human reads and ratifies.
+Annotate each grounded requirement with the **capability** it serves — the per-requirement
+`fulfils_capability: CAP-…` tag (MATCHED) plus a menu of needs the library does not yet name
+(PROPOSED-NEW). This is where the `fulfils_capability` edge `recommend-component-patterns`
+assumes is born. **Advisory and non-destructive**: it tags or routes a stub; it never writes
+a capability file, flips `confidence`, or advances `approval_status`. A human ratifies.
 
 > Retrieval, not generation. The legal `CAP-` key set is the rows of
 > `capabilities/INDEX.md`, **fixed before reasoning** — the exact mirror of
@@ -37,32 +31,19 @@ CODEOWNERS-ratified contribution flow (PROPOSED-NEW). A human reads and ratifies
 
 Two outputs, from one pass over a grounded requirement set:
 
-1. **MATCHED** — for each requirement whose need resolves to a capability **already in
-   `capabilities/INDEX.md`**, a `fulfils_capability: CAP-…` tag, traced to the `REQ-`/`BO-`
-   key(s) that imply it. This is the LOW/derived edge that rides the requirement PR; it
-   feeds `recommend-component-patterns` STEP 0, which today *assumes the tag already exists*.
+1. **MATCHED** — for a requirement whose need resolves to a capability **already in
+   `capabilities/INDEX.md`**, a `fulfils_capability: CAP-…` tag traced to the `REQ-`/`BO-`
+   key(s) that imply it (the LOW/derived edge `recommend-component-patterns` STEP 0 assumes).
 2. **PROPOSED-NEW** — an **un-ranked `menu`** of candidate needs the INDEX does **not** yet
-   name, each **citing the `req_key`(s)** that imply it and pre-filling
-   `.github/ISSUE_TEMPLATE/new-capability.yml`, routed to `library/author-capability` (a
-   HIGH-commitment, human-ratified act). A candidate need cited by exactly **one**
-   requirement is **proposed-but-flagged** ("single — confirm it recurs"), never withheld.
-
-The value: a requirement that names its capability can be resolved to a proven pattern in
-one hop; a need the library does not name is surfaced *here*, one stage before
-`recommend-component-patterns` would hit honest-empty, so the gap is named while the
-requirement context is still in hand.
+   name, each citing the `req_key`(s) that imply it, routed to `library/author-capability`.
 
 ## When to use
 
-After requirements are **grounded** (hardened / classified) and before pattern
-recommendation. Run it whenever the requirement set changes and you want the
-requirement→capability edge populated. It is idempotent over an unchanged set: the same
-requirement text against the same INDEX resolves the same way every time.
-
-Do **not** use this to author a capability file — that is `library/author-capability`'s job
-(it writes at `candidate`; a CODEOWNER ratifies). This skill only **routes a stub** to it.
-Do **not** use it to recommend a pattern — that is `architect/recommend-component-patterns`,
-the after-neighbour this feeds.
+After requirements are **grounded** (hardened / classified) and before pattern recommendation
+(see `when_to_use`). Do **not** use this to author a capability file — that is
+`library/author-capability`'s job (writes at `candidate`; a CODEOWNER ratifies); this skill
+only **routes a stub** to it. Do **not** use it to recommend a pattern — that is the
+after-neighbour `architect/recommend-component-patterns` this feeds.
 
 ## Inputs
 
@@ -89,11 +70,8 @@ The user supplies, as markdown or plain context. Each row is marked **Required**
   implicit. If absent: proceed and surface the gap as a `question`; never pad it with an
   invented context.
 
-This skill **names its required inputs and grounds every tag in supplied text**; it follows
-the no-fabrication contract `skills/_contract/grounding-no-absent-input`. The "never invent
-a `CAP-` key" rule throughout (it appears in the description, STEP 1, STEP 2, and the
-anti-patterns) is one **instance** of that contract — the exact mirror of
-`recommend-component-patterns`' "never invent a `pattern_key`" — not a separate rule.
+Grounded per the quoted block below (`skills/_contract/grounding-no-absent-input`). "Never
+invent a `CAP-` key" (STEP 1) is this contract's keystone applied to capability keys.
 
 ## Grounding (quoted)
 
@@ -129,11 +107,8 @@ from.*
 
 ## Trace edge (quoted)
 
-The MATCHED tag and the requirement's existing `derives_from` edge **coexist**: the
-requirement keeps `derives_from` to its outcome AND gains `fulfils_capability` to its
-capability (the INDEX "chain" documents this as edge 1). The tag is a citation, never a
-verdict — it records *which need this requirement serves*, not that the requirement is
-necessary, sufficient, or done.
+The MATCHED `fulfils_capability` tag and the requirement's existing `derives_from` edge
+**coexist** (they answer different questions); both are citations, never verdicts.
 
 <!-- BEGIN trace-edge (byte-stable; do not edit a quoted copy — edit _shared/trace-edge.md) -->
 
@@ -204,20 +179,15 @@ steps in order.
 
 ### STEP 0 (DETERMINISTIC) — Locate / verify the required inputs (pre-model; the halt path)
 
-Before any reasoning, confirm the two Required inputs are present as a file-level fact: the
-**grounded requirements list** (something to derive capabilities *from*) and the
-**capability index** (`capabilities/INDEX.md`, the set of legal `CAP-` keys). This is
-mechanical — absent / unreadable / empty — never a model judgement on "is this enough to
-work with."
+Confirm both Required inputs are present as a file-level fact (mechanical: absent /
+unreadable / empty), per the quoted grounding rule:
 
 - **Requirements list absent/unreadable/empty** → emit the clean HALT below and **stop**.
-  Do not derive capabilities for a hypothetical set, and do not return an empty result (a
-  silent-empty reads downstream as "there were no requirements" — a silent-proceed failure).
-- **`capabilities/INDEX.md` absent/unreadable** → HALT and ask where the index lives; never
-  invent a `CAP-` key.
-- **INDEX present but empty** (zero capability rows) → this is **not** a halt. It is the
-  honest case: there is nothing to MATCH against, so every requirement's need routes to
-  PROPOSED-NEW (STEP 3). Proceed.
+- **`capabilities/INDEX.md` absent/unreadable** → HALT for the index instead; never invent a
+  `CAP-` key. Name exactly which input is missing (the partial-input rule); never proceed on
+  the half you have.
+- **INDEX present but empty** (zero capability rows) → **not** a halt: there is nothing to
+  MATCH against, so every requirement's need routes to PROPOSED-NEW (STEP 3). Proceed.
 
 ```
 HALT — required input missing.
@@ -229,12 +199,6 @@ and I'll tag each one with the capability it fulfils — nothing is assumed unti
 I can read any of: a markdown file · an xlsx/csv path · a GitHub Project (owner + number) ·
 a docs folder · the rows pasted directly here. Which one, and where?
 ```
-
-If the requirements are present but `capabilities/INDEX.md` is absent/unreadable, halt the
-same way for the index instead — name exactly which input is missing (per the partial-input
-rule above), never silently proceed on the half you have. This halt is a `question`, never a
-verdict: it names the missing input and the readable formats, and stops — it carries no
-finding, no "this set looks thin," no assumption. With both Required inputs present, proceed.
 
 ### STEP 1 (DETERMINISTIC) — Load and fix the legal `CAP-` key set
 
@@ -276,13 +240,9 @@ may fulfil **none** that is named yet (it becomes a PROPOSED-NEW driver). Never 
 requirement with a capability it does not genuinely serve to make the table look complete —
 an honest `null`/PROPOSED-NEW is the useful signal.
 
-> **Multi-agent option (advisory).** This step deepens with independent parallel agents:
-> launch one sub-agent per requirement cluster, at most 4 at a time, each a separate
-> sub-agent resolving its cluster against the same fixed INDEX set. A failed sub-agent
-> returns nothing and is never fatal — the deterministic alias-match base stands; merge what
-> succeeded. (Claude Code: use the Task tool / subagents. Other tools: parallel model calls,
-> or a matrix-strategy CI job.) Never required — it adds coverage and cuts single-pass bias.
-> See `skills/_contract/parallel-agents`.
+> **Multi-agent option (advisory).** Optionally fan out one sub-agent per requirement
+> cluster against the same fixed INDEX set; the deterministic alias-match base stands if any
+> fails. Per `skills/_contract/parallel-agents`.
 
 ### STEP 3 (LLM) — Assemble the PROPOSED-NEW menu (cited by construction)
 
@@ -324,13 +284,13 @@ This skill **never writes the capability file and never sets `confidence`/`appro
 
 ### STEP 5 — Compose forward
 
-- A **MATCHED** `CAP-` resolves straight to its pattern in `recommend-component-patterns`
-  STEP 0 (the tag this skill emits is the input that STEP assumes already exists).
-- A **MATCHED-but-OPEN** capability arrives pre-flagged so `recommend-component-patterns`
-  goes straight to its honest-empty route.
-- A **PROPOSED-NEW** (unauthored) capability is the honest-empty signal arriving one stage
-  earlier — the need is named here, while the requirement context is in hand, before the
-  pattern step would hit an empty library.
+How each output routes into `recommend-component-patterns`:
+
+| Output | Routes to |
+|---|---|
+| **MATCHED** `CAP-` | its pattern (STEP 0 consumes the tag this skill emits) |
+| **MATCHED-but-OPEN** | pre-flagged → honest-empty route |
+| **PROPOSED-NEW** (unauthored) | the honest-empty signal, named one stage earlier |
 
 ## Output format
 
@@ -405,53 +365,24 @@ a CODEOWNER ratifies). Author none if none recurs enough to deserve a stable nam
 
 ## Idempotency
 
-The same requirement text against the same `capabilities/INDEX.md` resolves the same way
-every time. The MATCHED tag is a function of (requirement text + project context + the fixed
-INDEX set); the PROPOSED-NEW grouping is a function of the unmatched needs. There is no stored
-state, no run-order dependence, no dependence on other requirements beyond the same-need
-grouping. Re-running over an unchanged set against an unchanged INDEX yields identical tags
-and an identical menu — safe to run on every change. A new INDEX row may turn a former
-PROPOSED-NEW need into a MATCHED tag on the next run; that is the index doing its job, not a
-non-deterministic result.
+The MATCHED tag is a function of (requirement text + project context + the fixed INDEX set);
+the PROPOSED-NEW grouping is a function of the unmatched needs. No stored state, no run-order
+dependence — re-running over an unchanged set against an unchanged INDEX yields identical
+output. A new INDEX row turning a former PROPOSED-NEW need into a MATCHED tag is the index
+doing its job, not a non-deterministic result.
 
 ## Notes / anti-patterns
 
-- **Never invent a `CAP-` key.** Every MATCHED key must be a row of `capabilities/INDEX.md`.
-  The deterministic STEP 1 exists precisely so the legal key set is fixed before reasoning.
-  Wanting to tag a need that isn't in the index is the PROPOSED-NEW signal (STEP 3), not
-  licence to mint a key. This is the no-fabrication keystone applied to capability keys — the
-  exact mirror of `recommend-component-patterns`' pattern-key rule; see
-  `skills/_contract/grounding-no-absent-input`.
-- **Every PROPOSED-NEW need cites its requirement(s).** A capability with no `req_key` behind
-  it cannot appear in the menu — citation is by construction, not a model promise. This is
-  what makes "never invent a capability not grounded in a requirement" structural.
+(Only failure modes not already enforced in a Step. The keystone is STEP 1; the citation,
+ambiguity, write-boundary, and OPEN-propagation rules live in STEPS 2–4.)
+
+- **Never invent a `CAP-` key** (keystone — enforced at STEP 1). Wanting to tag a need that
+  isn't in the index is the PROPOSED-NEW signal (STEP 3), not licence to mint a key.
 - **A single citation is proposed-but-flagged, never withheld.** A need cited by one
-  requirement is a weaker but real signal; list it flagged "single — confirm it recurs" and
-  let the human weigh it. Silently dropping it would hide a real gap.
-- **Ambiguity is a menu row, not a guess and not a third kind.** When a requirement could
-  serve more than one capability, ask which (a `menu` row / `question`); never force the
-  nicest pick, and never invent a new output kind for it.
-- **This skill never writes the capability or flips confidence.** It tags (MATCHED) or routes
-  a stub (PROPOSED-NEW). `library/author-capability` writes at `candidate`; a CODEOWNER
-  ratifies. Advancing `approval_status` or setting `confidence: proven` is a human act.
-- **Both edges coexist.** The requirement keeps `derives_from` to its outcome AND gains
-  `fulfils_capability` to its capability — they answer different questions (what it derives
-  from vs what need it serves). Do not collapse one into the other.
-- **The tag is a citation, never a verdict.** `fulfils_capability` records which need a
-  requirement serves; it never asserts the requirement is necessary, sufficient, or done.
-  Those are human calls.
-- **MATCHED-but-OPEN propagates honestly.** Carry an OPEN capability's state onto the tag so
-  the after-neighbour reaches its honest-empty route instead of hunting a pattern that does
-  not exist yet.
-- **The model step is the method.** The alias-match backstop is a sanity check, not the
-  source of truth; where the two disagree, prefer the model and note the divergence — usually
-  an edge case worth a human glance.
+  requirement is a weaker but real signal; list it flagged "single — confirm it recurs".
+  Silently dropping it would hide a real gap.
+- **Both edges coexist.** The requirement keeps `derives_from` AND gains `fulfils_capability`
+  — they answer different questions; do not collapse one into the other.
 
----
-
-### Companion reference
-
-Ship and read `references/capability-matching.md` alongside this skill: the deterministic
-alias-match backstop, the same-need grouping rule, and the worked MATCHED-vs-PROPOSED-NEW
-split — so a MATCHED tag is always cited to a real INDEX row and a PROPOSED-NEW need is
-always cited to its requirement keys.
+The deterministic alias-match backstop, same-need grouping, and the worked
+MATCHED-vs-PROPOSED-NEW split live in `references/capability-matching.md`.

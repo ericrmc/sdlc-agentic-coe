@@ -27,45 +27,13 @@ references:
 
 # Red-team and Preserve-Dissent
 
-Raise the single strongest objection to each emerging proposal, then turn any objection a human declines into a durable record of what was decided **not** to do, and why.
+Two jobs that belong together: from a persona lens raise the **one** strongest objection
+to each emerging proposal (never a verdict, never a kill); when a human *declines* an
+objection, capture it as a durable **dissent record** that feeds dismissal-memory. The
+call always stays with the human — the agent surfaces, the human disposes.
 
-This skill does two jobs that belong together:
-
-1. **Red-team** — from a named persona lens, raise the **one** thing most likely to
-   make an emerging proposal the wrong call. Hard-hitting, specific, grounded — but
-   it **never** delivers a verdict and **never** kills the proposal.
-2. **Preserve-dissent** — when a human *declines* an objection (keeps the proposal),
-   the objection doesn't evaporate. It becomes a durable **dissent record**: a titled
-   "what was decided NOT to do, and why" with a human-owned reason and provenance back
-   to the objection. The register is revisitable and feeds **dismissal-memory** so the
-   same idea is not silently re-proposed later.
-
-The call **always** stays with the human. The agent surfaces; the human disposes.
-
-> **Multi-agent option (advisory).** This step deepens with independent parallel
-> agents: launch one sub-agent per objection lens, at most 4 at a time, each a
-> separate sub-agent. A failed sub-agent returns nothing and is never fatal — the
-> deterministic base stands; merge what succeeded. (Claude Code: use the Task tool /
-> subagents. Other tools: launch parallel model calls; or a matrix-strategy CI job.)
-> Never required — it adds coverage and cuts single-pass bias. See
-> `skills/_contract/parallel-agents`.
-
----
-
-## Purpose
-
-A panel or a fan-out generates *proposals* — a requirement, a decision, a roadblock, a
-gap to close, a shape of the solution. Most of them are fine. A few are quietly wrong:
-they over-reach, under-deliver, or carry a hidden risk that nobody named out loud.
-
-The red-team's job is to name that risk **once, at full strength**, per proposal — and
-then get out of the way. It does not have a kill switch. It produces exactly one
-artefact per proposal: the strongest single objection, framed so a human can decide in
-seconds whether to **keep** the proposal or **record a dissent**.
-
-When the human keeps the proposal *over* an objection, that objection is the most
-valuable thing in the room — the "this was considered and the other way was chosen"
-that a future reader will want. So it is captured.
+> Fan one lens out over N independent agents per `skills/_contract/parallel-agents`
+> (advisory; the deterministic base stands if a sub-agent fails). See Step 3.
 
 ---
 
@@ -93,13 +61,8 @@ pass means "no strong objection surfaced" — not "this is blessed".
 | `grounding` | recommended (optional) | The facts the objection must keep — the proposal's source, prior context, any objection-so-far to *deepen*. *If absent:* object only from the proposal's own stated facts; never back-fill grounding the human did not supply. |
 
 No database, panel, or session state is needed. A proposal pasted into a prompt is
-enough.
-
-**The empty case has two distinct shapes** (per the contract's "I read nothing" vs "I
-cannot read this"): **no proposals supplied at all** is a HALT (Step 0 — ask for them);
-**proposals supplied, but none of them is a genuine emerging proposal** is the honest
-empty case (Step 1 — say so, propose nothing). Never conflate the two; never invent an
-objection to fill either.
+enough. (Two empty cases — no proposals at all vs. proposals that hold no genuine
+proposal — are handled at the Step 0 / Step 1 boundary.)
 
 ## Grounding (quoted)
 
@@ -133,10 +96,8 @@ from.*
 
 <!-- END grounding -->
 
-Per `skills/_contract/grounding-no-absent-input`: the halt over a missing proposal is
-itself a question, never a verdict — it asks where the proposals are. It must not become
-the very thing this skill forbids elsewhere: a disposition ("nothing here is worth
-red-teaming") dressed as a stop.
+Per `skills/_contract/grounding-no-absent-input`, the missing-proposal halt (Step 0) asks
+where the proposals are — never a disposition dressed as a stop.
 
 ### The persona lenses
 
@@ -164,7 +125,7 @@ in a row. The others are available when the proposal is clearly in their domain.
 Before identifying emerging proposals, confirm the `proposal(s)` input was actually
 supplied — a file-level fact (absent / unreadable / empty), computed **before** any model
 reasoning. If **nothing** was supplied to red-team, emit the clean HALT below and **stop** —
-do not invent a proposal to object to. A halt is a question, never a verdict.
+do not invent a proposal to object to.
 
 ```markdown
 HALT — required input missing.
@@ -199,9 +160,8 @@ to) are:
 | `roadblock` | raises a risk that constrains the build | `roadblock` |
 
 If the supplied input held genuine content but **zero** of it is an emerging proposal,
-stop and say so — *the honest empty case*. (This differs from Step 0's HALT: there the
-input was missing entirely; here it was present but proposed nothing.) The honest empty
-case is a result, not a gap — do **not** invent an objection to have something to say.
+stop and say so — *the honest empty case* (the Step 0 boundary above). It is a result,
+not a gap — do **not** invent an objection to have something to say.
 
 Assign each surviving proposal a stable `proposal_ref` (`gap-0`, `req-0`, `decision-0`,
 `roadblock-0`, …) and alternate the lens across the batch (`skeptic`, `minimalist`,
@@ -267,35 +227,12 @@ Either way the human owns the outcome. The agent never auto-disposes.
 ### Step 5 — DETERMINISTIC: a declined objection becomes a durable dissent record
 
 When the human declines a proposal (or keeps one but wants the objection on record),
-materialise a **dissent record** using `references/dissent-register.template.md`. The
-shape is:
-
-```yaml
-title:        # one line — what was decided NOT to do
-kind:         # feature | requirement | solution | proposal | other
-source:       # agent  -> recorded from a red-team objection (provenance below)
-              # human  -> a standalone dissent a human added directly
-reason:       # the durable WHY — HUMAN-OWNED, editable, the human owns every word
-status:       # recorded  (default) | revisited  (re-opened for reconsideration)
-provenance:   # only when source=agent
-  objection_summary:  # the stance_summary that triggered this
-  objection_lens:     # which persona raised it
-  proposal_ref:       # the ref from Step 1 (decision-0, req-0, …)
-recorded_on:  # ISO date
-```
-
-Then append the record to the project's **dissent register** (one markdown file or a
-GitHub Issue using the dissent-record issue template — see Notes). Two properties make
-the register trustworthy:
-
-- **The human owns the WHY.** The `reason` (and `title`) are editable forever. The
-  *provenance* — which objection, which lens, which proposal — is **immutable** once
-  recorded. Snapshot semantics: editing the reason never reaches back and mutates the
-  original objection.
-- **Never write-only.** A record can be **revisited** — flip `status: recorded →
-  revisited` to re-open a declined item for reconsideration. The record, its WHY, and
-  its discussion thread are **preserved** across the flip. Decision history is kept,
-  not erased.
+materialise a **dissent record** per `references/dissent-register.template.md` — that
+file owns the full record shape, the two trustworthiness properties (human owns the WHY /
+never write-only), the append-to-register and GitHub-Issue mechanics, and a rendered
+example. The fields the red-team supplies into it are `reason` (human-owned WHY),
+`proposal_kind` → `kind`, and the immutable provenance triple
+`objection_summary` / `objection_lens` / `proposal_ref` (from Step 1).
 
 ### Step 6 — dismissal-memory: don't silently re-propose a dissent
 
@@ -338,68 +275,23 @@ freshness. Whether that trade is acceptable is the call to make here, not mine.
 When N lenses are fanned out on one proposal, list the objections under the same
 proposal header, sharpest first, with the agreeing lenses noted.
 
-### B. A recorded dissent — from `references/dissent-register.template.md`
+### B. A recorded dissent
 
-```markdown
-## Dissent: Do not co-locate rule evaluation on the read path
-
-- **kind:** solution
-- **source:** agent
-- **status:** recorded
-- **recorded_on:** 2026-06-15
-
-**Why (human-owned):**
-The read-path latency cost is accepted for v1 to ship the rules feature without
-standing up a queue. Revisit if p95 regresses past the NFR target in staging.
-
-**Provenance (immutable):**
-- objection_lens: solution_designer
-- proposal_ref: decision-0
-- objection_summary: "rule evaluation on the read path spends the read-latency headroom"
-```
+Rendered per `references/dissent-register.template.md` (see its "Rendered example") when
+the human disposes via Step 5.
 
 ---
 
 ## Notes / anti-patterns
 
-- **No verdict, ever.** If the output contains "we should not", "rejected", "blocked",
-  a score, or a pass/fail — it has stopped red-teaming. The strongest objection is a
-  *hypothesis about why this could be wrong*, handed to a human. That's the whole
-  contract.
+- **Output a literal verdict-string and you've stopped red-teaming.** "we should not",
+  "rejected", "blocked", a score, a pass/fail — the strongest objection is a *hypothesis*
+  handed to a human (the no-verdict rule is enforced in Step 2).
 - **One objection, full strength.** A list of five mild concerns is weaker than one
   sharp one. If there genuinely are two strong, *distinct* objections, that's a signal
   the proposal is two proposals — say so rather than diluting.
-- **Keep the proposal's facts.** Deepen the objection; don't re-litigate a different
-  point or restate the proposal back. The "objection so far" is given to *sharpen*, not
-  replace.
-- **The honest empty case is a result.** *Proposals present but* zero emerging → zero
-  objections. A lens with no real signal says "no strong objection from this lens" and
-  proposes nothing. Never manufacture an objection to look diligent. (No proposals supplied
-  *at all* is the Step 0 HALT, not this empty case — per
-  `skills/_contract/grounding-no-absent-input`, "I read nothing" and "I cannot read this"
-  are different outputs.)
-- **The human owns the WHY; the agent owns the provenance.** When recording a dissent,
-  the reason/title are the human's words (editable forever); the link back to the
-  objection, lens, and proposal_ref is immutable. Don't let an edit silently rewrite
-  what was originally objected to.
-- **The register is never write-only.** Always offer *revisit* — a recorded "no" must
-  be re-openable. Preserving dissent is about keeping the decision *and the ability to
-  change it*, not freezing it.
-- **Check dismissal-memory before surfacing.** A new proposal that matches a recorded
-  dissent should arrive *with* its prior dissent attached, not fresh. Silently
-  re-proposing a settled "no" is the failure this skill exists to prevent.
-- **Light and advisory.** This skill enforces nothing. It produces objections and
-  records; disposition, ordering, and re-opening are all human moves. There is no
-  approval to grant.
+- **Light and advisory.** This skill enforces nothing; disposition, ordering, and
+  re-opening are all human moves. There is no approval to grant.
 
-### GitHub-native mechanics (optional)
-
-- **Dissent register as Issues:** use a **dissent-record issue template** so each
-  recorded dissent is a GitHub Issue. `source`/`kind`/`status` become labels
-  (`status:recorded`, `status:revisited`); the immutable provenance goes in a fenced
-  block in the issue body; the human-owned WHY is the editable description; discussion
-  threads naturally as issue comments. "Revisit" = re-open the issue (or flip the
-  status label).
-- **Dismissal-memory as a check:** a lightweight Action on PRs/issues can grep new
-  proposal text against open `status:recorded` dissent issues and post an advisory
-  comment ("this resembles dissent #123") — advisory only, never a required check.
+(The dissent-record / dismissal-memory mechanics, including the GitHub-Issue rendering,
+live in `references/dissent-register.template.md`.)

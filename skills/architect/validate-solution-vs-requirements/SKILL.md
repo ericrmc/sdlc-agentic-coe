@@ -19,48 +19,18 @@ verdict is never emitted.
 
 ## Purpose
 
-A solution has been adopted — a pattern, or a narrowed-down shape. It carries **enforced
-constraints**: the things it makes the design give up. *"All writes are async via the event
-bus; no synchronous DB writes."* *"Single region only."* Those constraints are real, and
-some requirements will collide with them.
-
-This skill **replays every requirement against those enforced constraints** and tags each
-one `met` | `compromised` | `unmet`. The defining discipline:
-
-> **The flag is COMPUTED from the constraint replay. It is NEVER a model-emitted verdict.**
-
-A requirement that needs `instant-write` colliding with a `hard` constraint that
-`degrades_capability: instant-write` is **computed** to `compromised` (or `unmet`). The
-model does not "decide" the requirement is compromised — the replay table does, mechanically,
-by matching capability tags against what the constraint degrades. The model's only job is to
-**phrase the resulting compromise as a grounded question** the human can rule on.
-
-Two further disciplines, both load-bearing:
-
-1. **Nothing is dropped without flagging.** Every compromise walks the trace edge *up* to
-   the business outcome — and the capability above it — that it dents. Contested items stay
-   **visible**, never quietly tidied away. This is the honesty contract: lead with the
-   compromises, never filter to "accepted" and drop them.
-
-2. **The flag is computed; the disposition is human.** `accept` or `reject` for each
-   compromise is a **genuinely-human contested call**. This skill emits the compromise as a
-   `question` naming *both* the requirement and the outcome it dents — it never accepts or
-   rejects on the human's behalf, and it never says "this is fine."
-
-There is **no pass/fail stamp** here. A validation pass that finds zero compromises is a
-legitimate, non-failing outcome — it means the solution fits. The output is friction to rule
-on, not a verdict.
+An adopted solution carries **enforced constraints** — what it makes the design give up
+(*"all writes async; no synchronous DB writes"*, *"single region only"*). This skill replays
+every requirement against those constraints and tags each `met` | `compromised` | `unmet`.
+The flag is **computed** by the Step-1 table (capability tag vs. what the constraint
+degrades), never a model verdict; the model only phrases each compromise as a grounded
+question the human rules on. Zero compromises is a legitimate, non-failing outcome.
 
 ## When to use
 
-- A **solution shape is chosen** (an adopted pattern, or a narrowed shape) and it must be
-  validated back against the requirements.
-- You want to know **which requirements the solution can't fully honour** — before the
-  prototype, while the trade-off is still cheap to surface.
-- You want each trade-off **phrased as a question that names the outcome it costs**, so the
-  human is ruling on a business consequence, not a technical detail in isolation.
-- You are assembling the build handoff and need the **compromises for `OPEN-QUESTIONS.md`** —
-  the unresolved and human-accepted trade-offs that the next human must see.
+A solution shape is chosen (adopted pattern, or narrowed shape) and must be validated back
+against the requirements — surfacing which it can't fully honour before the prototype, each
+trade-off phrased as a question naming the outcome it costs, ready for `OPEN-QUESTIONS.md`.
 
 ## Inputs (what you supply)
 
@@ -113,11 +83,8 @@ requirement set HALTs per STEP 0, rather than producing an empty table — see
 
 ## Grounding (quoted)
 
-This skill reads requirements, their capability tags, and their `derives_from` chain, so it
-carries the no-fabrication keystone — see `skills/_contract/grounding-no-absent-input`. The
-existing "do not invent ids" discipline, and the "compute the flag; never emit it as a
-verdict" rule, are instances of this contract: an absent required input is a HALT, never an
-invented requirement or constraint.
+This skill reads requirements and their `derives_from` chain, so it carries the no-fabrication
+keystone — see `skills/_contract/grounding-no-absent-input`.
 
 <!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
 
@@ -351,30 +318,13 @@ not a thin result to pad.
 
 ## Notes / anti-patterns
 
-- **Compute the flag; never emit it as a verdict.** The flag is the output of the replay table in
-  Step 1. The model phrases it; it never *decides* it. ❌ "I judge REQ-022 to be acceptable." The
-  legal move is the question that names the trade-off and hands the call to the human.
-- **`hard` → `unmet`, `soft` → `compromised`. Don't soften a hard clash.** A `hard` constraint
-  cannot be waived; a requirement colliding with it is `unmet`, full stop. The human may *accept
-  the unmet outcome as a known risk* — but the requirement is not magically "compromised" because
-  acceptance happened. Record the acceptance; keep the flag honest.
-- **Walk up, always.** A compromise that doesn't name the outcome it dents is half a flag. The
-  whole point of the trace edge is that the human rules on a *business consequence*, not a stray
-  technical detail. ❌ "REQ-022 degrades." ✅ "BO-3 takes the dent because REQ-022 degrades."
-- **Nothing dropped without flagging.** Never quietly filter out a compromise to make the solution
-  look cleaner. A requirement with no upstream outcome is itself flagged (orphaned), not deleted.
-- **Met requirements settle; they don't vanish.** Report the met count and keep them in the replay
-  table. "Show only the friction" means *lead with* the friction, not *erase* the rest.
-- **Don't rank the compromises.** Two compromises are two equal questions. Ordering them
-  "most severe first" smuggles a verdict. Order them by `req_key` or by appearance in the table —
-  carry no signal in the order.
-- **No accept/reject on the human's behalf.** This skill emits `question`s. It never writes
-  `compromise_accept`, never marks an outcome "risk accepted," never edits a requirement. The
-  disposition is a separate, recorded human action.
-- **Zero compromises is success.** A solution that honours every requirement produces an empty
-  friction list. Don't invent a marginal compromise to look thorough — an honest "it all fits" is
-  the strongest result this skill can return.
-- **Advisory, not blocking.** A pile of `unmet` requirements does not *block* the project. It hands
-  the human a set of contested calls. The human decides whether to change the solution, accept the
-  risks, or proceed — this skill never stops them.
+- **A `hard` clash stays `unmet` even after acceptance.** A `hard` constraint cannot be waived,
+  so the requirement is `unmet` — full stop. A human may *accept the unmet outcome as a known
+  risk*, but that records a disposition; it does not relabel the flag `compromised`.
+- **An orphaned requirement is itself a flag.** A compromise with no upstream outcome is surfaced
+  as orphaned, never quietly filtered out to make the solution look cleaner.
+- **Don't rank the compromises.** Two compromises are two equal questions; ordering them "most
+  severe first" smuggles a verdict. Order by `req_key` or table appearance — no signal in order.
+- **Advisory, not blocking.** A pile of `unmet` requirements hands the human contested calls; it
+  never blocks the project or stops them from proceeding.
 ```

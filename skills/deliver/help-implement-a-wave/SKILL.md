@@ -15,25 +15,12 @@ neighbours: After deliver/describe-phases-releases-waves (which sizes the waves)
 
 Plan and govern a system change or cutover as six ordered waves, framed
 `current (as-built) -> target (design) -> delta`. The deliverable is a **runbook
-scaffold** a migration specialist turns into the executable runbook and runs.
-This plans and governs; it never runs the migration — it does not connect to a
-database, repoint traffic, drop a table, or execute a back-out. Every output is a
-*proposal* a human curates and a specialist executes.
-
-## Purpose
-
-A migration plan governs a transition from a **current** state (the as-built —
-what is running today) to a **target** state (the solution-design sections —
-what the design says should be running), via the **delta** (the open gaps
-between the two). The plan is a named, versioned envelope: it holds no design and
-copies no state — it *points at* the current system, a frozen snapshot of the
-target sections, the open gaps, the risks, and the recorded "why-not"
-(alternatives decided against). The output proposes the **ordered cutover
-waves**; a human owns disposition; a specialist runs them.
-
-The deliverable is a runbook **scaffold**, not a runbook. State the criteria and
-the back-out plan for each wave; do not write the executable scripts and never
-run them. Flag the runbook; do not run the runbook.
+scaffold**, not a runbook — state each wave's go/no-go criteria and back-out plan;
+do not write executable scripts and never run them. The plan is a named, versioned
+envelope that holds no design and copies no state: it *points at* the current
+system, a frozen snapshot of the target sections, the open gaps, the risks, and the
+recorded "why-not". Every output is a *proposal* a human curates and a specialist
+executes. **It governs; it never runs** — see [Step 6](#step-6--stop-at-the-handoff-governs-never-runs).
 
 ## When to use
 
@@ -72,16 +59,11 @@ Supplied as markdown or context:
    ordering constraints, and any alternatives already ruled out ("why-not"). If
    absent: leave each as an explicit slot / null and raise a `question`.
 
-The human knows more about the **source-system name**, the **true ordering
-dependencies**, and the **real downtime budget**. Leave those as explicit slots
-for the human to fill rather than inventing them.
-
-This skill reads the as-built and the design sections to plan a cutover, so it
-follows the GROUNDING contract — an absent **Required** input (an *unstated*
-current state, or no design at all) HALTs and asks; the **Optional** inputs
-degrade to explicit nulls / questions and are never invented. A stated-greenfield
-current state is a value, not an absence. See
-`skills/_contract/grounding-no-absent-input`.
+The **source-system name**, the **true ordering dependencies**, and the **real
+downtime budget** are the human's: leave them as explicit slots to fill, never
+invented. An absent **Required** input (an *unstated* current state, or no design
+at all) HALTs per the GROUNDING contract below; a stated-greenfield current state
+is a value, not an absence. See `skills/_contract/grounding-no-absent-input`.
 
 ## Grounding (quoted)
 
@@ -117,11 +99,9 @@ from.*
 
 ## The six ordered wave_kinds
 
-The canonical cutover shape is six waves in this fixed order. This is the
-**deterministic base** — identical for every migration, so emit it verbatim,
-then enrich each wave from the specific delta. See
-`references/six-wave-skeleton.md` for the full skeleton with default back-out and
-go/no-go text.
+The canonical cutover shape is six waves in this fixed order — the
+**deterministic base**, identical for every migration: emit it verbatim, then
+enrich each wave from the specific delta.
 
 | # | wave_kind | What it does | Default traced section |
 |---|-----------|--------------|------------------------|
@@ -132,39 +112,12 @@ go/no-go text.
 | 5 | `validation` | Validate against the acceptance criteria | `requirements_acceptance` |
 | 6 | `decommission` | Decommission the source system | (none — honest null) |
 
-The order is load-bearing: stand up structure before moving data, move data
-before cutting traffic, configure before validating, validate before
-decommissioning. A wave is emitted **whether or not its preferred section
-exists** — when the section is present the wave traces it; when it is absent the
-wave traces `null`, which is itself a useful signal ("there is no design behind
-this step yet — flag it").
-
-## Per wave: what every wave carries
-
-Each of the six waves must carry, with no exceptions:
-
-- **A back-out PLAN** (`rollback_md`): how to undo this wave. The source system
-  stays the system of record until decommission, so back-out is usually "stop,
-  keep the source untouched, repoint to it." `validation` is the honest
-  exception — it is read-only, so its back-out is "not applicable." State the
-  plan; never run it.
-- **Go/no-go CRITERIA** (`validation_md`): the observable conditions that say
-  this wave succeeded and it is safe to proceed. State them as checks a human
-  evaluates ("row counts reconcile source vs target; sampled records match"), not
-  as code to run.
-- **A traced section** (`derives_from_section_key`) **or an honest null:** the
-  target design section this wave realises, when one exists — otherwise `null`.
-  Never fabricate a section key to make a wave look grounded; null is the correct
-  answer when the design is silent.
-- **An optional dependency** (`depends_on_wave_seq`): the wave sequence this one
-  must follow beyond the natural order, when there is a real constraint. Default
-  `null` and let the human curate true dependencies.
-- **A stated downtime** (`downtime_minutes`): the expected service interruption
-  in minutes, or `null` if unknown. Default `null`; this is the human's budget to
-  fill. The runbook sums these into a total stated downtime.
-- **Moves-from ref** (`moves_from_ref`): the current/source system this wave
-  migrates from — a human names it.
-- **A rationale:** one line on why this wave exists in the sequence.
+The full skeleton — the load-bearing order rationale, each wave's default
+back-out PLAN and go/no-go CRITERIA, and the human-owned slots (`moves_from_ref`,
+`depends_on_wave_seq`, `downtime_minutes`) — lives in
+`references/six-wave-skeleton.md`. Every wave carries: a back-out plan, go/no-go
+criteria, a traced `derives_from_section_key` **or an honest null** (never a
+fabricated key), the three human-owned slots, and a one-line rationale.
 
 ## The method (numbered steps)
 
@@ -197,9 +150,8 @@ that is a value, not a missing input. Nothing is assumed until you point me at t
 design.)
 ```
 
-The halt names the missing input and stops; it carries no wave, no traced section,
-and no feasibility verdict. With both Required inputs present (or a stated
-greenfield current), proceed to Step 1.
+With both Required inputs present (or a stated greenfield current), proceed to
+Step 1.
 
 ### Step 1 — Frame current -> target -> delta (model)
 
@@ -356,29 +308,17 @@ genuinely empty, render the honest empty-state line (`_no open as-built gaps_`,
 
 ## Notes / anti-patterns
 
-- **Govern, never run.** The single hardest rule. Produce a scaffold; a
-  specialist runs it. Never execute a wave, a back-out, or a validation against a
-  live system. If the tooling would let you run it, do not.
-- **The six waves and their order are fixed.** Do not invent a seventh wave,
-  merge two, or reorder them. A near-empty wave (greenfield decommission) keeps
-  its slot.
-- **Honest null beats a fabricated trace.** When no design section backs a wave,
-  trace `null`. A null is a signal ("flag: no design here yet"), not a failure to
-  fill in. (This skill's instance of the library GROUNDING rule —
-  `skills/_contract/grounding-no-absent-input`: a missing section is a null, never
-  invented; a missing Required *input* — no design at all, or an unstated current
-  state — halts per Step 0.)
-- **The source-system name, the true dependencies, and the downtime budget are
-  the human's.** Leave `moves_from_ref` as a slot, `depends_on_wave_seq` and
-  `downtime_minutes` as `null`, and raise a `question` rather than guessing.
-- **Status is the human's, not the plan's.** Propose status-less waves. Never set
-  a wave validated/complete or move the plan to accepted. Disposition is a human
-  act; the back-out happening is a human-recorded event.
+The keystone rules are enforced at their steps: govern-never-run (Step 6),
+six-fixed-waves (Step 2 + `references/six-wave-skeleton.md`), honest-null-beats-
+fabricated-trace (Step 3, the grounding instance of
+`skills/_contract/grounding-no-absent-input`), human-owned slots and status
+(Steps 4 and 6). Failure modes not covered there:
+
 - **The runbook is a projection, not a record.** It is re-derived from the live
-  plan + waves each time and never stored as truth — so always render it from the
-  current waves, not a cached copy.
+  plan + waves each time and never stored as truth — render it from the current
+  waves, not a cached copy.
 - **Light and advisory.** The plan is readable and proposable at any time; the
-  value is the governed structure and the back-out / go/no-go text. The only
-  hard decision points are the per-wave go/no-go gates a human evaluates before
+  value is the governed structure and the back-out / go/no-go text. The only hard
+  decision points are the per-wave go/no-go gates a human evaluates before
   proceeding.
 ```

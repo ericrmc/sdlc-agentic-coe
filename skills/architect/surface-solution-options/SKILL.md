@@ -18,35 +18,12 @@ Open the solution space when no approved pattern matches: lay 2-3 credible rival
 
 ## Purpose
 
-This skill runs only when pattern retrieval came back empty — `recommend-component-patterns`
-ran a real search over the approved pattern library and found nothing adoptable,
-so no governed shape carries the project and its NFRs cannot flow in for free.
-That honest-empty result is a legitimate, non-failing outcome, not an error.
-
-When it happens, the response is not "invent the answer." It is **structured
-exploration**: surface a small set of genuinely distinct, credible candidate
-solution shapes, side by side, so a human can see the trade-space and narrow it.
-Three disciplines keep that safe:
-
-- **Candidates are a `menu`, never a ranked recommendation.** N un-ranked, equal
-  options, alphabetical codenames so order carries no signal, no starred
-  favourite, no "preferred" badge. The moment order implies preference it has
-  become a verdict (see `../../_contract/target-rule-output-kinds`).
-- **"Do nothing" is always a column.** The status quo is a real, often
-  underrated option. A menu that omits it has already pre-decided that *something*
-  must be built — which is itself a smuggled recommendation.
-- **The agent populates; the human disposes.** Pick one, merge two, kill the
-  rest — that is the human's call. The job is to make the space legible, cited,
-  and even-handed.
-
-The payoff sits at the end: every expensive explore seeds a future fast path.
-When a human lands on a shape, this skill prompts *"Promote to pattern library?"*
-— so the next project that hits the same shape retrieves it as an approved
-pattern and never has to explore it again.
-
-Output is **markdown a human acts on** — a comparison table and a set of
-questions. It writes no database row and advances no workflow. Light and
-advisory by design.
+Runs only when `recommend-component-patterns` came back honest-empty — a legitimate,
+non-failing outcome, not an error. The response is structured exploration, not invention:
+surface distinct, credible rival shapes side by side so a human narrows the trade-space.
+Output is markdown a human acts on (a table + questions) — no row write, no workflow advance.
+The three safety disciplines (menu-not-recommendation, mandatory `Do nothing`, agent-populates/
+human-disposes) are enforced at Step 2, Step 5, and the anti-patterns below.
 
 ## When to use
 
@@ -63,13 +40,8 @@ when the fast path is honestly unavailable. If you reach here while a decent
 pattern exists, go back and adopt — don't explore your way around a governed
 shape that already fits.
 
-> **Multi-agent option (advisory).** This step deepens with independent parallel
-> agents: launch one sub-agent per candidate, at most 4 at a time, each a
-> separate sub-agent populating one rival shape against the shared context. A
-> failed sub-agent returns nothing and is never fatal — the deterministic base
-> stands; merge what succeeded. (Claude Code: use the Task tool / subagents.
-> Other tools: launch parallel model calls; or a matrix-strategy CI job.) Never
-> required — it adds coverage and cuts single-pass bias. See
+> **Multi-agent option (advisory).** Deepen by populating one rival shape per parallel
+> sub-agent and merging what succeeds — never required, adds coverage. See
 > `../../_contract/parallel-agents`.
 
 ## Inputs
@@ -92,10 +64,7 @@ candidate. Do not invent requirements the project never stated to justify a shap
 
 ## Grounding (quoted)
 
-This skill reasons over ratified outcomes, derived requirements, and constraints, so it
-carries the no-fabrication keystone — see `skills/_contract/grounding-no-absent-input`. The
-existing "stay grounded in the outcomes; do not invent requirements to justify a shape"
-discipline is one **instance** of this contract.
+Carries the no-fabrication keystone (see `skills/_contract/grounding-no-absent-input`):
 
 <!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
 
@@ -256,24 +225,18 @@ that requires a model. Use this prompt:
 > **Produce 2-3 genuinely distinct, credible candidate solution shapes**, plus a
 > **`Do nothing`** column, filling every comparison row for each:
 >
-> - **Distinct** — the candidates must span the trade-space, not offer three
->   flavours of one idea. Deliberately diverge from the near-misses retrieval
->   already rejected. Make different architectural bets (e.g. buy vs build vs
->   compose; sync vs scheduled-poll; centralise vs federate) so the human sees a
->   real choice.
-> - **Credible** — each must plausibly serve the named outcomes. Cite **which
->   `BO-N` each shape serves well and which it serves weakly or not at all** — be
->   honest about every column's blind spots, including the strong ones.
-> - **Grounded** — stay inside what the outcomes and constraints actually say.
->   Name light, real components (WHAT, not a full design). Do not invent
->   requirements to justify a shape.
-> - **Roadblock-honest** — for each shape, name the roadblocks it hits as **cited
->   facts with `R#` ids**. State what each roadblock constrains and what it
->   invalidates if it holds. **Never** emit a feasibility status
->   ("feasible/infeasible") — that disposition is the human's.
-> - **`Do nothing` is a real column** — fill it honestly: what the status quo
->   leaves unserved, what it costs to keep, what risk it carries, and (usually)
->   its strong reversibility. Do not strawman it.
+> - **Distinct** — span the trade-space; make different architectural bets (buy vs
+>   build vs compose; sync vs scheduled-poll; centralise vs federate); deliberately
+>   diverge from the near-misses retrieval already rejected.
+> - **Credible** — each plausibly serves the named outcomes. Cite **which `BO-N`
+>   each shape serves well and which it serves weakly or not at all.**
+> - **Grounded** — stay inside what outcomes and constraints actually say. Name
+>   light, real components (WHAT, not a full design). Do not invent requirements.
+> - **Roadblock-honest** — name the roadblocks each shape hits as **cited facts with
+>   `R#` ids** (what each constrains, what it invalidates if it holds). **Never**
+>   emit a feasibility status — that disposition is the human's.
+> - **`Do nothing` is a real column** — fill it honestly (what it leaves unserved,
+>   costs to keep, risk it carries, usually-strong reversibility). Do not strawman it.
 >
 > **Hard constraints on your output:**
 > - **No winner.** No ranking, no "recommended", no starred favourite, no order
@@ -400,50 +363,17 @@ candidates.
 ## Promote to pattern library? (only if a shape was chosen) -> author-component-pattern
 ```
 
-## Notes & anti-patterns
+## Anti-patterns — reject these on sight
 
-**Anti-patterns — reject these on sight:**
-
-- **A ranked menu.** Columns ordered best-first, or one labelled "Recommended" /
-  "Preferred" / "Option 1 (best)", or a starred favourite. A real `menu` is
-  un-ranked and equal — **alphabetical codenames so order carries no signal.** The
-  moment order implies preference it is a verdict, not a menu. (`recommendation`
-  is not a fifth output kind; it is the smuggled verdict — see
-  `../../_contract/target-rule-output-kinds`.)
-- **Dropping "do nothing".** A menu of two build options with no status-quo
-  column has already decided *something must be built.* The status quo is a real,
-  co-equal option — and on the reversibility axis it usually wins. Always include
-  it; fill it honestly; never strawman it.
-- **A feasibility status.** *"Candidate B: infeasible"* / *"Candidate A:
-  feasible."* The agent **cites the roadblocks a shape hits** as facts; the
-  feasibility *disposition* is human-owned. This is the single most tempting
-  violation of this skill — the roadblock row carries the fact, never the verdict.
-- **Three flavours of one idea.** Candidates that all make the same architectural
-  bet are not exploration — they are one option wearing three hats. Make the bets
-  genuinely diverge (buy/build/compose, sync/poll, centralise/federate), and
-  deliberately span away from the near-misses retrieval already rejected.
-- **Inventing requirements to justify a shape.** Padding the outcomes so a
-  pet architecture looks necessary. Stay grounded in the ratified `BO-N`; a
-  candidate serves the outcomes that exist, or it is not a candidate.
-- **Inventing a new roadblock vocabulary.** Don't hand-roll roadblock prose here;
-  compose `enumerate-roadblocks` so the register stays one shape, with
-  human-owned status, across the whole method.
-- **Skipping the promotion prompt on a win.** A chosen-and-not-promoted shape is
-  a fast path thrown away — the next project re-explores the same space at senior
-  cost. Always offer promotion (never *assume* it). It is the economic point of
-  paying for exploration.
-
-**Notes:**
-
-- **Honest-empty is the trigger, not a failure.** Reaching this skill means
-  pattern retrieval did its job and told the truth: no governed shape fits.
-  Exploration is the designed response, not a degraded one.
-- **The agent populates; the human narrows.** Pick / merge / kill is the human
-  decision. The contribution is a legible, cited, even-handed map — it stops at
-  the menu and waits.
-- **Space-expansion obliges re-proposal.** When a human widens a box the model was
-  pretrained to assume, that is a regenerate trigger, not a comment to nod at. The
-  most valuable candidate is often the one a false constraint hid.
-- **This output is never a row write.** It is markdown — a comparison and a set
-  of questions — narrowed by a human acting on a PR. No feasibility disposition
-  lives in this skill. Light and advisory.
+- **A feasibility status** — *"Candidate B: infeasible"*. The agent cites roadblock
+  facts, never the verdict; the disposition is human-owned (Step 3). The single most
+  tempting violation.
+- **Dropping "do nothing"** — a menu of two build options has already decided
+  something must be built. Always co-equal, honestly filled, never strawmanned.
+- **A ranked menu** — best-first order, a "Recommended" label, or a starred favourite
+  is a smuggled verdict, not a menu (see `../../_contract/target-rule-output-kinds`).
+- **Three flavours of one idea** — candidates sharing one architectural bet are not
+  exploration.
+- **Hand-rolling roadblock vocabulary** instead of composing `enumerate-roadblocks`.
+- **Skipping the promotion prompt on a win** — a fast path thrown away; the next
+  project re-explores at senior cost.

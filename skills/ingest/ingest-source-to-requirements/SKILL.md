@@ -15,28 +15,13 @@ neighbours:
 
 # ingest-source-to-requirements — lift a messy source into canonical requirement markdown
 
-A new project rarely arrives as free text. More often the requirements already live somewhere
-structured-but-messy: a stakeholder's spreadsheet, a Jira/GitHub board, a folder of docs, an
-exported SharePoint page. `decompose-intake-to-outcomes` handles the free-text case;
-`classify-requirements` annotates requirements that already exist. **Nothing else ingests a
-structured source** — that is this skill's job.
+This skill lifts a **structured-but-messy** source (a spreadsheet, ticket board, docs folder, or
+export) into canonical requirement markdown. It is the only skill that ingests a structured source:
+`decompose-intake-to-outcomes` owns free text, `classify-requirements` annotates what already exists.
 
-It does **two** things and keeps them separate:
-
-1. **A deterministic read** (no model) that turns the source into blocks, each carrying a
-   **locator** (where in the source it came from) and a **sha256** (so a re-read can prove
-   the block is unchanged). This is the readers in `skills/ingest/_scripts/`.
-2. **A model map** that turns each block into a per-requirement markdown block in the canonical
-   shape — minting a local `REQ-<n>` while preserving the source's own identifier verbatim as a
-   `source_ref`. This is the one step that needs a model.
-
-Everything it emits is a **proposal a human ratifies by merging a PR** — advisory by design. Its
-two other outputs are a **question** (an optional input is missing, or a delta needs a human call)
-and a **halt** (a required input — the source itself — is absent or unreadable). Those are the
-only output kinds: proposal, question, halt.
-
-> **The discipline in one line:** read the source, or HALT for it — never invent it; lift an
-> acceptance criterion only when a locator backs it — never synthesise one.
+It separates two things: a **deterministic read** (STEP 1, no model) that turns the source into
+blocks each carrying a locator + sha256, and a **model map** (STEP 2) that turns each block into a
+canonical per-requirement block. The map is the only step that needs a model.
 
 ## When to use
 
@@ -162,9 +147,8 @@ Which one, and where? (Once you point me at it, I'll read it and propose the req
 nothing is assumed until then.)
 ```
 
-The halt **names the missing input, offers the readable forms, and stops.** It carries no finding,
-no assumption, no count, no feasibility verdict — those would break the rule (see the ❌
-counter-example in `skills/_contract/grounding-no-absent-input/SKILL.md`).
+(Per the grounding rule above; the ❌ counter-example is in
+`skills/_contract/grounding-no-absent-input/SKILL.md`.)
 
 **Source-trust branches (resolved at STEP 0, before any read):**
 
@@ -209,22 +193,18 @@ rows."**
 
 > **HALT — not empty (unreadable).** If the source exists but cannot be read (unsupported format,
 > corrupt file, a live board offered where a snapshot is required), the reader returns a projection
-> with `status="skipped"` and a `reason`. Emit a **halt that says "I cannot read this"** carrying
-> that reason and asking for a readable form. **Never return an empty result.** "I read nothing"
-> and "I cannot read this" are different outputs — a silent-empty ingest reads downstream as *the
-> source had nothing in it*, which is a trust failure.
+> with `status="skipped"` and a `reason`. Per the grounding rule ("I read nothing" ≠ "I cannot read
+> this"), emit a **halt that says "I cannot read this"** carrying that reason and asking for a
+> readable form. **Never return an empty result.**
 
 > **HALT — read as empty (readable-but-empty).** The reader can also come back `status="ok"` with
 > **zero blocks** — a CSV that decoded but held no rows, a workbook whose only sheet is blank, a
 > docs folder with no text, an export with no content, a paste of only whitespace, or a GitHub
-> snapshot whose `items` list is empty. **This is the silent-empty failure the grounding rule
-> forbids, and it is THIS skill's call, not the reader's.** A readable-but-empty read MUST **HALT**,
-> never proceed to STEP 2 and emit an empty requirement set. Name *which* source read as empty and
-> ask for a non-empty one (the right sheet, a wider range, the folder that actually holds the
-> docs). Concretely: **if `proj["blocks"]` is empty for any reason** — `status="skipped"` (the
-> unreadable case above) **or** `status="ok"` with no blocks (this case) — **halt; never carry an
-> empty block set into the model step.** An empty requirement set is never a valid output of this
-> skill.
+> snapshot whose `items` list is empty. **This is THIS skill's call, not the reader's**, and it is
+> the silent-empty failure the grounding rule forbids. **If `proj["blocks"]` is empty for any
+> reason** — `status="skipped"` (unreadable, above) **or** `status="ok"` with no blocks (this case)
+> — **halt; never carry an empty block set into STEP 2.** Name *which* source read as empty and ask
+> for a non-empty one (the right sheet, a wider range, the folder that actually holds the docs).
 >
 > ```markdown
 > HALT — the source read as empty.
@@ -290,11 +270,8 @@ downstream instead of laundering it into a clean-looking requirement.
 
 The shape metadata — `layer`, `stated_as` (need|solution|constraint|symptom), `quantified`, and
 the solution-shaped flag — is **owned by `classify-requirements`.** Do **not** inline its enums
-here. Hand the emitted requirement blocks to `classify-requirements` and let it annotate them.
-
-Rationale: the drift check guards *marked prose blocks* (the byte-stable stubs), **not enum lists**.
-Inlining `classify`'s closed sets here would duplicate them where nothing pins them in step, so they
-would silently drift. One owner, cited — never a private copy.
+here (nothing pins them in step, so a private copy silently drifts). Hand the emitted requirement
+blocks to `classify-requirements` and let it annotate them.
 
 ### STEP 5 — propose a PR; surface the gaps as questions
 
@@ -350,39 +327,12 @@ fabricated read, never an empty result.
 
 ## Notes & anti-patterns
 
-**Anti-patterns — reject these on sight:**
-
-- **Inventing a source.** No path, no snapshot, no folder, no paste → HALT (STEP 0). Never reason
-  from a project *name* to a plausible requirement set.
-- **Silent-empty on an unreadable source.** "I read nothing" must never stand in for "I cannot read
-  this." Unreadable/unsupported → HALT — not empty (STEP 1).
-- **Silent-empty on a readable-but-empty source.** A clean read that yields **zero blocks** (an empty
-  sheet/CSV/folder/snapshot, a whitespace-only paste) must HALT too — never proceed to STEP 2 and
-  emit an empty requirement set. If `proj["blocks"]` is empty for any reason, halt and ask for a
-  non-empty source (STEP 1). An empty requirement set is never a valid output.
-- **Synthesising an acceptance criterion.** An AC with no source locator is an **absent-AC flag**.
-  Never write a GIVEN/WHEN/THEN the source does not contain — that is the single most damaging
-  fabrication this skill could make, because it reads downstream as a tested commitment.
-- **Inventing a `derives_from`.** A requirement with no stated outcome carries `derives_from: null`
-  and a value-orphan question — never a manufactured `BO-<n>`.
-- **Minting a key and losing the source id.** Always preserve the source's own identifier as
-  `source_ref`; re-ingest de-dups on it, not on the minted `REQ-<n>` (which renumbers across
-  schemes).
-- **A live GitHub board or live SharePoint fetch.** Both are stale-prone; require a pinned
-  snapshot / a local export. A field rename silently remaps a column otherwise.
-- **Inlining classify's enums.** `layer` / `stated_as` / `quantified` are delegated, never copied.
-
-**Notes:**
-
-- **Read deterministically, map with a model.** The locator + sha256 read is mechanical and is the
-  fallback; the row-to-requirement map is the one model step. Keeping them separate is what makes
-  lifted-vs-fabricated a *structural* fact (locator present or absent).
-- **Provenance must propagate.** The `Source` line travels in the markdown, and
-  `classify-requirements` re-surfaces a stale source as a `question` downstream — so a six-month-old
-  Excel row cannot launder into a clean requirement two skills later.
-- **Advisory, never a gate.** The proposal is markdown ratified by a merge. The halt stops *this
-  run* and asks; it blocks nothing downstream. (See `skills/_contract/propose-ratify-rhythm`.)
+- **Synthesising an acceptance criterion** is the single most damaging fabrication this skill could
+  make — a GIVEN/WHEN/THEN the source does not contain reads downstream as a *tested commitment*. An
+  AC with no source locator is an **absent-AC flag** (STEP 2), never a silently-present one.
 - **Reuse, do not re-author.** Wrap the deterministic readers in `skills/ingest/_scripts/` (the
   `extract-evidence` prototype is the zero-dependency reference) by name and behaviour. Author fresh
   only: the row-to-requirement prompt (STEP 2), the source-line format (STEP 3), and the SharePoint
   halt branch (STEP 0). A CSV adapter is a change in the separate assistant repo — out of scope here.
+- **Advisory, never a gate** — the proposal is markdown ratified by a merge; the halt stops *this
+  run* without blocking anything downstream (see `skills/_contract/propose-ratify-rhythm`).

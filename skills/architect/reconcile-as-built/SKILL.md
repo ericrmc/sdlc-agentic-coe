@@ -16,22 +16,10 @@ neighbours: |
 
 ## Purpose
 
-Compare what was actually built against what was designed, and name every divergence.
-
-A solution is designed, then built — and the two rarely match line for line. Things
-get renamed, merged, deferred, or quietly added. This skill takes the **as-built**
-document (markdown describing what was really delivered) and the **as-designed**
-material (the solution-design sections, the requirements, and their acceptance
-criteria), and emits **neutral observations** in exactly **four kinds** — `match`,
-`difference`, `addition`, `gap`.
-
-It produces observations, never verdicts. It does not pass or fail the build and does
-not block a release. A `gap` does **not** mean "this failed" — it means "an
-as-designed thing has no evident coverage; **confirm whether it was dropped**." The
-human reads the observations and dispositions them. The skill's whole job is to make
-the divergences *visible and named* so nothing slips through handover unnoticed.
-
-Tone throughout: calm margin notes. Observations, never verdicts. Never the word FAIL.
+Diff the **as-built** document (what was really delivered) against the **as-designed**
+material (solution-design sections + requirements + acceptance criteria) and name every
+divergence as a neutral observation. Tone throughout: calm margin notes — observations,
+never verdicts; never the word FAIL. (Four kinds + the "gap is not a failure" rule below.)
 
 ## When to use
 
@@ -77,11 +65,7 @@ The user supplies, as markdown / context:
 
 ## Grounding (quoted)
 
-This skill reasons over a requirement, acceptance criterion, and design section, so it
-carries the no-fabrication keystone — see `skills/_contract/grounding-no-absent-input`.
-The existing "stay strictly within the material; do not invent sections, requirements,
-or scope" / "never invents material" discipline in this skill is one **instance** of
-this contract.
+Carries the no-fabrication keystone — see `skills/_contract/grounding-no-absent-input`.
 
 <!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
 
@@ -240,11 +224,9 @@ as-built text:
 - Else -> **`gap`** (requirement), carrying `detail.requirement_text`. Message:
   *"Requirement <key> is not evident in the as-built document. Was it built?"*
 
-> **The deterministic step is exactly this:** the heading-split (Step 1) plus the
-> Jaccard scan — section drift at the 0.35 overlap threshold and requirement coverage
-> at the 0.5 Jaccard threshold (with the literal `req_key` substring shortcut). Pure
-> string/set math; no library, no model, no network. It is the floor the method never
-> drops below.
+Steps 1 + 4 (heading-split plus the Jaccard scan at these thresholds) ARE the
+deterministic base: pure string/set math, no library/model/network — the floor the
+method never drops below.
 
 ### Step 5 — Model reconciliation pass (judgement)
 
@@ -360,24 +342,5 @@ so downstream tooling (an issue tracker, a Project board) can consume it.
 
 ## Notes / anti-patterns
 
-- **Never FAIL.** There is no pass/fail and no score. A `gap` is "confirm whether
-  dropped," a `difference` is "review the divergence," an `addition` is "is this new
-  scope?" — all open questions for a human, never verdicts.
-- **Exactly four kinds.** Do not invent a fifth (no "partial", no "warning", no
-  "violation"). If something doesn't fit, it is a `difference` (diverged) or a `gap`
-  (not evident).
-- **Field rules are load-bearing.** An `addition` always has `section_key = null` and
-  uses the *as-built* heading as its `section_title` (there is no design key to
-  carry). Section observations leave `req_key = null`; requirement observations leave
-  `section_key`/`section_title` null. Mixing these makes the output unmergeable.
-- **Stay inside the material.** The model step must not invent sections, requirements,
-  or scope. If it isn't in the as-designed material or the as-built document, it isn't
-  an observation.
-- **Degrade, don't crash.** Zero designed sections -> every block is an `addition`,
-  every requirement a `gap`. Empty as-built -> every section/requirement a `gap`.
-  Both are valid, informative outputs.
-- **The deterministic base is the floor.** When in doubt about the model, run the
-  heading-split + Jaccard scan. It is cheap, repeatable, and never hallucinates — it
-  just sees coarser matches than the model would.
-- **Messages are margin notes.** Keep each `message` short, neutral, and readable —
-  what a reviewer would jot, not an instruction.
+- **No fifth kind.** Never invent "partial", "warning", or "violation". If something
+  doesn't fit, it is a `difference` (diverged) or a `gap` (not evident).

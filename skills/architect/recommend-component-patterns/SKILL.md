@@ -13,33 +13,15 @@ neighbours: Usually follows challenge/necessity-check (is this component even ne
 
 # recommend-component-patterns
 
-Match a project's needs to the proven component patterns that genuinely fit — a
-small, defensible shortlist a human accepts, overrides, or rejects — or honestly
-recommend none and route to exploration.
-
-The project already has business outcomes, derived requirements, attached NFRs,
-and a sense of its deployment topology and data placement. The job here is **not**
-to invent an architecture. It is to **retrieve** the patterns from the approved
-library that genuinely fit, and hand a human a short, defensible shortlist.
-
-> Retrieval, not generation. Every pattern named must already exist in
-> `patterns/` — proven, PR-reviewed, evidence-backed, in date. This step retrieves
-> and judges; it does not author new patterns.
-
 ## Purpose
 
-From the approved component pattern library, recommend the patterns that
-**genuinely fit** this project's domain, deployment constraints, and
-data-placement needs.
-
-This step recommends. A human accepts, overrides, or rejects each one. Nothing
-here blocks — it is advisory. The value is that adopting an approved pattern is
-the fastest route to a governed design: the pattern already carries its validated
-NFRs, its evidence of having been built, and its caveats. Reuse beats invention.
-
-If nothing in the library fits, that is a real and useful answer. Say so, and
-route the project to exploration (`architect/surface-solution-options`) rather
-than forcing a bad match.
+**Retrieve**, don't generate: match the project's context to the approved-library
+patterns that genuinely fit, and hand a human a small, defensible shortlist to
+accept, override, or reject — advisory, never blocking. Every pattern named must
+already exist in `patterns/` (proven, PR-reviewed, evidence-backed, in date). If
+nothing fits, that is a valid answer: recommend **none** and route to
+`architect/surface-solution-options`. Grounding and the no-fabrication rationale
+live in `references/retrieval-not-generation.md`.
 
 ## When to use
 
@@ -88,10 +70,9 @@ library.
 
 ## Grounding (quoted)
 
-This skill reads or writes a requirement, so it carries the no-fabrication keystone —
-see the contract `skills/_contract/grounding-no-absent-input`. The "never invent a
-`pattern_key`" rule throughout this skill (it appears in the description, STEP 1, STEP 2,
-and the anti-patterns) is one **instance** of this contract, not a separate rule.
+This skill reads a required input, so it carries the no-fabrication keystone (see
+`skills/_contract/grounding-no-absent-input`); "never invent a `pattern_key`" is
+one instance of it.
 
 <!-- BEGIN grounding (byte-stable; do not edit a quoted copy — edit _shared/grounding.md) -->
 
@@ -178,18 +159,11 @@ the raw pattern library — the index is a fast path, not a gate.
 > lookup. The tag is the deterministic capability already named — never re-derive or
 > invent a different one.
 
-> **Multi-agent option (advisory).** This step deepens with independent parallel
-> agents: launch one sub-agent per candidate, at most 4 at a time, each a separate
-> sub-agent. A failed sub-agent returns nothing and is never fatal — the
-> deterministic base stands; merge what succeeded. (Claude Code: use the Task tool
-> / subagents. Other tools: launch parallel model calls; or a matrix-strategy CI
-> job.) Never required — it adds coverage and cuts single-pass bias. See
-> `skills/_contract/parallel-agents`.
-
-For a capability that is OPEN with several candidate components, fan out one agent
-per candidate to probe its open questions in parallel, then synthesise a
-per-candidate proven|still-candidate read for a human to ratify — preserving any
-dissent on lock-in.
+> **Multi-agent option (advisory).** One sub-agent per candidate (or, for an OPEN
+> capability, per candidate component to probe its open questions in parallel),
+> then synthesise a per-candidate proven|still-candidate read for a human to ratify
+> — preserving any dissent on lock-in. Never required; the deterministic base
+> stands. See `skills/_contract/parallel-agents`.
 
 ### STEP 1 (DETERMINISTIC) — Load and present the candidate `patterns_block`
 
@@ -363,53 +337,8 @@ and if a new shape emerges, propose it as a *candidate* pattern through the
 PR-reviewed contribution flow so the next project can reuse it.
 ```
 
-## Notes / anti-patterns
+## Scope ceiling and grounding
 
-- **Never invent a `pattern_key`.** Every key emitted must trace to a real file
-  under `patterns/`. The deterministic STEP 1 exists precisely so the set of
-  legal keys is fixed before reasoning. Wanting to recommend something that isn't
-  in the library is the honest-empty signal (STEP 4), not licence to make one up.
-  This is the no-fabrication keystone applied to pattern keys — see
-  `skills/_contract/grounding-no-absent-input`.
-- **Don't oversell.** Every recommendation states its trade-off or caveat. A
-  recommendation with no caveat is usually one not thought hard enough about —
-  surface the cost, the assumption, or the gap.
-- **Prefer a small set.** One well-defended pattern beats five hedged ones. A long
-  list defers the choice rather than making a recommendation.
-- **None is a valid answer.** Recommending nothing and routing to exploration is a
-  confident, correct outcome — not a failure.
-- **Respect status and dates.** `deprecated` patterns are not recommended (point at
-  `superseded_by`); `candidate` patterns carry an "unreviewed draft" caveat;
-  `provisional` carries a "reviewed, use with care" caveat; stale (past `sunset_at`
-  or the computed next-review date) patterns are flagged as soft caveats. This is
-  advisory.
-- **You recommend; the human disposes.** Acceptance, override, and rejection are
-  the human's. The only obligation is that the override path is recorded with a
-  reason in `adoptions/ledger.jsonl`.
-- **Retrieval is grounded in real rows.** Any similarity or fit claim is computed
-  from and cited to actual pattern frontmatter — never emitted from the model's
-  imagination. See `references/retrieval-not-generation.md`.
-
-## v1 scope and the scaling ceiling
-
-The LLM reads the pattern `.md` files **directly** — there is no vector index, no
-embedding store, no retrieval service. This is deliberate: it keeps the library
-portable (plain markdown in a git repo), human-auditable (a PR diff shows exactly
-what changed), and dependency-free (runs in any LLM workflow that can read files).
-
-**The ceiling:** reading every pattern file into context does not scale past
-roughly a few dozen patterns. Once the library outgrows the context window, this
-step needs a real retrieval layer — embed each pattern's frontmatter + summary,
-index it, and retrieve top-K candidates before STEP 2's reasoning. Until then,
-direct reads are correct and honest. At the ceiling, the fix is a retrieval index
-*feeding* this same prompt — the method does not change, only how the
-`patterns_block` is assembled.
-
----
-
-### Companion reference
-
-Ship and read `references/retrieval-not-generation.md` alongside this skill:
-similarity and fit are computed from and cited to real pattern rows, never
-emitted by the model; and honest emptiness routes to exploration rather than
-fabricating a fit.
+Direct markdown reads (no vector index) are correct until the library outgrows the
+context window — see the scaling-ceiling note and the retrieval-grounding rationale
+in `references/retrieval-not-generation.md`.

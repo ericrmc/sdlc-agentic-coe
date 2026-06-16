@@ -12,35 +12,15 @@ neighbours: Pair with `_contract/parallel-agents` (the execution convention for 
 
 # explore-one-area-at-a-time — the domain-lens fan-out meta-method
 
-Attack a large solution space by working one surfaced area at a time, each on its own narrow agent, then
-recombining all of them into a single source of truth.
-
-This is the organising method the other skills compose with. Each other skill (derive requirements, red-team,
-identify capabilities, recommend components, design review, NFRs, convene a panel, synthesise the architecture)
-is *one lens* you point at the space. This skill is the rule for **which lens to pick up next, how to scope the
-agent that works it, and where its output goes** so that many parallel threads still leave behind exactly one
-source of truth.
-
-If you only remember one sentence, remember this:
+This is the organising method the other skills compose with: each of them (derive requirements, red-team,
+NFRs, synthesise the architecture, …) is *one lens* you point at the space. The keystone rule:
 
 > **A new area surfaces → explore it on its own, narrowly scoped, told what to ignore → roll its depth back
 > into the one source-of-truth document, routed by section.**
 
-That is the move real delivery makes, and it is the move to make when exploring any non-trivial solution space.
-Do not enumerate everything upfront. Surface areas progressively and work them one at a time.
-
----
-
-## Purpose
-
-Stop one generalist pass from spreading itself thin across an entire solution space. Instead, **treat the space
-as a set of domains** — each a *lens over the same underlying graph of outcomes, requirements, decisions, and
-NFRs*, never a new container that owns its own copy of the work — and give each surfaced domain its own
-**narrowly-chartered** focused agent that goes deep on exactly that area and ignores the rest.
-
-The payoff is depth without fragmentation: specialists produce more thorough, less shallow exploration, and
-because every domain rolls its findings back into **one** sectioned source-of-truth markdown (routed by a stable
-section key), the result is "many threads, one truth" instead of N parallel documents that drift apart.
+Specialists go deep where one generalist pass spreads thin; routing every finding back into one sectioned
+markdown gives "many threads, one truth" instead of N drifting documents. Do not enumerate everything upfront —
+surface areas progressively and work them one at a time.
 
 ## When to use
 
@@ -68,43 +48,18 @@ A complete list of areas is **not** needed. Surfacing them progressively is the 
 
 ---
 
-## The mental model: two orthogonal axes
-
-Hold this picture. Everything below is one of these two axes, and the whole method is keeping them straight.
-
-```
-                    THE ONE SOURCE OF TRUTH
-              (a sectioned, versioned design document)
-                              │
-   ┌──────────────────────────┼──────────────────────────┐
-   │   AUTHORSHIP axis        │        TIME axis          │
-   │   WHO fleshes out each   │   HOW the design moves    │
-   │   section                │   from version to version │
-   │   → one narrow agent     │   → a release is a named,  │
-   │     per surfaced domain, │     dated change-control   │
-   │     routed by section_key│     transaction            │
-   └──────────────────────────┴──────────────────────────┘
-```
-
-- **AUTHORSHIP** — *who* authors a section's depth. One narrow agent per surfaced **domain**, each routed to the
-  section it feeds by a stable `section_key`. This skill is mostly about this axis.
-- **TIME** — *how* the design moves forward. A **release** is a named, dated change-control transaction: a
-  bounded set of adds/changes/removes against the source of truth. The two axes meet here — *a release is a
-  human-named trigger that surfaces or re-activates domains, each of which authors its slice of the delta.*
-
-The two axes are orthogonal and compose. A domain says **where in the document** depth lands; a release says
-**which dated transaction** a batch of changes belongs to. Keep them separate in your head and the method stays
-simple.
-
-### A domain is a LENS, not a container
+## A domain is a LENS, not a container
 
 This is the load-bearing rule. **A domain does not own requirements, NFRs, or decisions** — those already exist
 and already trace to outcomes. A domain is a *named scope* = (a predicate over the graph) + (a target section) +
 (a chartered agent). Every artefact a domain agent produces is a normal traced row, merely *tagged* with which
-domain surfaced it. The graph stays single; the domain is a queryable facet over it.
+domain surfaced it. The graph stays single; the domain is a queryable facet over it. The moment a domain starts
+owning its own private copy of requirements, the truth is forked and reconciliation becomes a diff between two
+stores instead of an additive thread into one.
 
-Treat this as non-negotiable. The moment a domain starts owning its own private copy of requirements, the truth
-is forked and reconciliation becomes a diff between two stores instead of an additive thread into one.
+This skill owns the **authorship** axis — *who* authors each section's depth (one narrow agent per surfaced
+domain, routed by `section_key`). The orthogonal **TIME** axis — how a named, dated release transacts a batch of
+changes against the source of truth — is a different concern, deferred to the release/change-control method.
 
 ### The domain families
 
@@ -237,60 +192,29 @@ standard roster doesn't name.
 pattern signals, and one latency NFR (routed to Quality NFRs).
 *Ignore:* billing, security (Security domain owns it), and historical reporting.
 
-### 3. Cost  ·  crosscutting  →  rolls into: Quality NFRs (+ estimate)
-**Surfaced because:** real-time + multi-region (BO-3) implies a non-trivial run-cost the space hasn't sized.
-**Charter:** Explore run-cost drivers and a cost-ceiling NFR; run a scoped necessity check on the most
-expensive proposed requirements. *Ignore:* implementation detail and security controls.
-
-> Queued (over the ≤4 cap): Integration, Operability, Data — surface next round.
+> Queued (over the ≤4 cap): Cost, Integration, Operability, Data — surface next round.
 ```
 
 ### Template B — a worked domain's roll-up (routed to one section)
 
-```markdown
-## Security  →  Quality NFRs   [proposal/question/cited-fact — advisory, not a verdict]
-
-**Proposed NFRs** (each traced to an outcome via `derives_from`, classified `nfr-kind: security`, tagged `domain: security`):
-- REQ-41 ← BO-2 · All PII encrypted at rest (AES-256) and in transit (TLS 1.2+).  *(proposal)*
-- REQ-42 ← BO-2 · Authn via SSO; least-privilege authz on PII read paths.         *(proposal)*
-
-**Questions** (a human answers):
-- Is full audit logging (REQ-14) required for *read* access, or only writes? Affects cost.  *(necessity)*
-
-**Cited facts / roadblocks** (a human dispositions):
-- Roadblock: EU data residency forbids storing PII in the us-east region.  Evidence: BO-2, REG-1.
-
-**Narrative contribution** (merged under its own sub-heading when Quality NFRs is regenerated):
-> Security obligations stem from EU PII handling (BO-2). The controlling NFRs are REQ-41/REQ-42; the open
-> question is read-audit scope, and the binding constraint is EU residency …
-```
-
-When several domains route to the same section, present each as its own sub-block (ordered, append-only) and
-regenerate the section from all of them together — never one domain overwriting another.
+A roll-up is headed `## <Domain>  →  <Section>` and carries only the three advisory kinds of Step 6, each as a
+labelled block of traced rows: **Proposed NFRs / requirements** (each `derives_from` an outcome, classified,
+tagged `domain:`), **Questions** (a human answers), **Cited facts / roadblocks** (with evidence, a human
+dispositions), plus a **Narrative contribution** merged under its own sub-heading when the section is
+regenerated. When several domains route to one section, present each as its own sub-block (ordered, append-only)
+and regenerate the section from all of them together — never one domain overwriting another.
 
 ---
 
 ## Notes / anti-patterns
 
-- **Don't let a domain become a container.** The first sign of going wrong: a requirement "lives in the security
-  domain" instead of "is tagged security and traces to BO-2." Tags are provenance, not ownership.
-- **Don't dispatch a charter without an ignore-list.** "Explore security" with no "ignore X, Y, Z" produces a
-  generalist. The ignore-list is what makes the agent narrow.
-- **Don't bind domains 1:1 to sections.** Four crosscutting domains share the quality-NFR section. Many-to-one is
-  correct; collisions are handled by additive rows + regenerate-from-rows, not by avoiding overlap.
-- **Don't exceed the concurrency cap to "go faster."** ≤4 protects the human's review channel; flooding it with
-  proposals is the failure mode, not the win.
-- **Don't emit verdicts.** Proposals, questions, and cited facts only. The instant an agent emits "approved" or
-  "done," it has crossed the advisory line.
-- **Don't enumerate everything upfront.** Surface progressively (Steps 2 and 7). Forcing a complete domain list
-  before starting is the generalist trap wearing a planning hat.
-- **Don't duplicate the keystone passes per domain.** One tracer, one classifier, one validation — domains feed
-  them. Re-running edge-drawing inside every domain agent fragments the graph.
+The numbered steps already carry their own failure modes (no ignore-list → Step 3; 1:1 domain↔section binding →
+Step 5; over the cap → Step 4; verdicts → Step 6; eager enumeration → Steps 2/7; per-domain keystone passes →
+Step 4). Two that no single step owns:
+
+- **Don't let a tag become ownership.** A requirement is *tagged* security and traces to BO-2 — it does not "live
+  in the security domain." Tags are provenance; the graph stays single (the lens-not-container rule above).
 - **Deterministic fallback:** with no model budget for Step 2's creative surfacing, just run the
   **BDAT / crosscutting / lifecycle checklist** (Step 1's roster) with default section routing. It is shallower —
   it can't surface novel project-specific domains — but it never forgets a standard concern, and the routing and
   roll-up steps work identically.
-
-This is the organising method behind the rest of the library. When in doubt about *how* to attack a big space:
-surface one area, charter it tightly (including what to ignore), work it, roll it into the one truth by section,
-and repeat — many threads, one source of truth.
