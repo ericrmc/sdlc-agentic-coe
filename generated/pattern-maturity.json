@@ -1,7 +1,7 @@
 {
   "generated_by": ".github/workflows/pattern-lifecycle.yml",
-  "generated_at": "2026-06-15T11:18:23Z",
-  "as_of": "2026-06-15",
+  "generated_at": "2026-06-22T12:11:51Z",
+  "as_of": "2026-06-22",
   "source_of_truth": "adoptions/ledger.jsonl + patterns/**/*.md frontmatter",
   "caveat": "Maturity/adoption counts are only as complete as adoptions/ledger.jsonl. Cross-org discovery of adoptions in downstream repos is a deferred upgrade; absent == adopted-by-zero, shown honestly.",
   "maturity_ladder": {
